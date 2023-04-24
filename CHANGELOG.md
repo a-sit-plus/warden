@@ -23,3 +23,7 @@ Explicit `verifyKeyAttestation` function for both mobile platforms
 
 ### 0.4.1
 - bugfix: NOOP attestation service actually being a NOOP
+
+## 0.5.0
+- Group OS-specific interfaces
+- Align exception types between iOS and Android
