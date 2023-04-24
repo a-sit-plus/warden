@@ -1,0 +1,6 @@
+[submodule "android-attestation"]
+	path = android-attestation
+	url = ../android-attestation.git
+[submodule "devicecheck-appattest"]
+	path = devicecheck-appattest
+	url = ../devicecheck-appattest.git
