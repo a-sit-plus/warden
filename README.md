@@ -13,9 +13,20 @@ Under the hood, this library depends on the [Android Key Attestation Library](ht
 [Vincent Haupert's](https://github.com/veehaitch)  excellent [DeviceCheck/AppAttest Library](https://github.com/veehaitch/devicecheck-appattest). 
 
 ## Demonstration / Usage Example
+This library is intended for integration into back-end services which need to remotely establish trust in mobile clients
+(both Android and iOS). Usually, this means that mobile client initially request a binding certificate from the back-end
+based on a public/private key pair stored inside cryptographic hardware.
+This binding is only granted if device and app integrity can be verified, and if the key can be proven to be stored in hardware.
+<br>
+Once a binding has been obtained, mobile clients can subsequently authenticate to the back-end (e.g. to access some protected
+resource). However, far more flexible scenarios can be implemented. Hence, Figure&nbsp;1 depicts an abstract version of
+establishing trust in mobile clients.
+
 See the provided [sample service](sample/backend) and its accompanying mobile clients for an MWE that integrates this library.
 (The sample also contains the Android and iOS clients.)
 
+![flow.png](flow.png)
+<div style="text-align: center;">Figure 1: Abstract example usage: remotely establishing trust in mobile clients</div>
 
 ## Background
 Apple and Google pursue different strategies wrt. establishing trust in mobile clients.
@@ -36,9 +47,11 @@ signatures, etc.).
 
 Although quite some properties of this certificate chain leaf need to be evaluated in a particular manner, to establish
 trust in an Android client app, it is really dead-simple on a technical level: Validate the chain, and evaluate certain
-extensions of the leaf certificate.
+extensions of the leaf certificate (Figure&nbsp;2 illustrates this high-level concept in more detail). 
 iOS, on the other hand is a different beast. 
 
+![android.png](android.png)
+<div style="text-align: center;">Figure 2: High-level structure of an Android key attestation result</div>
 
 ### iOS
 Apple relies on their own heuristics employed as part of a service operated by the company to assess whether a device
@@ -47,9 +60,9 @@ While some of the same basic principles apply here as well (i.e. keys generated 
 an Apple certificate), the semantics are different.
 Android primarily attests the properties of a cryptographic key.
 Apple's [App Attest](https://developer.apple.com/documentation/devicecheck/establishing_your_app_s_integrity), on the
-other hand, attest the integrity of apps.
+other hand, attests the integrity of apps.
 The cryptographic material is in this case a mere vehicle to realise the idea of attesting app integrity.
-Therefore, the involved key material cannot be used by the app for arbitrary cryptographci operations, but only to sign
+Therefore, the involved key material cannot be used by the app for arbitrary cryptographic operations, but only to sign
 attestations and related assertions.
 
 This begs the question: How to enable key attestation on iOS?
@@ -157,6 +170,8 @@ Passing a public key created in the same app on the iDevice's secure hardware as
 emulates Android's key attestation: Attesting such a secondary key through an assertion, proves that
 it was also created within the same app, on the same device, resulting in an attested key, which can then be used
 for general-purpose crypto.
-**BEWARE: supports only EC key on iOS (either the ANSI X9.63 encoded or DER encoded).
-The key can be passed in either encoding to the secure enclave for assertion/attestation**
+<br>
+**BEWARE: supports only EC key on iOS (either ANSI X9.63 encoded or DER encoded).**
+The key can be passed in either encoding to the secure enclave when creating an assertion.
+This library does not care when `verifyKeyattestation`
 
