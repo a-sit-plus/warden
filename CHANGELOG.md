@@ -27,3 +27,6 @@ Explicit `verifyKeyAttestation` function for both mobile platforms
 ## 0.5.0
 - Group OS-specific interfaces
 - Align exception types between iOS and Android
+ 
+### 0.5.1
+-  depend on android-attestation 0.8.3 (MR Jar)

@@ -16,7 +16,7 @@ plugins {
 }
 
 group = "at.asitplus"
-version = "0.5.0"
+version = "0.5.1"
 
 sourceSets.test {
     kotlin {
@@ -27,7 +27,7 @@ sourceSets.test {
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-datetime-jvm:0.4.0")
     implementation("ch.veehait.devicecheck:devicecheck-appattest:0.9.6")
-    api("at.asitplus:android-attestation:0.8.2")
+    api("at.asitplus:android-attestation:0.8.3")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.14.2")
     implementation("net.swiftzer.semver:semver:1.2.0")
     implementation("org.bouncycastle:bcpkix-jdk18on:1.73")
