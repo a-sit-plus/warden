@@ -16,20 +16,14 @@ import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.google.android.attestation.ParsedAttestationRecord
 import kotlinx.datetime.Clock
-import kotlinx.datetime.toJavaInstant
-import kotlinx.datetime.toKotlinInstant
 import net.swiftzer.semver.SemVer
 import org.bouncycastle.cert.X509CertificateHolder
-import org.bouncycastle.util.encoders.Base64
 import org.slf4j.LoggerFactory
 import java.security.MessageDigest
 import java.security.PublicKey
 import java.security.cert.CertificateException
-import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
 import java.security.interfaces.ECPublicKey
-import java.time.Instant
-import java.time.ZoneId
 import java.util.*
 import kotlin.time.Duration
 import kotlin.time.toJavaDuration
@@ -303,9 +297,9 @@ data class KeyAttestation<T : PublicKey> internal constructor(
     val isSuccess get() = attestedPublicKey != null
 
     fun <R> fold(
-        onError: (AttestationResult.Error) -> R? = { null },
+        onError: (AttestationResult.Error) -> R,
         onSuccess: (T, AttestationResult) -> R
-    ): R? =
+    ): R =
         if (isSuccess) onSuccess(attestedPublicKey!!, details)
         else {
             onError(details as AttestationResult.Error)

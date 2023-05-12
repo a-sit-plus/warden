@@ -8,7 +8,7 @@ Properties().apply {
 }
 
 plugins {
-    kotlin("jvm") version "1.8.20"
+    kotlin("jvm") version "1.8.21"
     id("org.jetbrains.dokka") version "1.7.20"
     id("maven-publish")
     id("io.github.gradle-nexus.publish-plugin") version "1.3.0"
@@ -25,9 +25,9 @@ sourceSets.test {
 }
 
 dependencies {
+    api("at.asitplus:android-attestation:0.8.4-SNAPSHOT")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime-jvm:0.4.0")
     implementation("ch.veehait.devicecheck:devicecheck-appattest:0.9.6")
-    api("at.asitplus:android-attestation:0.8.3")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.14.2")
     implementation("net.swiftzer.semver:semver:1.2.0")
     implementation("org.bouncycastle:bcpkix-jdk18on:1.73")
