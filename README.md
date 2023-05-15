@@ -10,7 +10,9 @@ It also provides App attestation on both platforms (see [our 2019 Paper](https:/
 on how to remotely establish trust in Android applications for more Android-specifics on this matter).
 
 Under the hood, this library depends on the [Android Key Attestation Library](https://github.com/a-sit-plus/android-attestation) and
-[Vincent Haupert's](https://github.com/veehaitch)  excellent [DeviceCheck/AppAttest Library](https://github.com/veehaitch/devicecheck-appattest). 
+[Vincent Haupert's](https://github.com/veehaitch)  excellent [DeviceCheck/AppAttest Library](https://github.com/veehaitch/devicecheck-appattest).
+
+Full API docs are available <a href="https://a-sit-plus.github.io/android-attestation/android-attestation/at.asitplus.attestation/index.html" target="_blank">here</a>.
 
 ## Demonstration / Usage Example
 This library is intended for integration into back-end services which need to remotely establish trust in mobile clients

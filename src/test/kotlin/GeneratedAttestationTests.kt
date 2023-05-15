@@ -17,7 +17,7 @@ class GeneratedAttestationTests : FreeSpec(
         val appVersion = 5
         val androidVersion = 11
 
-        val (trustAnchor, attestationProof) = AttestationCreator.createAttestation(
+        val attestationProof = AttestationCreator.createAttestation(
             challenge,
             packageName,
             signatureDigest,
@@ -35,13 +35,11 @@ class GeneratedAttestationTests : FreeSpec(
                 requireStrongBox = false,
                 bootloaderUnlockAllowed = false,
                 ignoreLeafValidity = false,
-                trustAnchors = listOf(trustAnchor)
+                trustAnchors = listOf(attestationProof.last().publicKey)
             ),
             iosAttestationConfiguration = IOSAttestationConfiguration(
                 teamIdentifier = "9CYHJNG644",
-                bundleIdentifier = "at.asitplus.attestation-client",
-                sandbox = false,
-                iosVersion = "16" //optional, use SemVer notation
+                bundleIdentifier = "at.asitplus.attestation-client"
             )
         )
 
