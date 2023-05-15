@@ -361,6 +361,15 @@ class DefaultAttestationService(
     private val verificationTimeOffset: Duration = Duration.ZERO
 ) : AttestationService {
 
+    /**
+     * Java-friendly constructor with `java.time` types
+     *
+     * @param androidAttestationConfigurationJ Configuration for Android key attestation. See [AndroidAttestationConfiguration]
+     * @param iosAttestationConfigurationJ IOS AppAttest configuration.  See [IOSAttestationConfiguration] for details.
+     * @param verificationTimeOffsetJ allows for fine-grained clock drift compensation (this duration is added to the certificate
+     *                                validity checks; can be negative.
+     * @param javaClock a clock to set the time of verification (used for certificate validity checks)
+     */
     @JvmOverloads
     constructor(
         androidAttestationConfigurationJ: AndroidAttestationConfiguration,

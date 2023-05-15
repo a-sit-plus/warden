@@ -25,7 +25,7 @@ sourceSets.test {
 }
 
 dependencies {
-    api("at.asitplus:android-attestation:0.8.4-SNAPSHOT")
+    api("at.asitplus:android-attestation:0.8.4")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime-jvm:0.4.0")
     implementation("ch.veehait.devicecheck:devicecheck-appattest:0.9.6")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.14.2")
@@ -45,14 +45,16 @@ tasks.test {
 }
 
 
-val dokkaHtml by tasks.getting(org.jetbrains.dokka.gradle.DokkaTask::class)
-
-val javadocJar: TaskProvider<Jar> by tasks.registering(Jar::class) {
-    dependsOn(dokkaHtml)
-    archiveClassifier.set("javadoc")
-    from(dokkaHtml.outputDirectory)
+tasks.dokkaHtml { outputDirectory.set(file("$projectDir/docs")) }
+val deleteDokkaOutputDir by tasks.register<Delete>("deleteDokkaOutputDirectory") {
+    delete(tasks.dokkaHtml.get().outputDirectory.get())
 }
 
+val javadocJar: TaskProvider<Jar> by tasks.registering(Jar::class) {
+    dependsOn(deleteDokkaOutputDir, tasks.dokkaHtml)
+    archiveClassifier.set("javadoc")
+    from(tasks.dokkaHtml.get().outputDirectory)
+}
 val sourcesJar by tasks.registering(Jar::class) {
     archiveClassifier.set("sources")
     from(sourceSets.main.get().allSource)

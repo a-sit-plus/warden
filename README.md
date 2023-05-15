@@ -104,13 +104,14 @@ val service = DefaultAttestationService(
     androidAttestationConfiguration = AndroidAttestationConfiguration(
         packageName = "at.asitplus.attestation_client",
         signatureDigests = listOf("NLl2LE1skNSEMZQMV73nMUJYsmQg7+Fqx/cnTw0zCtU=".decodeBase64ToArray()),
-        androidVersion = 10000, //optional
-        appVersion = 1, //optional
-        patchLevel = PatchLevel(2021, 8), //optional
-        requireStrongBox = false, //optional
-        bootloaderUnlockAllowed = false, //you don't usually want to change this
-        requireRollbackResistance = false, //depends on device, so leave off
-        ignoreLeafValidity = false //ignore attestation leaf certificate validity (looking at you, Samsung!)
+        androidVersion = 10000,                 //optional
+        appVersion = 1,                         //optional
+        patchLevel = PatchLevel(2021, 8),       //optional
+        requireStrongBox = false,               //optional
+        bootloaderUnlockAllowed = false,        //you don't usually want to change this
+        requireRollbackResistance = false,      //depends on device, so leave off
+        ignoreLeafValidity = false,             //ignore attestation leaf certificate validity (looking at you, Samsung!)
+       trustAnchors = listOf(googleRootPubKey)  //OPTIONAL, defaults to google HW attestation key. Useful for automated end-to-end tests
     ),
     iosAttestationConfiguration = IOSAttestationConfiguration(
         teamIdentifier = "9CYHJNG644",
