@@ -176,5 +176,14 @@ for general-purpose crypto.
 <br>
 **BEWARE: supports only EC key on iOS (either ANSI X9.63 encoded or DER encoded).**
 The key can be passed in either encoding to the secure enclave when creating an assertion.
-This library does not care when `verifyKeyattestation`
 
+<br>
+
+---
+<p align="center">
+This project has received funding from the European Union’s Horizon 2020 research and innovation
+programme under grant agreement No 959072.
+</p>
+<p align="center">
+<img src="eu.svg" alt="EU flag">
+</p>
