@@ -91,7 +91,7 @@ This library is published at maven central.
 ```
 
 
-While still not complete, the test suite in this repository should provide a nice overview. [FeatureDemonstration](src/test/kotlin/FeatureDemonstration.kt),
+While still not complete, the test suite in this repository should provide a nice overview. [FeatureDemonstration](attestation-service/src/test/kotlin/FeatureDemonstration.kt),
 in particular, was designed to demonstrate this library's whole API.
 <br>
 See the provided [sample service](sample/backend) and its mobile clients for an MWE that integrates this library.
@@ -138,11 +138,11 @@ Custom android challenge verification has been omitted by design, considering iO
    whether the key is indeed stored in HW (and whether the app can be trusted). This call requires the challenge from step 1.
 
 Various flavours of this attestation call from step 4 exist, some of which are platform-dependent
-(do see [FeatureDemonstration](src/test/kotlin/FeatureDemonstration.kt) for details).
+(do see [FeatureDemonstration](attestation-service/src/test/kotlin/FeatureDemonstration.kt) for details).
 
 #### Key Attestation 
 The most important one of these is the `verifyKeyAttestation()` function, which returns a
-[KeyAttestation](src/main/kotlin/AttestationService.kt#L299) object.
+[KeyAttestation](attestation-service/src/main/kotlin/AttestationService.kt#L299) object.
 
 ##### Signature
 ```kotlin
