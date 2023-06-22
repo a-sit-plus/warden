@@ -20,12 +20,12 @@ version = "0.5.2"
 
 sourceSets.test {
     kotlin {
-        srcDir("android-attestation/src/test/kotlin/data")
+        srcDir("android-attestation-root/android-attestation/src/test/kotlin/data")
     }
 }
 
 dependencies {
-    api("at.asitplus:android-attestation:0.8.4")
+    api("at.asitplus:android-attestation:0.8.5-SNAPSHOT")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime-jvm:0.4.0")
     implementation("ch.veehait.devicecheck:devicecheck-appattest:0.9.6")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.14.2")

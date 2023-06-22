@@ -1,7 +1,7 @@
 rootProject.name = "attestation-service"
 
-includeBuild("android-attestation"){
+includeBuild("android-attestation-root"){
     dependencySubstitution {
-        substitute(module("at.asitplus:android-attestation"))
+        substitute(module("at.asitplus:android-attestation")).using(project(":android-attestation"))
     }
 }
