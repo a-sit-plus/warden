@@ -1,7 +1,22 @@
-rootProject.name = "attestation-service"
+rootProject.name = "attestation-root"
 
-includeBuild("android-attestation"){
+
+pluginManagement {
+    repositories {
+        maven {
+            url = uri("https://raw.githubusercontent.com/a-sit-plus/gradle-conventions-plugin/mvn/repo")
+            name = "aspConventions"
+        }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+include("attestation-service")
+
+
+includeBuild("android-attestation-root"){
     dependencySubstitution {
-        substitute(module("at.asitplus:android-attestation"))
+        substitute(module("at.asitplus:android-attestation")).using(project(":android-attestation"))
     }
 }

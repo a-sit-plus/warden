@@ -12,11 +12,24 @@ Properties().apply {
 
 
 plugins {
-    kotlin("jvm") version "1.8.20"
+    kotlin("jvm") version "1.8.21"
+    id("idea")
     id("io.ktor.plugin") version "2.2.4"
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.8.20"
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.8.21"
 }
 
+
+idea {
+    project {
+        jdkName = "11"
+    }
+}
+
+kotlin {
+    jvmToolchain {
+        (this as JavaToolchainSpec).languageVersion.set(JavaLanguageVersion.of(11))
+    }
+}
 group = "at.asitplus"
 version = "0.0.1"
 application {
@@ -46,7 +59,7 @@ dependencies {
     implementation("com.nimbusds:nimbus-jose-jwt:9.31")
 
     /*This does the magic*/
-    implementation("at.asitplus:attestation-service:0.4.3")
+    implementation("at.asitplus:attestation-service:0.5.2")
 
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
     implementation("org.bouncycastle:bcpkix-jdk18on:1.73")
