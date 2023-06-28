@@ -1,4 +1,5 @@
 # Server-Side Mobile Client Attestation Library
+
 [![GitHub license](https://img.shields.io/badge/license-Apache%20License%202.0-brightgreen.svg?style=flat)](http://www.apache.org/licenses/LICENSE-2.0) 
 [![Kotlin](https://img.shields.io/badge/kotlin-1.8.21-blue.svg?logo=kotlin)](http://kotlinlang.org)
 ![Java](https://img.shields.io/badge/java-11-blue.svg?logo=OPENJDK)
@@ -24,7 +25,7 @@ Once a binding has been obtained, mobile clients can subsequently authenticate t
 resource). However, far more flexible scenarios can be implemented. Hence, Figure&nbsp;1 depicts an abstract version of
 establishing trust in mobile clients.
 
-See the provided [sample service](sample/backend) and its accompanying mobile clients for an MWE that integrates this library.
+See the provided [sample service](https://github.com/a-sit-plus/attestation-service/tree/main/sample/backend) and its accompanying mobile clients for an MWE that integrates this library.
 (The sample also contains the Android and iOS clients.)
 
 ![flow.png](flow.png)
@@ -79,9 +80,7 @@ This library abstracts away all the nitty-gritty details of this verification pr
 which works with both Android and iOS.
 
 ## Usage
-Written in Kotlin, plays nicely with Java (cf. `@JvmOverloads`).
-
-This library is published at maven central.
+Written in Kotlin, plays nicely with Java (cf. `@JvmOverloads`), published at maven central.
 ### Gradle
 
 ```kotlin
@@ -91,10 +90,10 @@ This library is published at maven central.
 ```
 
 
-While still not complete, the test suite in this repository should provide a nice overview. [FeatureDemonstration](attestation-service/src/test/kotlin/FeatureDemonstration.kt),
+While still not complete, the test suite in this repository should provide a nice overview. [FeatureDemonstration](https://github.com/a-sit-plus/attestation-service/blob/main/attestation-service/src/test/kotlin/FeatureDemonstration.kt),
 in particular, was designed to demonstrate this library's whole API.
 <br>
-See the provided [sample service](sample/backend) and its mobile clients for an MWE that integrates this library.
+See the provided [sample service](https://github.com/a-sit-plus/attestation-service/tree/main/sample/backend) and its mobile clients for an MWE that integrates this library.
 The sample also contains Android and iOS clients.
 
 ### Configuration
@@ -138,11 +137,11 @@ Custom android challenge verification has been omitted by design, considering iO
    whether the key is indeed stored in HW (and whether the app can be trusted). This call requires the challenge from step 1.
 
 Various flavours of this attestation call from step 4 exist, some of which are platform-dependent
-(do see [FeatureDemonstration](attestation-service/src/test/kotlin/FeatureDemonstration.kt) for details).
+(do see [FeatureDemonstration](https://github.com/a-sit-plus/attestation-service/blob/main/attestation-service/src/test/kotlin/FeatureDemonstration.kt) for details).
 
 #### Key Attestation 
 The most important one of these is the `verifyKeyAttestation()` function, which returns a
-[KeyAttestation](attestation-service/src/main/kotlin/AttestationService.kt#L299) object.
+[KeyAttestation](https://github.com/a-sit-plus/attestation-service/blob/main/attestation-service/src/main/kotlin/AttestationService.kt#L293) object.
 
 ##### Signature
 ```kotlin
