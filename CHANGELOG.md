@@ -37,6 +37,8 @@ Explicit `verifyKeyAttestation` function for both mobile platforms
 - depend on android-attestation 0.8.4 to support custom Android trust anchors and testing against software-created
   attestations.
 
-### NEXT
+### 0.5.3
 - android-attestation updated
 - use A-SIT Plus gradle conventions plugin
+- Kotlin 1.9
+- BC 1.75
