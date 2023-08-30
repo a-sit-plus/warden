@@ -10,6 +10,7 @@ plugins {
     id("at.asitplus.gradle.conventions")
 }
 
+group = "at.asitplus"
 version = "0.5.3"
 
 sourceSets.test {
