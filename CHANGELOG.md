@@ -42,3 +42,6 @@ Explicit `verifyKeyAttestation` function for both mobile platforms
 - use A-SIT Plus gradle conventions plugin
 - Kotlin 1.9
 - BC 1.75
+
+### 0.5.4
+- fix dependency on wrong android-attestation version
