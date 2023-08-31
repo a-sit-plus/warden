@@ -21,7 +21,7 @@ sourceSets.test {
 
 dependencies {
     api("at.asitplus:android-attestation:0.9.2")
-    implementation(datetime())
+    api(datetime())
     implementation("ch.veehait.devicecheck:devicecheck-appattest:0.9.6")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.14.2")
     implementation("net.swiftzer.semver:semver:1.2.0")
