@@ -46,5 +46,9 @@ Explicit `verifyKeyAttestation` function for both mobile platforms
 ### 0.5.4 (broken!)
 - fix dependency on wrong android-attestation version
 
-### 0.5.5
+### 0.5.5 (java-interop impaired)
 - android-attestation (0.9.2)
+
+### 0.5.6
+- android-attestation 0.9.3
+- better java interop
