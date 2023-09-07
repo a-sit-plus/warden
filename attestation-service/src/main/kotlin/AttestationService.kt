@@ -1,11 +1,13 @@
 package at.asitplus.attestation
 
-import at.asitplus.attestation.android.AndroidAttestationChecker
-import at.asitplus.attestation.android.AndroidAttestationConfiguration
+import at.asitplus.attestation.IOSAttestationConfiguration.AppData
+import at.asitplus.attestation.android.*
+import at.asitplus.attestation.android.exceptions.AttestationException
 import at.asitplus.attestation.android.exceptions.CertificateInvalidException
 import ch.veehait.devicecheck.appattest.AppleAppAttest
 import ch.veehait.devicecheck.appattest.assertion.Assertion
 import ch.veehait.devicecheck.appattest.assertion.AssertionChallengeValidator
+import ch.veehait.devicecheck.appattest.attestation.AttestationValidator
 import ch.veehait.devicecheck.appattest.attestation.ValidatedAttestation
 import ch.veehait.devicecheck.appattest.common.App
 import ch.veehait.devicecheck.appattest.common.AppleAppAttestEnvironment
@@ -36,26 +38,53 @@ import at.asitplus.attestation.AttestationException as AttException
 data class IOSAttestationConfiguration @JvmOverloads constructor(
 
     /**
-     * Nomen est omen
+     * List of applications that can be attested
      */
-    val teamIdentifier: String,
-
-    /**
-     * Nomen est omen
-     */
-    val bundleIdentifier: String,
-
-    /**
-     * Specifies whether the to-be-attested app targets a production or sandbox environment
-     */
-    val sandbox: Boolean = false,
-
+    val applications: List<AppData>,
     /**
      * Optional parameter. If present the iOS version of the attested app must be greater or equal to this parameter
-     * Uses [SemVer](https://semver.org/) syntax
+     * Uses [SemVer](https://semver.org/) syntax. Can be overridden vor individual apps.
+     * @see AppData.iosVersionOverride
      */
     val iosVersion: String? = null,
-)
+
+    ) {
+
+    @JvmOverloads
+    constructor(singleApp: AppData, iosVersion: String? = null) : this(listOf(singleApp), iosVersion)
+
+    init {
+        if (applications.isEmpty()) throw AttestationException("No apps configured")
+    }
+
+    /**
+     * Specifies a to-be attested app
+     */
+    class AppData @JvmOverloads constructor(
+        /**
+         * Nomen est omen
+         */
+        val teamIdentifier: String,
+
+        /**
+         * Nomen est omen
+         */
+        val bundleIdentifier: String,
+
+        /**
+         * Specifies whether the to-be-attested app targets a production or sandbox environment
+         */
+        val sandbox: Boolean = false,
+
+        /**
+         * Optional parameter. If present, overrides the globally configured iOS version for this app.
+         * Must be greater or equal to this parameter
+         * Uses [SemVer](https://semver.org/) syntax
+         */
+        val iosVersionOverride: String? = null,
+    )
+
+}
 
 interface AttestationService {
 
@@ -385,13 +414,29 @@ class DefaultAttestationService(
 
     private val log = LoggerFactory.getLogger(this.javaClass)
 
-    private val androidAttestationChecker =
-        AndroidAttestationChecker(androidAttestationConfiguration) { expected, actual -> expected contentEquals actual }
+    private val androidAttestationCheckers = mutableListOf<AndroidAttestationChecker>().apply {
+        if (!androidAttestationConfiguration.disableHardwareAttestation) add(
+            HardwareAttestationChecker(
+                androidAttestationConfiguration
+            ) { expected, actual -> expected contentEquals actual })
+        if (androidAttestationConfiguration.enableNougatAttestation) add(
+            NougatHybridAttestationChecker(
+                androidAttestationConfiguration
+            ) { expected, actual -> expected contentEquals actual })
+        if (androidAttestationConfiguration.enableSoftwareAttestation) add(
+            SoftwareAttestationChecker(
+                androidAttestationConfiguration
+            ) { expected, actual -> expected contentEquals actual })
+    }
 
-    private val appleAppAttest = AppleAppAttest(
-        app = App(iosAttestationConfiguration.teamIdentifier, iosAttestationConfiguration.bundleIdentifier),
-        appleAppAttestEnvironment = if (iosAttestationConfiguration.sandbox) AppleAppAttestEnvironment.DEVELOPMENT else AppleAppAttestEnvironment.PRODUCTION,
-    )
+
+    private val iosApps =
+        iosAttestationConfiguration.applications.associateWith { appData ->
+            AppleAppAttest(
+                app = App(appData.teamIdentifier, appData.bundleIdentifier),
+                appleAppAttestEnvironment = if (appData.sandbox) AppleAppAttestEnvironment.DEVELOPMENT else AppleAppAttestEnvironment.PRODUCTION,
+            )
+        }
 
 
     private val appAttestReader = ObjectMapper(CBORFactory())
@@ -402,14 +447,16 @@ class DefaultAttestationService(
         clock.toJavaClock(),
         verificationTimeOffset.toJavaDuration()
     )
-    private val attestationValidator = appleAppAttest.createAttestationValidator(
-        clock = appAttestClock,
-        receiptValidator = appleAppAttest.createReceiptValidator(
+    private val attestationValidators: Map<AppleAppAttest, AttestationValidator> = iosApps.values.associateWith { app ->
+        app.createAttestationValidator(
             clock = appAttestClock,
-            maxAge = (verificationTimeOffset.absoluteValue * 2).toJavaDuration()
-                .plus(ReceiptValidator.APPLE_RECOMMENDED_MAX_AGE)
+            receiptValidator = app.createReceiptValidator(
+                clock = appAttestClock,
+                maxAge = (verificationTimeOffset.absoluteValue * 2).toJavaDuration()
+                    .plus(ReceiptValidator.APPLE_RECOMMENDED_MAX_AGE)
+            )
         )
-    )
+    }
 
     override val ios = object : AttestationService.IOS {
         override fun verifyAppAttestation(attestationObject: ByteArray, challenge: ByteArray) =
@@ -496,11 +543,17 @@ class DefaultAttestationService(
             return AttestationResult.Error("Could not parse Android attestation certificate chain")
 
         //throws exception on fail
-        androidAttestationChecker.verifyAttestation(
-            certificates,
-            (clock.now() + verificationTimeOffset).toJavaDate(),
-            expectedChallenge
-        )
+        val results = androidAttestationCheckers.map {
+            runCatching {
+                it.verifyAttestation(
+                    certificates,
+                    (clock.now() + verificationTimeOffset).toJavaDate(),
+                    expectedChallenge
+                )
+            }
+        }
+        if (results.filter { it.isFailure }.size == androidAttestationCheckers.size) throw results.first()
+            .exceptionOrNull()!!
 
         AttestationResult.Android.Verified(certificates)
     }.getOrElse {
@@ -549,17 +602,32 @@ class DefaultAttestationService(
         val parsedAttestationCert =
             X509CertificateHolder(appAttestReader.readValue<AttestationObject>(attestationObject).attStmt.x5c.first())
 
-        val result: ValidatedAttestation = attestationValidator.validate(
-            attestationObject = attestationObject,
-            keyIdBase64 = MessageDigest.getInstance("SHA-256")
-                .digest(parsedAttestationCert.subjectPublicKeyInfo.publicKeyData.bytes)
-                .encodeBase64(),
-            serverChallenge = expectedChallenge,
-        )
 
-        iosAttestationConfiguration.iosVersion?.let {
+        val results = attestationValidators.map { (app, attestationValidator) ->
+            app to runCatching {
+                attestationValidator.validate(
+                    attestationObject = attestationObject,
+                    keyIdBase64 = MessageDigest.getInstance("SHA-256")
+                        .digest(parsedAttestationCert.subjectPublicKeyInfo.publicKeyData.bytes)
+                        .encodeBase64(),
+                    serverChallenge = expectedChallenge,
+                )
+            }
+        }
+
+        if (results.filter { (_, result) -> result.isFailure }.size == results.size)
+            throw results.first().second.exceptionOrNull()!!
+
+        val result: Pair<AppleAppAttest, ValidatedAttestation> =
+            results.first { (_, result) -> result.isSuccess }.let { (app, res) -> app to res.getOrNull()!! }
+
+
+        val iosVersion =
+            iosApps.entries.firstOrNull { (_, appAttest) -> appAttest.app == result.first.app }?.key?.iosVersionOverride
+                ?: iosAttestationConfiguration.iosVersion
+        iosVersion?.let {
             val parsedVersion = SemVer.parse(
-                result.iOSVersion ?: return AttestationResult.Error(
+                result.second.iOSVersion ?: return AttestationResult.Error(
                     "Could not parse iOS version from AppAttest",
                     AttException.Content(Platform.IOS)
                 )
@@ -574,7 +642,7 @@ class DefaultAttestationService(
 
         return assertionData?.let { assertionData ->
             runCatching {
-                val assertion = appleAppAttest.createAssertionValidator(object : AssertionChallengeValidator {
+                val assertion = result.first.createAssertionValidator(object : AssertionChallengeValidator {
                     override fun validate(
                         assertionObj: Assertion,
                         clientData: ByteArray,
@@ -584,7 +652,7 @@ class DefaultAttestationService(
                 }).validate(
                     assertionData.assertion,
                     assertionData.clientData,
-                    result.certificate.publicKey as ECPublicKey,
+                    result.second.certificate.publicKey as ECPublicKey,
                     counter,
                     expectedChallenge
                 )
@@ -592,7 +660,7 @@ class DefaultAttestationService(
                     "iOS Assertion counter is ${assertion.authenticatorData.signCount}, but should be 1",
                     AttException.Content(Platform.IOS)
                 )
-                else AttestationResult.IOS.Verbose(result, assertionData.clientData to assertion)
+                else AttestationResult.IOS.Verbose(result.second, assertionData.clientData to assertion)
             }.getOrElse {
                 AttestationResult.Error(
                     it.message ?: "iOS Assertion validation error due to ${it::class.simpleName}",

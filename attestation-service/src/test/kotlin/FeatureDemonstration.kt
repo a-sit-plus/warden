@@ -18,10 +18,14 @@ class FeatureDemonstration : FreeSpec() {
 
         val service = DefaultAttestationService(
             androidAttestationConfiguration = AndroidAttestationConfiguration(
-                packageName = "at.asitplus.attestation_client",
-                signatureDigests = listOf("NLl2LE1skNSEMZQMV73nMUJYsmQg7+Fqx/cnTw0zCtU=".decodeBase64ToArray()),
+                applications = listOf(
+                    AndroidAttestationConfiguration.AppData(
+                        packageName = "at.asitplus.attestation_client",
+                        signatureDigests = listOf("NLl2LE1skNSEMZQMV73nMUJYsmQg7+Fqx/cnTw0zCtU=".decodeBase64ToArray()),
+                        appVersion = 1, //optional
+                    )
+                ),
                 androidVersion = 10000, //optional
-                appVersion = 1, //optional
                 patchLevel = PatchLevel(2021, 8), //optional
                 requireStrongBox = false, //optional
                 bootloaderUnlockAllowed = false, //you don't usually want to change this
@@ -29,9 +33,13 @@ class FeatureDemonstration : FreeSpec() {
                 ignoreLeafValidity = false //Hello, Samsung!
             ),
             iosAttestationConfiguration = IOSAttestationConfiguration(
-                teamIdentifier = "9CYHJNG644",
-                bundleIdentifier = "at.asitplus.attestation-client",
-                sandbox = false,
+                applications = listOf(
+                    IOSAttestationConfiguration.AppData(
+                        teamIdentifier = "9CYHJNG644",
+                        bundleIdentifier = "at.asitplus.attestation-client",
+                        sandbox = false
+                    )
+                ),
                 iosVersion = "16" //optional, use SemVer notation
             ),
             clock = FixedTimeClock(Instant.parse("2023-04-13T00:00:00Z")), //optional

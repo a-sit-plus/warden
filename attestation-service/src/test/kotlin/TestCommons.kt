@@ -10,7 +10,6 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 
-
 val AttestationData.attestationProof: List<ByteArray>
     get() = attestationProofB64.map { mimeDecoder.decode(it) }
 
@@ -271,9 +270,13 @@ fun attestationService(
 ) =
     DefaultAttestationService(
         AndroidAttestationConfiguration(
-            packageName = androidPackageName,
-            signatureDigests = androidAppSignatureDigest,
-            appVersion = androidAppVersion,
+            applications = listOf(
+                AndroidAttestationConfiguration.AppData(
+                    packageName = androidPackageName,
+                    signatureDigests = androidAppSignatureDigest,
+                    appVersion = androidAppVersion
+                )
+            ),
             androidVersion = androidVersion,
             patchLevel = androidPatchLevel,
             requireStrongBox = requireStrongBox,
@@ -282,9 +285,13 @@ fun attestationService(
             ignoreLeafValidity = eternalLeaves,
         ),
         IOSAttestationConfiguration(
-            iosTeamIdentifier,
-            iosBundleIdentifier,
-            sandbox = iosSandbox,
+            applications = listOf(
+                IOSAttestationConfiguration.AppData(
+                    iosTeamIdentifier,
+                    iosBundleIdentifier,
+                    sandbox = iosSandbox
+                )
+            ),
             iosVersion = iosVersion
         ),
         timeSource,

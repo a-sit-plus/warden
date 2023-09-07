@@ -1,8 +1,10 @@
 import at.asitplus.attestation.*;
 import at.asitplus.attestation.android.AndroidAttestationConfiguration;
 import at.asitplus.attestation.android.exceptions.AttestationException;
+import io.kotest.core.spec.style.AnnotationSpec;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.platform.suite.api.Suite;
 
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
@@ -16,84 +18,81 @@ import java.util.Collections;
 public class JavaInteropTest {
 
 
-    @Test
-    public void testDefaults() {
+    public static void testDefaults() {
         Assertions.assertThrows(AttestationException.class, () -> {
                     new DefaultAttestationService(
-                            new AndroidAttestationConfiguration("at.asitplus.attestation-example",
-                                    new ArrayList<>()
-                            ),
-                            new IOSAttestationConfiguration(
+                            new AndroidAttestationConfiguration.Builder(new AndroidAttestationConfiguration.AppData(
+                                    "at.asitplus.attestation-example", Collections.emptyList())).build(),
+                            new IOSAttestationConfiguration(new IOSAttestationConfiguration.AppData(
                                     "1234567890",
-                                    "at.asitplus.attestation-example"));
+                                    "at.asitplus.attestation-example")));
                 },
                 "No signature digests specified");
 
         Assertions.assertThrows(AttestationException.class, () -> {
                     new DefaultAttestationService(
-                            new AndroidAttestationConfiguration("at.asitplus.attestation-example",
+                            new AndroidAttestationConfiguration.Builder(new AndroidAttestationConfiguration.AppData("at.asitplus.attestation-example",
                                     new ArrayList<>()
-                            ),
-                            new IOSAttestationConfiguration(
+                            )).build(),
+                            new IOSAttestationConfiguration(new IOSAttestationConfiguration.AppData(
                                     "1234567890",
-                                    "at.asitplus.attestation-example"),
+                                    "at.asitplus.attestation-example")),
                             Duration.ZERO);
                 },
                 "No signature digests specified");
 
         Assertions.assertThrows(AttestationException.class, () -> {
                     new DefaultAttestationService(
-                            new AndroidAttestationConfiguration("at.asitplus.attestation-example",
+                            new AndroidAttestationConfiguration.Builder(new AndroidAttestationConfiguration.AppData("at.asitplus.attestation-example",
                                     new ArrayList<>(),
-                                    10
-                            ),
-                            new IOSAttestationConfiguration(
+                                    10)
+                            ).build(),
+                            new IOSAttestationConfiguration(new IOSAttestationConfiguration.AppData(
                                     "1234567890",
-                                    "at.asitplus.attestation-example"),
+                                    "at.asitplus.attestation-example")),
                             Duration.ZERO);
                 },
                 "No signature digests specified");
 
         Assertions.assertThrows(AttestationException.class, () -> {
                     new DefaultAttestationService(
-                            new AndroidAttestationConfiguration("at.asitplus.attestation-example",
+                            new AndroidAttestationConfiguration.Builder(new AndroidAttestationConfiguration.AppData("at.asitplus.attestation-example",
                                     new ArrayList<>(),
                                     10,
-                                    10000
-                            ),
-                            new IOSAttestationConfiguration(
+                                    10000)
+                            ).build(),
+                            new IOSAttestationConfiguration(new IOSAttestationConfiguration.AppData(
                                     "1234567890",
                                     "at.asitplus.attestation-example",
-                                    true),
+                                    true)),
                             Duration.ZERO);
                 },
                 "No signature digests specified");
 
         Assertions.assertThrows(AttestationException.class, () -> {
                     new DefaultAttestationService(
-                            new AndroidAttestationConfiguration("at.asitplus.attestation-example",
+                            new AndroidAttestationConfiguration.Builder(new AndroidAttestationConfiguration.AppData("at.asitplus.attestation-example",
                                     new ArrayList<>()
-                            ),
-                            new IOSAttestationConfiguration(
+                            )).build(),
+                            new IOSAttestationConfiguration(new IOSAttestationConfiguration.AppData(
                                     "1234567890",
                                     "at.asitplus.attestation-example",
-                                    false,
+                                    false),
                                     "14.1"),
                             Duration.ZERO);
                 },
                 "No signature digests specified");
     }
 
-    @Test
-    public void testAttestationCallsJavaFriendliness() throws NoSuchAlgorithmException {
+    public static void testAttestationCallsJavaFriendliness() throws NoSuchAlgorithmException {
         AttestationService service = new DefaultAttestationService(
-                new AndroidAttestationConfiguration("at.asitplus.attestation-example",
-                        Arrays.asList(new byte[][]{new byte[]{0, 1, 2, 3, 4, 5, 6, 7, 8}})
-                ),
-                new IOSAttestationConfiguration(
+                new AndroidAttestationConfiguration.Builder(new AndroidAttestationConfiguration.AppData("at.asitplus.attestation-example",
+                        Arrays.asList(new byte[][]{new byte[]{0, 1, 2, 3, 4, 5, 6, 7, 8}}))
+                ).build(),
+                new IOSAttestationConfiguration(new IOSAttestationConfiguration.AppData(
                         "1234567890",
                         "at.asitplus.attestation-example",
-                        false,
+                        false),
                         "14.1"),
                 Duration.ZERO);
 

@@ -32,6 +32,7 @@ dependencies {
     testImplementation("org.slf4j:slf4j-reload4j:1.7.36")
 }
 
+
 //No, it's not pretty! Yes it's fragile! But it also works perfectly well when run from a GitHub actions and that's what counts
 tasks.dokkaHtml {
 
