@@ -552,7 +552,7 @@ class DefaultAttestationService(
                 )
             }
         }
-        if (results.filter { it.isFailure }.size == androidAttestationCheckers.size) throw results.first()
+        if (results.filter { it.isFailure }.size == androidAttestationCheckers.size) throw results.last() //this way we are most lenient
             .exceptionOrNull()!!
 
         AttestationResult.Android.Verified(certificates)
