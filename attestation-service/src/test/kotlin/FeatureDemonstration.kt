@@ -28,7 +28,7 @@ class FeatureDemonstration : FreeSpec() {
                 androidVersion = 10000, //optional
                 patchLevel = PatchLevel(2021, 8), //optional
                 requireStrongBox = false, //optional
-                bootloaderUnlockAllowed = false, //you don't usually want to change this
+                allowBootloaderUnlock = false, //you don't usually want to change this
                 requireRollbackResistance = false, //depends on device, so leave off
                 ignoreLeafValidity = false //Hello, Samsung!
             ),

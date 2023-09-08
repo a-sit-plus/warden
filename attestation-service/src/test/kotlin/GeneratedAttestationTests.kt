@@ -37,7 +37,7 @@ class GeneratedAttestationTests : FreeSpec(
                 androidVersion = androidVersion,
                 patchLevel = PatchLevel(2021, 8),
                 requireStrongBox = false,
-                bootloaderUnlockAllowed = false,
+                allowBootloaderUnlock = false,
                 ignoreLeafValidity = false,
                 hardwareAttestationTrustAnchors = setOf(attestationProof.last().publicKey)
             ),

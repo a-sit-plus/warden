@@ -1,18 +1,20 @@
 import at.asitplus.attestation.*;
+import at.asitplus.attestation.android.AndroidAttestationChecker;
 import at.asitplus.attestation.android.AndroidAttestationConfiguration;
+import at.asitplus.attestation.android.HardwareAttestationChecker;
+import at.asitplus.attestation.android.PatchLevel;
 import at.asitplus.attestation.android.exceptions.AttestationException;
-import io.kotest.core.spec.style.AnnotationSpec;
+import at.asitplus.attestation.android.exceptions.CertificateInvalidException;
+import at.asitplus.attestation.android.exceptions.RevocationException;
+import com.google.android.attestation.ParsedAttestationRecord;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import org.junit.platform.suite.api.Suite;
 
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.X509Certificate;
 import java.security.interfaces.ECPublicKey;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
+import java.util.*;
 
 
 public class JavaInteropTest {
@@ -125,8 +127,37 @@ public class JavaInteropTest {
 
         Assertions.assertFalse(keyAttestationResult.isSuccess());
         Assertions.assertNull(keyAttestationResult.getAttestedPublicKey());
+    }
 
+    public static void javaDemo() {
+        byte[] challenge = new byte[]{0, 2, 3, 4, 5, 6};
+        List<X509Certificate> certificateChain = Collections.emptyList();
 
+        List<AndroidAttestationConfiguration.AppData> apps = new LinkedList<>();
+
+        apps.add(new AndroidAttestationConfiguration.AppData(
+                "at.asitplus.example",
+                Collections.singletonList(Base64.getDecoder().decode("NLl2LE1skNSEMZQMV73nMUJYsmQg7+Fqx/cnTw0zCtU="))
+        ));
+        apps.add(new AndroidAttestationConfiguration.AppData(
+                "at.asitplus.anotherexample",
+                Collections.singletonList(Base64.getDecoder().decode("NLl2LE1skNSEMZQMV73nMUJYsmQg7+Fqx/cnTw0zCtU=")),
+                2
+        ));
+        AndroidAttestationConfiguration config = new AndroidAttestationConfiguration.Builder(apps)
+                .androidVersion(11000)
+                .ingoreLeafValidity()
+                .patchLevel(new PatchLevel(2023, 03))
+                .verificationSecondsOffset(-500) //we to account for time drift
+                .build();
+
+        AndroidAttestationChecker checker = new HardwareAttestationChecker(config);
+        try {
+            ParsedAttestationRecord attestationRecord = checker.verifyAttestation(certificateChain, new Date(), challenge);
+            //all good
+        } catch (AttestationException | CertificateInvalidException | RevocationException e) {
+            //untrusted device/app
+        }
     }
 
 }
