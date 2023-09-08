@@ -44,13 +44,13 @@ fun Application.configureAttestation() {
     log.info("Setting up attestation as follows:")
 
     val attestationService = DefaultAttestationService(
-        androidAttestationConfiguration = AndroidAttestationConfiguration(
+        androidAttestationConfiguration = AndroidAttestationConfiguration(AndroidAttestationConfiguration.AppData(
             packageName = environment.config.property("attestation.android.package-name").getString().also {
                 log.info("Android package name: $it")
             },
             signatureDigests = environment.config.property("attestation.android.signature-digests").getList().also {
                 log.info("Android signature digests: ${it.joinToString { it }}")
-            }.map { it.decodeBase64Bytes() },
+            }.map { it.decodeBase64Bytes() }),
             androidVersion = runCatching {
                 environment.config.property("attestation.android.min-version").getString().toInt()
             }.getOrNull().also {
@@ -58,12 +58,13 @@ fun Application.configureAttestation() {
             }
         ),
         iosAttestationConfiguration = IOSAttestationConfiguration(
+            IOSAttestationConfiguration.AppData(
             teamIdentifier = environment.config.property("attestation.ios.team-identifier").getString().also {
                 log.info("iOS team identifier: $it")
             },
             bundleIdentifier = environment.config.property("attestation.ios.bundle-identifier").getString().also {
                 log.info("iOS bundle identifier: $it")
-            },
+            }),
             iosVersion = runCatching {
                 environment.config.property("attestation.ios.min-version").getString()
             }.getOrNull().also {

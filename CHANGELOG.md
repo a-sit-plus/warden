@@ -52,3 +52,11 @@ Explicit `verifyKeyAttestation` function for both mobile platforms
 ### 0.5.6
 - android-attestation 0.9.3
 - better java interop
+
+## 1.0.0
+This release introduces breaking changes as it allows multiple apps to be attested and introduces multi-stage
+attestation on Android, please re-read the readme!
+
+- Kotlin 1.9.10!
+- Bouncy Castle 1.76
+- Android-Attestation 1.0.0

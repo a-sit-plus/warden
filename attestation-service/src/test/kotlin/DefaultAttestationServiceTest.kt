@@ -22,7 +22,6 @@ import kotlin.time.Duration.Companion.days
 @OptIn(ExperimentalStdlibApi::class)
 class DefaultAttestationServiceTest : FreeSpec() {
 
-
     private val theGood = androidGood + iosGood
 
     init {
@@ -43,6 +42,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                         recordedAttestation.attestationProof,
                                         recordedAttestation.challenge
                                     ).apply {
+                                        also { println(it) }
                                         shouldNotBeInstanceOf<AttestationResult.Error>()
                                     }
                                 }
@@ -52,6 +52,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                         recordedAttestation.challenge,
                                         recordedAttestation.publicKey!!
                                     ).apply {
+                                        also { println(it) }
                                         isSuccess.shouldBeTrue()
                                         attestedPublicKey.shouldNotBeNull()
                                         attestedPublicKey!!.encoded shouldBe recordedAttestation.publicKey?.encoded
@@ -161,7 +162,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                     }.genKeyPair().public
                             ).apply {
                                 isSuccess.shouldBeFalse()
-                                details.shouldBeInstanceOf<AttestationResult.Error>()
+                                details.shouldBeInstanceOf<AttestationResult.Error>().also { println(it) }
                                     .cause.shouldBeInstanceOf<AttestationException.Content>()
                             }
                         }
@@ -184,6 +185,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                     recordedAttestation.attestationProof,
                                     recordedAttestation.challenge
                                 ).apply {
+                                    also { println(it) }
                                     shouldBeInstanceOf<AttestationResult.IOS>()
                                 }
                             }
@@ -258,7 +260,8 @@ class DefaultAttestationServiceTest : FreeSpec() {
 
 
                         "Wrongfully disabled HW attestation" - {
-                            val clock = FixedTimeClock(recordedAttestation.verificationDate.toInstant().toKotlinInstant())
+                            val clock =
+                                FixedTimeClock(recordedAttestation.verificationDate.toInstant().toKotlinInstant())
                             "Software-Only" {
                                 DefaultAttestationService(
                                     androidAttestationConfiguration = AndroidAttestationConfiguration(
@@ -326,7 +329,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                     verifyAttestation(
                                         recordedAttestation.attestationProof,
                                         recordedAttestation.challenge
-                                    ).shouldBeInstanceOf<AttestationResult.Error>()
+                                    ).shouldBeInstanceOf<AttestationResult.Error>().also { println(it) }
                                         .cause.shouldBeInstanceOf<AttestationException.Certificate>()
                                 }
                             }

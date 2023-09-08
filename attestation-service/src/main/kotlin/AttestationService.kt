@@ -27,6 +27,7 @@ import java.security.cert.CertificateException
 import java.security.cert.X509Certificate
 import java.security.interfaces.ECPublicKey
 import java.util.*
+import kotlin.jvm.optionals.getOrNull
 import kotlin.time.Duration
 import kotlin.time.toJavaDuration
 import kotlin.time.toKotlinDuration
@@ -259,6 +260,10 @@ value class AssertionData private constructor(private val pair: Pair<ByteArray, 
  * Attestation result class. Successful results contain attested data.
  */
 sealed class AttestationResult {
+
+    override fun toString() = "AttestationResult::$details)"
+    protected abstract val details: String
+
     /**
      * Successful Android Key Attestation result. [attestationCertificate] contains the attested certificate.
      *
@@ -268,12 +273,16 @@ sealed class AttestationResult {
     @Suppress("MemberVisibilityCanBePrivate")
     abstract class Android(val attestationCertificateChain: List<X509Certificate>) :
         AttestationResult() {
+
+        protected abstract val androidDetails: String
+        override val details: String by lazy { "Android::$androidDetails" }
         abstract val attestationRecord: ParsedAttestationRecord
 
         val attestationCertificate by lazy { attestationCertificateChain.first() }
 
         internal class NOOP internal constructor(attestationCertificateChain: List<ByteArray>) :
             Android(attestationCertificateChain.mapNotNull { it.parseToCertificate() }) {
+            override val androidDetails = "NOOP"
             override val attestationRecord: ParsedAttestationRecord by lazy {
                 ParsedAttestationRecord.createParsedAttestationRecord(
                     attestationCertificateChain.mapNotNull { it.parseToCertificate() }
@@ -282,11 +291,16 @@ sealed class AttestationResult {
         }
 
         class Verified(attestationCertificateChain: List<X509Certificate>) : Android(attestationCertificateChain) {
+
             override val attestationRecord: ParsedAttestationRecord =
                 ParsedAttestationRecord.createParsedAttestationRecord(
                     attestationCertificateChain
                 )
-
+            override val androidDetails =
+                "Verified(keyMaster security level: ${attestationRecord.keymasterSecurityLevel.name}, " +
+                        "attestation security level: ${attestationRecord.attestationSecurityLevel.name}, " +
+                        "${attestationRecord.attestedKey.algorithm} public key: ${attestationRecord.attestedKey.encoded.encodeBase64()}" + attestationRecord.softwareEnforced.attestationApplicationId.getOrNull()
+                    ?.let { app -> ", packageInfos: ${app.packageInfos.joinToString(prefix = "[", postfix = "]") { info -> "${info.packageName}:${info.version}" }}" }
         }
     }
 
@@ -294,23 +308,35 @@ sealed class AttestationResult {
     /**
      * Successful iOS attestation. If `clientData` and an assertion object were passed to
      * [AttestationService.verifyAttestation], it is contained in [clientData] for convenience.
-     * The [DefaultAttestationService], returns [IOS.Verbose], also seting [attestation] and [assertion] (if
-     * `clientData` was passed). The [NoopAttestationService] does not (which is useful to as it enables skipping any
+     * The [DefaultAttestationService], returns [IOS.Verified], also setting [attestation] and [assertion] (if
+     * `clientData` was passed). The [NoopAttestationService] returns [IOS.NOOP] (which is useful to as it enables skipping any
      * and all attestation checks for unit testing, when used with dependency injection, for example.
      */
     @Suppress("MemberVisibilityCanBePrivate")
-    open class IOS(val clientData: ByteArray?) : AttestationResult() {
-        class Verbose(val attestation: ValidatedAttestation, val assertedClientData: Pair<ByteArray, Assertion>?) :
-            IOS(assertedClientData?.first)
+    abstract class IOS(val clientData: ByteArray?) : AttestationResult() {
+
+        abstract val iosDetails: String
+        override val details: String by lazy { "iOS::$iosDetails" }
+
+        class Verified(val attestation: ValidatedAttestation, assertedClientData: Pair<ByteArray, Assertion>?) :
+            IOS(assertedClientData?.first) {
+            override val iosDetails =
+                "Verified(${attestation.certificate.publicKey.algorithm} public key: ${attestation.certificate.publicKey.encoded.encodeBase64()}, " +
+                        "iOS version: ${attestation.iOSVersion}, app: ${attestation.receipt.payload.appId}"
+        }
+
+        class NOOP(clientData: ByteArray?) : IOS(clientData) {
+            override val iosDetails = "NOOP"
+        }
+
+        /**
+         * Represents an attestation verification failure. Always contains an  [explanation] about what went wrong.
+         */
     }
 
-    /**
-     * Represents an attestation verification failure. Always contains an  [explanation] about what went wrong.
-     */
     class Error(val explanation: String, val cause: AttException? = null) : AttestationResult() {
-        override fun toString() = "Attestation Error: $explanation" + cause?.let { ". Cause: ${cause.message}" }
+        override val details = "Error($explanation" + cause?.let { ", Cause: ${cause::class.qualifiedName}" }
     }
-
 }
 
 /**
@@ -324,6 +350,8 @@ data class KeyAttestation<T : PublicKey> internal constructor(
     val details: AttestationResult
 ) {
     val isSuccess get() = attestedPublicKey != null
+
+    override fun toString() = "Key$details"
 
     fun <R> fold(
         onError: (AttestationResult.Error) -> R,
@@ -351,7 +379,7 @@ object NoopAttestationService : AttestationService {
         clientData: ByteArray?
     ): AttestationResult =
         if (attestationProof.size > 2) AttestationResult.Android.NOOP(attestationProof)
-        else AttestationResult.IOS(clientData)
+        else AttestationResult.IOS.NOOP(clientData)
 
     override val ios: AttestationService.IOS
         get() = object : AttestationService.IOS {
@@ -447,16 +475,17 @@ class DefaultAttestationService(
         clock.toJavaClock(),
         verificationTimeOffset.toJavaDuration()
     )
-    private val attestationValidators: Map<AppleAppAttest, AttestationValidator> = iosApps.values.associateWith { app ->
-        app.createAttestationValidator(
-            clock = appAttestClock,
-            receiptValidator = app.createReceiptValidator(
+    private val attestationValidators: Map<AppleAppAttest, AttestationValidator> =
+        iosApps.values.associateWith { app ->
+            app.createAttestationValidator(
                 clock = appAttestClock,
-                maxAge = (verificationTimeOffset.absoluteValue * 2).toJavaDuration()
-                    .plus(ReceiptValidator.APPLE_RECOMMENDED_MAX_AGE)
+                receiptValidator = app.createReceiptValidator(
+                    clock = appAttestClock,
+                    maxAge = (verificationTimeOffset.absoluteValue * 2).toJavaDuration()
+                        .plus(ReceiptValidator.APPLE_RECOMMENDED_MAX_AGE)
+                )
             )
-        )
-    }
+        }
 
     override val ios = object : AttestationService.IOS {
         override fun verifyAppAttestation(attestationObject: ByteArray, challenge: ByteArray) =
@@ -587,7 +616,7 @@ class DefaultAttestationService(
      * @param assertionData optional assertion data containing `clientData` and an [assertion](https://developer.apple.com/documentation/devicecheck/validating_apps_that_connect_to_your_server#3576644)
      * @param counter highest expected value of the signature counter before the assertion was created (if present). Defaults to 0
      *
-     * @return [AttestationResult.IOS.Verbose] on success when using the [DefaultAttestationService] ([AttestationResult.IOS]
+     * @return [AttestationResult.IOS.Verified] on success when using the [DefaultAttestationService] ([AttestationResult.IOS]
      * when using [NoopAttestationService]) and [AttestationResult.Error] when attestation fails.
      *
      */
@@ -660,7 +689,7 @@ class DefaultAttestationService(
                     "iOS Assertion counter is ${assertion.authenticatorData.signCount}, but should be 1",
                     AttException.Content(Platform.IOS)
                 )
-                else AttestationResult.IOS.Verbose(result.second, assertionData.clientData to assertion)
+                else AttestationResult.IOS.Verified(result.second, assertionData.clientData to assertion)
             }.getOrElse {
                 AttestationResult.Error(
                     it.message ?: "iOS Assertion validation error due to ${it::class.simpleName}",
@@ -671,7 +700,7 @@ class DefaultAttestationService(
 
                 )
             }
-        } ?: AttestationResult.IOS(null)
+        } ?: AttestationResult.IOS.Verified(result.second, null)
 
     }.getOrElse {
         AttestationResult.Error(

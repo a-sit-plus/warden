@@ -4,6 +4,7 @@ import java.util.*
 val ktor_version: String by project
 val kotlin_version: String by project
 val logback_version: String by project
+val attestation_version: String by project
 
 Properties().apply {
     kotlin.runCatching { load(FileInputStream(project.rootProject.file("local.properties"))) }
@@ -12,10 +13,10 @@ Properties().apply {
 
 
 plugins {
-    kotlin("jvm") version "1.8.21"
+    kotlin("jvm") version "1.9.10"
     id("idea")
-    id("io.ktor.plugin") version "2.2.4"
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.8.21"
+    id("io.ktor.plugin") version "2.3.4"
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.10"
 }
 
 
@@ -59,11 +60,10 @@ dependencies {
     implementation("com.nimbusds:nimbus-jose-jwt:9.31")
 
     /*This does the magic*/
-    implementation("at.asitplus:attestation-service:0.5.2")
+    implementation("at.asitplus:attestation-service:$attestation_version")
 
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
-    implementation("org.bouncycastle:bcpkix-jdk18on:1.73")
-    implementation("io.ktor:ktor-server-call-logging-jvm:2.2.4")
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.76")
+    implementation("io.ktor:ktor-server-call-logging-jvm:$ktor_version")
 
     testImplementation("io.ktor:ktor-server-tests-jvm:$ktor_version")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
