@@ -1,7 +1,7 @@
 # Server-Side Mobile Client Attestation Library
 
 [![GitHub license](https://img.shields.io/badge/license-Apache%20License%202.0-brightgreen.svg?style=flat)](http://www.apache.org/licenses/LICENSE-2.0) 
-[![Kotlin](https://img.shields.io/badge/kotlin-1.8.21-blue.svg?logo=kotlin)](http://kotlinlang.org)
+[![Kotlin](https://img.shields.io/badge/kotlin-1.9.10-blue.svg?logo=kotlin)](http://kotlinlang.org)
 ![Java](https://img.shields.io/badge/java-11-blue.svg?logo=OPENJDK)
 ![Build artifacts](https://github.com/a-sit-plus/attestation-service/actions/workflows/gradle.yml/badge.svg)
 [![Maven Central](https://img.shields.io/maven-central/v/at.asitplus/attestation-service)](https://mvnrepository.com/artifact/at.asitplus/attestation-service/)
@@ -91,43 +91,73 @@ Written in Kotlin, plays nicely with Java (cf. `@JvmOverloads`), published at ma
 
 
 While still not complete, the test suite in this repository should provide a nice overview. [FeatureDemonstration](https://github.com/a-sit-plus/attestation-service/blob/main/attestation-service/src/test/kotlin/FeatureDemonstration.kt),
-in particular, was designed to demonstrate this library's whole API.
+in particular, was designed to demonstrate this library's API.
 <br>
 See the provided [sample service](https://github.com/a-sit-plus/attestation-service/tree/main/sample/backend) and its mobile clients for an MWE that integrates this library.
 The sample also contains Android and iOS clients.
 
 ### Configuration
 Every parameter is configurable and multiple instance of an attestation service can be created and used in parallel.
-The following snippet lists all configuration values
+The following snippet lists all configuration values:
 
 ```kotlin
 val service = DefaultAttestationService(
     androidAttestationConfiguration = AndroidAttestationConfiguration(
-        packageName = "at.asitplus.attestation_client",
-        signatureDigests = listOf("NLl2LE1skNSEMZQMV73nMUJYsmQg7+Fqx/cnTw0zCtU=".decodeBase64ToArray()),
-        androidVersion = 10000,                 //optional
-        appVersion = 1,                         //optional
-        patchLevel = PatchLevel(2021, 8),       //optional
-        requireStrongBox = false,               //optional
-        bootloaderUnlockAllowed = false,        //you don't usually want to change this
-        requireRollbackResistance = false,      //depends on device, so leave off
-        ignoreLeafValidity = false,             //ignore attestation leaf certificate validity (looking at you, Samsung!)
-       trustAnchors = listOf(googleRootPubKey)  //OPTIONAL, defaults to google HW attestation key. Useful for automated end-to-end tests
-    ),
-    iosAttestationConfiguration = IOSAttestationConfiguration(
+       applications= listOf(   //REQUIRED: add applications to be attested
+           AndroidAttestationConfiguration.AppData(
+               packageName = "at.asitplus.attestation_client",
+               signatureDigests = listOf("NLl2LE1skNSEMZQMV73nMUJYsmQg7=".encodeToByteArray()),
+               appVersion = 5
+           ),
+           AndroidAttestationConfiguration.AppData( //we have a dedicated app for latest android version
+               packageName = "at.asitplus.attestation_client-tiramisu",
+               signatureDigests = listOf("NLl2LE1skNSEMZQMV73nMUJYsmQg7=".encodeToByteArray()),
+               appVersion = 2, //with a different versioning scheme
+               androidVersionOverride = 13000, //so we need to override this
+               patchLevelOverride = PatchLevel(2023, 6) //also override patch level
+           )
+       ),
+       androidVersion = 11000,                 //OPTIONAL, null by default
+       patchLevel = PatchLevel(2022, 12),      //OPTIONAL, null by default
+       requireStrongBox = false,               //OPTIONAL, defaults to false
+       allowBootloaderUnlock = false,          //OPTIONAL, defaults to false
+       requireRollbackResistance = false,      //OPTIONAL, defaults to false
+       ignoreLeafValidity = false,             //OPTIONAL, defaults to false
+       hardwareAttestationTrustAnchors = linkedSetOf(*DEFAULT_HARDWARE_TRUST_ANCHORS), //OPTIONAL, defaults shown here
+       softwareAttestationTrustAnchors = linkedSetOf(*DEFAULT_SOFTWARE_TRUST_ANCHORS), //OPTIONAL, defaults shown here
+       verificationSecondsOffset = -300,       //OPTIONAL, defaults to 0
+       disableHardwareAttestation = false,     //OPTIONAL, defaults to false. Set to true to disable HW attestation
+       enableNougatAttestation = false,        //OPTIONAL, defaults to false. Set to true to enable hybrid attestation
+       enableSoftwareAttestation = false       //OPTIONAL, defaults to false. Set to true to enable SW attestation
+   ),
+   iosAttestationConfiguration = IOSAttestationConfiguration(
+      applications = listOf(
+      IOSAttestationConfiguration.AppData(
         teamIdentifier = "9CYHJNG644",
         bundleIdentifier = "at.asitplus.attestation-client",
-        sandbox = false,
-        iosVersion = "16" //optional, use SemVer notation
-    ),
-    clock = FixedTimeClock(Instant.parse("2023-04-13T00:00:00Z")), //optional
-    verificationTimeOffset = Duration.ZERO //optional
+        iosVersionOverride = "16.0",     //OPTIONAL, null by default
+        sandbox = false                  //OPTIONAL, defaults to false
+        )
+     )
+   ),
+   iosVersion = 14,                                                 //OPTIONAL, null by default
+   clock = FixedTimeClock(Instant.parse("2023-04-13T00:00:00Z")),   //OPTIONAL, system clock by default,
+   verificationTimeOffset = Duration.ZERO                           //OPTIONAL, defaults to zero
 )
 ```
 
 The (nullable) properties like patch level, iOS version or Android app version essentially allow for excluding outdated devices.
-Custom android challenge verification has been omitted by design, considering iOS constraints and inconsistencies resulting from such a costomisation.
+Custom android challenge verification has been omitted by design, considering iOS constraints and inconsistencies resulting from such a customisation.
+More details on the configuration can be found in the API documentation
 
+#### A Note on Android Attestation
+This library allows for using combining different flavours of Android attestation, ranging from full hardware attestation
+to (rather useless in practice) software-only attestation (see [Android Attestation](https://github.com/a-sit-plus/android-attestation) for details).
+Hardware attestation is enabled by default, while hybrid and software-only attestation need to be explicitly enabled
+through `enableNougatAttestation` and `enableSoftwareAttestation`, respectively. Doing so, will chain the corresponding
+`AndroidAttestationChecker`s initially from strictest (hardware) to most useless (software-only).
+Naturally, hardware attestation can also be disabled by setting `disableHardwareAttestation = true` although there is probably
+no real use case for such a configuration-
 
 ### Obtaining an Attestation Result
 1. The general workflow this library caters to assumes a back-end service, sending an attestation challenge to the mobile app. This challenge needs to be kept for future reference

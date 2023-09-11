@@ -27,19 +27,27 @@ class GeneratedAttestationTests : FreeSpec(
 
         val attestationService = DefaultAttestationService(
             androidAttestationConfiguration = AndroidAttestationConfiguration(
-                packageName = packageName,
-                signatureDigests = listOf(signatureDigest),
-                appVersion = appVersion,
+                applications = listOf(
+                    AndroidAttestationConfiguration.AppData(
+                        packageName = packageName,
+                        signatureDigests = listOf(signatureDigest),
+                        appVersion = appVersion
+                    )
+                ),
                 androidVersion = androidVersion,
                 patchLevel = PatchLevel(2021, 8),
                 requireStrongBox = false,
-                bootloaderUnlockAllowed = false,
+                allowBootloaderUnlock = false,
                 ignoreLeafValidity = false,
-                trustAnchors = listOf(attestationProof.last().publicKey)
+                hardwareAttestationTrustAnchors = setOf(attestationProof.last().publicKey)
             ),
             iosAttestationConfiguration = IOSAttestationConfiguration(
-                teamIdentifier = "9CYHJNG644",
-                bundleIdentifier = "at.asitplus.attestation-client"
+                applications = listOf(
+                    IOSAttestationConfiguration.AppData(
+                        teamIdentifier = "9CYHJNG644",
+                        bundleIdentifier = "at.asitplus.attestation-client"
+                    )
+                )
             )
         )
 

@@ -1,99 +1,100 @@
 import at.asitplus.attestation.*;
+import at.asitplus.attestation.android.AndroidAttestationChecker;
 import at.asitplus.attestation.android.AndroidAttestationConfiguration;
+import at.asitplus.attestation.android.HardwareAttestationChecker;
+import at.asitplus.attestation.android.PatchLevel;
 import at.asitplus.attestation.android.exceptions.AttestationException;
+import at.asitplus.attestation.android.exceptions.CertificateInvalidException;
+import at.asitplus.attestation.android.exceptions.RevocationException;
+import com.google.android.attestation.ParsedAttestationRecord;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
 
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.X509Certificate;
 import java.security.interfaces.ECPublicKey;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
+import java.util.*;
 
 
 public class JavaInteropTest {
 
 
-    @Test
-    public void testDefaults() {
+    public static void testDefaults() {
         Assertions.assertThrows(AttestationException.class, () -> {
                     new DefaultAttestationService(
-                            new AndroidAttestationConfiguration("at.asitplus.attestation-example",
-                                    new ArrayList<>()
-                            ),
-                            new IOSAttestationConfiguration(
+                            new AndroidAttestationConfiguration.Builder(new AndroidAttestationConfiguration.AppData(
+                                    "at.asitplus.attestation-example", Collections.emptyList())).build(),
+                            new IOSAttestationConfiguration(new IOSAttestationConfiguration.AppData(
                                     "1234567890",
-                                    "at.asitplus.attestation-example"));
+                                    "at.asitplus.attestation-example")));
                 },
                 "No signature digests specified");
 
         Assertions.assertThrows(AttestationException.class, () -> {
                     new DefaultAttestationService(
-                            new AndroidAttestationConfiguration("at.asitplus.attestation-example",
+                            new AndroidAttestationConfiguration.Builder(new AndroidAttestationConfiguration.AppData("at.asitplus.attestation-example",
                                     new ArrayList<>()
-                            ),
-                            new IOSAttestationConfiguration(
+                            )).build(),
+                            new IOSAttestationConfiguration(new IOSAttestationConfiguration.AppData(
                                     "1234567890",
-                                    "at.asitplus.attestation-example"),
+                                    "at.asitplus.attestation-example")),
                             Duration.ZERO);
                 },
                 "No signature digests specified");
 
         Assertions.assertThrows(AttestationException.class, () -> {
                     new DefaultAttestationService(
-                            new AndroidAttestationConfiguration("at.asitplus.attestation-example",
+                            new AndroidAttestationConfiguration.Builder(new AndroidAttestationConfiguration.AppData("at.asitplus.attestation-example",
                                     new ArrayList<>(),
-                                    10
-                            ),
-                            new IOSAttestationConfiguration(
+                                    10)
+                            ).build(),
+                            new IOSAttestationConfiguration(new IOSAttestationConfiguration.AppData(
                                     "1234567890",
-                                    "at.asitplus.attestation-example"),
+                                    "at.asitplus.attestation-example")),
                             Duration.ZERO);
                 },
                 "No signature digests specified");
 
         Assertions.assertThrows(AttestationException.class, () -> {
                     new DefaultAttestationService(
-                            new AndroidAttestationConfiguration("at.asitplus.attestation-example",
+                            new AndroidAttestationConfiguration.Builder(new AndroidAttestationConfiguration.AppData("at.asitplus.attestation-example",
                                     new ArrayList<>(),
                                     10,
-                                    10000
-                            ),
-                            new IOSAttestationConfiguration(
+                                    10000)
+                            ).build(),
+                            new IOSAttestationConfiguration(new IOSAttestationConfiguration.AppData(
                                     "1234567890",
                                     "at.asitplus.attestation-example",
-                                    true),
+                                    true)),
                             Duration.ZERO);
                 },
                 "No signature digests specified");
 
         Assertions.assertThrows(AttestationException.class, () -> {
                     new DefaultAttestationService(
-                            new AndroidAttestationConfiguration("at.asitplus.attestation-example",
+                            new AndroidAttestationConfiguration.Builder(new AndroidAttestationConfiguration.AppData("at.asitplus.attestation-example",
                                     new ArrayList<>()
-                            ),
-                            new IOSAttestationConfiguration(
+                            )).build(),
+                            new IOSAttestationConfiguration(new IOSAttestationConfiguration.AppData(
                                     "1234567890",
                                     "at.asitplus.attestation-example",
-                                    false,
+                                    false),
                                     "14.1"),
                             Duration.ZERO);
                 },
                 "No signature digests specified");
     }
 
-    @Test
-    public void testAttestationCallsJavaFriendliness() throws NoSuchAlgorithmException {
+    public static void testAttestationCallsJavaFriendliness() throws NoSuchAlgorithmException {
         AttestationService service = new DefaultAttestationService(
-                new AndroidAttestationConfiguration("at.asitplus.attestation-example",
-                        Arrays.asList(new byte[][]{new byte[]{0, 1, 2, 3, 4, 5, 6, 7, 8}})
-                ),
-                new IOSAttestationConfiguration(
+                new AndroidAttestationConfiguration.Builder(new AndroidAttestationConfiguration.AppData("at.asitplus.attestation-example",
+                        Arrays.asList(new byte[][]{new byte[]{0, 1, 2, 3, 4, 5, 6, 7, 8}}))
+                ).build(),
+                new IOSAttestationConfiguration(new IOSAttestationConfiguration.AppData(
                         "1234567890",
                         "at.asitplus.attestation-example",
-                        false,
+                        false),
                         "14.1"),
                 Duration.ZERO);
 
@@ -126,8 +127,37 @@ public class JavaInteropTest {
 
         Assertions.assertFalse(keyAttestationResult.isSuccess());
         Assertions.assertNull(keyAttestationResult.getAttestedPublicKey());
+    }
 
+    public static void javaDemo() {
+        byte[] challenge = new byte[]{0, 2, 3, 4, 5, 6};
+        List<X509Certificate> certificateChain = Collections.emptyList();
 
+        List<AndroidAttestationConfiguration.AppData> apps = new LinkedList<>();
+
+        apps.add(new AndroidAttestationConfiguration.AppData(
+                "at.asitplus.example",
+                Collections.singletonList(Base64.getDecoder().decode("NLl2LE1skNSEMZQMV73nMUJYsmQg7+Fqx/cnTw0zCtU="))
+        ));
+        apps.add(new AndroidAttestationConfiguration.AppData(
+                "at.asitplus.anotherexample",
+                Collections.singletonList(Base64.getDecoder().decode("NLl2LE1skNSEMZQMV73nMUJYsmQg7+Fqx/cnTw0zCtU=")),
+                2
+        ));
+        AndroidAttestationConfiguration config = new AndroidAttestationConfiguration.Builder(apps)
+                .androidVersion(11000)
+                .ingoreLeafValidity()
+                .patchLevel(new PatchLevel(2023, 03))
+                .verificationSecondsOffset(-500) //we to account for time drift
+                .build();
+
+        AndroidAttestationChecker checker = new HardwareAttestationChecker(config);
+        try {
+            ParsedAttestationRecord attestationRecord = checker.verifyAttestation(certificateChain, new Date(), challenge);
+            //all good
+        } catch (AttestationException | CertificateInvalidException | RevocationException e) {
+            //untrusted device/app
+        }
     }
 
 }

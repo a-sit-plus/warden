@@ -1,7 +1,9 @@
 package at.asitplus.attestation
 
+import at.asitplus.attestation.android.AndroidAttestationConfiguration
 import at.asitplus.attestation.android.PatchLevel
 import at.asitplus.attestation.data.AttestationData
+import com.google.android.attestation.ParsedAttestationRecord
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.datatest.withData
@@ -17,8 +19,8 @@ import java.security.spec.ECGenParameterSpec
 import kotlin.time.Duration.Companion.days
 
 
+@OptIn(ExperimentalStdlibApi::class)
 class DefaultAttestationServiceTest : FreeSpec() {
-
 
     private val theGood = androidGood + iosGood
 
@@ -40,6 +42,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                         recordedAttestation.attestationProof,
                                         recordedAttestation.challenge
                                     ).apply {
+                                        also { println(it) }
                                         shouldNotBeInstanceOf<AttestationResult.Error>()
                                     }
                                 }
@@ -49,6 +52,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                         recordedAttestation.challenge,
                                         recordedAttestation.publicKey!!
                                     ).apply {
+                                        also { println(it) }
                                         isSuccess.shouldBeTrue()
                                         attestedPublicKey.shouldNotBeNull()
                                         attestedPublicKey!!.encoded shouldBe recordedAttestation.publicKey?.encoded
@@ -78,7 +82,6 @@ class DefaultAttestationServiceTest : FreeSpec() {
                             }
                         }
                     }
-
 
                     "Fail" - {
 
@@ -159,7 +162,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                     }.genKeyPair().public
                             ).apply {
                                 isSuccess.shouldBeFalse()
-                                details.shouldBeInstanceOf<AttestationResult.Error>()
+                                details.shouldBeInstanceOf<AttestationResult.Error>().also { println(it) }
                                     .cause.shouldBeInstanceOf<AttestationException.Content>()
                             }
                         }
@@ -182,6 +185,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                     recordedAttestation.attestationProof,
                                     recordedAttestation.challenge
                                 ).apply {
+                                    also { println(it) }
                                     shouldBeInstanceOf<AttestationResult.IOS>()
                                 }
                             }
@@ -252,7 +256,83 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                     recordedAttestation.challenge
                                 ).shouldBeInstanceOf<AttestationResult.Android>()
                             }
+                        }
 
+
+                        "Wrongfully disabled HW attestation" - {
+                            val clock =
+                                FixedTimeClock(recordedAttestation.verificationDate.toInstant().toKotlinInstant())
+                            "Software-Only" {
+                                DefaultAttestationService(
+                                    androidAttestationConfiguration = AndroidAttestationConfiguration(
+                                        listOf(
+                                            AndroidAttestationConfiguration.AppData(
+                                                ANDROID_PACKAGE_NAME,
+                                                ANDROID_SIGNATURE_DIGESTS
+                                            )
+                                        ),
+                                        disableHardwareAttestation = true,
+                                        enableSoftwareAttestation = true,
+                                        ignoreLeafValidity = true
+                                    ),
+                                    DEFAULT_IOS_ATTESTATION_CFG,
+                                    clock = clock
+                                ).apply {
+                                    verifyAttestation(
+                                        recordedAttestation.attestationProof,
+                                        recordedAttestation.challenge
+                                    ).shouldBeInstanceOf<AttestationResult.Error>()
+                                        .cause.shouldBeInstanceOf<AttestationException.Certificate>()
+                                }
+                            }
+
+                            "Nougat attestation" {
+                                DefaultAttestationService(
+                                    androidAttestationConfiguration = AndroidAttestationConfiguration(
+                                        listOf(
+                                            AndroidAttestationConfiguration.AppData(
+                                                ANDROID_PACKAGE_NAME,
+                                                ANDROID_SIGNATURE_DIGESTS
+                                            )
+                                        ),
+                                        disableHardwareAttestation = true,
+                                        enableNougatAttestation = true,
+                                        ignoreLeafValidity = true
+                                    ),
+                                    DEFAULT_IOS_ATTESTATION_CFG,
+                                    clock = clock
+                                ).apply {
+                                    verifyAttestation(
+                                        recordedAttestation.attestationProof,
+                                        recordedAttestation.challenge
+                                    ).shouldBeInstanceOf<AttestationResult.Error>()
+                                        .cause.shouldBeInstanceOf<AttestationException.Certificate>()
+                                }
+                            }
+                            "Software + Nougat attestation" {
+                                DefaultAttestationService(
+                                    androidAttestationConfiguration = AndroidAttestationConfiguration(
+                                        listOf(
+                                            AndroidAttestationConfiguration.AppData(
+                                                ANDROID_PACKAGE_NAME,
+                                                ANDROID_SIGNATURE_DIGESTS
+                                            )
+                                        ),
+                                        disableHardwareAttestation = true,
+                                        enableNougatAttestation = true,
+                                        enableSoftwareAttestation = true,
+                                        ignoreLeafValidity = true
+                                    ),
+                                    DEFAULT_IOS_ATTESTATION_CFG,
+                                    clock = clock
+                                ).apply {
+                                    verifyAttestation(
+                                        recordedAttestation.attestationProof,
+                                        recordedAttestation.challenge
+                                    ).shouldBeInstanceOf<AttestationResult.Error>().also { println(it) }
+                                        .cause.shouldBeInstanceOf<AttestationException.Certificate>()
+                                }
+                            }
                         }
 
                         "Fail" - {
@@ -394,8 +474,9 @@ class DefaultAttestationServiceTest : FreeSpec() {
                 }
             }
         }
+
         "The Bad" - {
-            "Software-Only Keystore" {
+            "Software-Only Keystore" - {
                 AttestationData(
                     "Android Emulator",
                     challengeB64 = "RN9CjU7I5zpvCh7D3vi/aA==",
@@ -447,17 +528,339 @@ class DefaultAttestationServiceTest : FreeSpec() {
                     isoDate = "2023-04-18T00:00:00Z",
                     pubKeyB64 = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEgQC2Fo5nb6dlnJh2h4tg0vnJmjPN8x2t+tlwbZEjWO6uJWlqu5uTPFkYKzgpxF6HVoOFYWwPFBZgB4ktwU3ysw=="
                 ).apply {
-                    attestationService(
-                        timeSource = FixedTimeClock(
-                            verificationDate.toInstant()
-                                .toKotlinInstant()
-                        )
-                    ).verifyAttestation(
-                        attestationProof,
-                        challenge
-                    ).shouldBeInstanceOf<AttestationResult.Error>()
-                        .cause.shouldBeInstanceOf<AttestationException.Certificate>()
 
+                    val clock = FixedTimeClock(verificationDate.toInstant().toKotlinInstant())
+                    "HW Attestation should fail" {
+                        attestationService(
+                            timeSource = clock
+                        ).verifyAttestation(
+                            attestationProof,
+                            challenge
+                        ).shouldBeInstanceOf<AttestationResult.Error>()
+                            .cause.shouldBeInstanceOf<AttestationException.Certificate>()
+                    }
+
+                    "Nougat Hybrid attestation should fail" {
+                        DefaultAttestationService(
+                            androidAttestationConfiguration = AndroidAttestationConfiguration(
+                                listOf(
+                                    AndroidAttestationConfiguration.AppData(
+                                        ANDROID_PACKAGE_NAME,
+                                        ANDROID_SIGNATURE_DIGESTS
+                                    )
+                                ),
+                                disableHardwareAttestation = true,
+                                enableNougatAttestation = true,
+                                ignoreLeafValidity = true
+                            ),
+                            DEFAULT_IOS_ATTESTATION_CFG,
+                            clock = clock
+                        ).apply {
+                            verifyAttestation(
+                                attestationProof,
+                                challenge
+                            ).shouldBeInstanceOf<AttestationResult.Error>()
+                                .cause.shouldBeInstanceOf<AttestationException.Content>()
+                        }
+                    }
+
+                    "HW Attestation and Nougat Hybrid attestation combined should fail" {
+                        DefaultAttestationService(
+                            androidAttestationConfiguration = AndroidAttestationConfiguration(
+                                listOf(
+                                    AndroidAttestationConfiguration.AppData(
+                                        ANDROID_PACKAGE_NAME,
+                                        ANDROID_SIGNATURE_DIGESTS
+                                    )
+                                ),
+                                enableNougatAttestation = true,
+                                ignoreLeafValidity = true
+                            ),
+                            DEFAULT_IOS_ATTESTATION_CFG,
+                            clock = clock
+                        ).apply {
+                            verifyAttestation(
+                                attestationProof,
+                                challenge
+                            ).shouldBeInstanceOf<AttestationResult.Error>()
+                                .cause.shouldBeInstanceOf<AttestationException.Content>()
+                        }
+                    }
+
+                    "Software attestation should work" - {
+
+                        "stand-alone" {
+                            DefaultAttestationService(
+                                androidAttestationConfiguration = AndroidAttestationConfiguration(
+                                    listOf(
+                                        AndroidAttestationConfiguration.AppData(
+                                            ANDROID_PACKAGE_NAME,
+                                            ANDROID_SIGNATURE_DIGESTS
+                                        )
+                                    ),
+                                    disableHardwareAttestation = true,
+                                    enableSoftwareAttestation = true,
+                                    ignoreLeafValidity = true
+                                ),
+                                DEFAULT_IOS_ATTESTATION_CFG,
+                                clock = clock
+                            ).apply {
+                                verifyAttestation(
+                                    attestationProof,
+                                    challenge
+                                ).shouldBeInstanceOf<AttestationResult.Android>()
+                                    .attestationRecord
+                            }
+                        }
+
+                        "with Nougat attestation" {
+                            DefaultAttestationService(
+                                androidAttestationConfiguration = AndroidAttestationConfiguration(
+                                    listOf(
+                                        AndroidAttestationConfiguration.AppData(
+                                            ANDROID_PACKAGE_NAME,
+                                            ANDROID_SIGNATURE_DIGESTS
+                                        )
+                                    ),
+                                    disableHardwareAttestation = true,
+                                    enableNougatAttestation = true,
+                                    enableSoftwareAttestation = true,
+                                    ignoreLeafValidity = true
+                                ),
+                                DEFAULT_IOS_ATTESTATION_CFG,
+                                clock = clock
+                            ).apply {
+                                verifyAttestation(
+                                    attestationProof,
+                                    challenge
+                                ).shouldBeInstanceOf<AttestationResult.Android>()
+                                    .attestationRecord
+                            }
+                        }
+
+                        "with Nougat and HW attestation" {
+                            DefaultAttestationService(
+                                androidAttestationConfiguration = AndroidAttestationConfiguration(
+                                    listOf(
+                                        AndroidAttestationConfiguration.AppData(
+                                            ANDROID_PACKAGE_NAME,
+                                            ANDROID_SIGNATURE_DIGESTS
+                                        )
+                                    ),
+                                    enableNougatAttestation = true,
+                                    enableSoftwareAttestation = true,
+                                    ignoreLeafValidity = true
+                                ),
+                                DEFAULT_IOS_ATTESTATION_CFG,
+                                clock = clock
+                            ).apply {
+                                verifyAttestation(
+                                    attestationProof,
+                                    challenge
+                                ).shouldBeInstanceOf<AttestationResult.Android>()
+                                    .attestationRecord
+                            }
+                        }
+                    }
+                }
+            }
+
+            "Nougat to Oreo (LineageOS) bq Aquaris X" - {
+                val data = AttestationData(
+                    "bq Aquaris X with LineageOS",
+                    "foobdar".encodeToByteArray().encodeBase64(),
+                    listOf(
+                        "MIICkDCCAjagAwIBAgIBATAKBggqhkjOPQQDAjCBiDELMAkGA1UEBhMCVVMxEzARBgNVBAgMCkNhbGlmb3JuaWExFTATBgNVBAoMDEdvb2dsZSwgSW5jLjEQMA4GA1UECwwHQW5kcm9pZDE7MDkGA1UEAwwyQW5kcm9pZCBLZXlzdG9yZSBTb2Z0d2FyZSBBdHRlc3RhdGlvbiBJbnRlcm1lZGlhdGUwIBcNNzAwMTAxMDAwMDAwWhgPMjEwNjAyMDcwNjI4MTVaMB8xHTAbBgNVBAMMFEFuZHJvaWQgS2V5c3RvcmUgS2V5MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEoX5eWkxsJOk2z6S5tclt6bOyJhS3b+2+ULx3O3zZAwFNrbWP52YnQzp/lsexI99lx/Z5NRzJ9x0aDLdIcR/AyqOB9jCB8zALBgNVHQ8EBAMCB4AwgcIGCisGAQQB1nkCAREEgbMwgbACAQIKAQACAQEKAQEEB2Zvb2JkYXIEADBev4U9BwIFAKtq1Vi/hUVPBE0wSzElMCMEHmNvbS5leGFtcGxlLnRydXN0ZWRhcHBsaWNhdGlvbgIBATEiBCCI5cOT6u82gpgAtB33hqUv8KWCFYUMqKZQc4Wa3PAZDzA3oQgxBgIBAgIBA6IDAgEDowQCAgEApQgxBgIBAAIBBKoDAgEBv4N3AgUAv4U+AwIBAL+FPwIFADAfBgNVHSMEGDAWgBQ//KzWGrE6noEguNUlHMVlux6RqTAKBggqhkjOPQQDAgNIADBFAiBiMBtVeUV4j1VOiRU8DnGzq9/xtHfl0wra1xnsmxG+LAIhAJAroVhVcxxItgYZEMN1AaWqmZUXFtktQeLXh7u2F3d+",
+                        "MIICeDCCAh6gAwIBAgICEAEwCgYIKoZIzj0EAwIwgZgxCzAJBgNVBAYTAlVTMRMwEQYDVQQIDApDYWxpZm9ybmlhMRYwFAYDVQQHDA1Nb3VudGFpbiBWaWV3MRUwEwYDVQQKDAxHb29nbGUsIEluYy4xEDAOBgNVBAsMB0FuZHJvaWQxMzAxBgNVBAMMKkFuZHJvaWQgS2V5c3RvcmUgU29mdHdhcmUgQXR0ZXN0YXRpb24gUm9vdDAeFw0xNjAxMTEwMDQ2MDlaFw0yNjAxMDgwMDQ2MDlaMIGIMQswCQYDVQQGEwJVUzETMBEGA1UECAwKQ2FsaWZvcm5pYTEVMBMGA1UECgwMR29vZ2xlLCBJbmMuMRAwDgYDVQQLDAdBbmRyb2lkMTswOQYDVQQDDDJBbmRyb2lkIEtleXN0b3JlIFNvZnR3YXJlIEF0dGVzdGF0aW9uIEludGVybWVkaWF0ZTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABOueefhCY1msyyqRTImGzHCtkGaTgqlzJhP+rMv4ISdMIXSXSir+pblNf2bU4GUQZjW8U7ego6ZxWD7bPhGuEBSjZjBkMB0GA1UdDgQWBBQ//KzWGrE6noEguNUlHMVlux6RqTAfBgNVHSMEGDAWgBTIrel3TEXDo88NFhDkeUM6IVowzzASBgNVHRMBAf8ECDAGAQH/AgEAMA4GA1UdDwEB/wQEAwIChDAKBggqhkjOPQQDAgNIADBFAiBLipt77oK8wDOHri/AiZi03cONqycqRZ9pDMfDktQPjgIhAO7aAV229DLp1IQ7YkyUBO86fMy9Xvsiu+f+uXc/WT/7",
+                        "MIICizCCAjKgAwIBAgIJAKIFntEOQ1tXMAoGCCqGSM49BAMCMIGYMQswCQYDVQQGEwJVUzETMBEGA1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNTW91bnRhaW4gVmlldzEVMBMGA1UECgwMR29vZ2xlLCBJbmMuMRAwDgYDVQQLDAdBbmRyb2lkMTMwMQYDVQQDDCpBbmRyb2lkIEtleXN0b3JlIFNvZnR3YXJlIEF0dGVzdGF0aW9uIFJvb3QwHhcNMTYwMTExMDA0MzUwWhcNMzYwMTA2MDA0MzUwWjCBmDELMAkGA1UEBhMCVVMxEzARBgNVBAgMCkNhbGlmb3JuaWExFjAUBgNVBAcMDU1vdW50YWluIFZpZXcxFTATBgNVBAoMDEdvb2dsZSwgSW5jLjEQMA4GA1UECwwHQW5kcm9pZDEzMDEGA1UEAwwqQW5kcm9pZCBLZXlzdG9yZSBTb2Z0d2FyZSBBdHRlc3RhdGlvbiBSb290MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE7l1ex+HA220Dpn7mthvsTWpdamguD/9/SQ59dx9EIm29sa/6FsvHrcV30lacqrewLVQBXT5DKyqO107sSHVBpKNjMGEwHQYDVR0OBBYEFMit6XdMRcOjzw0WEOR5QzohWjDPMB8GA1UdIwQYMBaAFMit6XdMRcOjzw0WEOR5QzohWjDPMA8GA1UdEwEB/wQFMAMBAf8wDgYDVR0PAQH/BAQDAgKEMAoGCCqGSM49BAMCA0cAMEQCIDUho++LNEYenNVg8x1YiSBq3KNlQfYNns6KGYxmSGB7AiBNC/NR2TB8fVvaNTQdqEcbY6WFZTytTySn502vQX3xvw=="
+                    ),
+                    isoDate = "2023-09-10T00:00:00Z"
+                )
+                val signatureDigests = listOf(
+                    "88E5C393EAEF36829800B41DF786A52FF0A58215850CA8A65073859ADCF0190F".hexToByteArray(HexFormat.UpperCase)
+                )
+                val packageName = "com.example.trustedapplication"
+
+                val clock = FixedTimeClock(data.verificationDate.toInstant().toKotlinInstant())
+
+                "Nougat Hybrid attestation should work" - {
+                    "stand-alone" {
+                        DefaultAttestationService(
+                            androidAttestationConfiguration = AndroidAttestationConfiguration(
+                                listOf(
+                                    AndroidAttestationConfiguration.AppData(
+                                        packageName,
+                                        signatureDigests
+                                    )
+                                ),
+                                disableHardwareAttestation = true,
+                                enableNougatAttestation = true,
+                                ignoreLeafValidity = true
+                            ),
+                            DEFAULT_IOS_ATTESTATION_CFG,
+                            clock = clock
+                        ).apply {
+                            verifyAttestation(
+                                data.attestationProof,
+                                data.challenge
+                            ).shouldBeInstanceOf<AttestationResult.Android>().attestationRecord.apply {
+                                attestationSecurityLevel shouldBe ParsedAttestationRecord.SecurityLevel.SOFTWARE
+                                keymasterSecurityLevel shouldBe ParsedAttestationRecord.SecurityLevel.TRUSTED_ENVIRONMENT
+                            }
+
+                        }
+                    }
+
+
+                    "with Hardware attestation" {
+                        DefaultAttestationService(
+                            androidAttestationConfiguration = AndroidAttestationConfiguration(
+                                listOf(
+                                    AndroidAttestationConfiguration.AppData(
+                                        packageName,
+                                        signatureDigests
+                                    )
+                                ),
+                                enableNougatAttestation = true,
+                                ignoreLeafValidity = true
+                            ),
+                            DEFAULT_IOS_ATTESTATION_CFG,
+                            clock = clock
+                        ).apply {
+                            verifyAttestation(
+                                data.attestationProof,
+                                data.challenge
+                            ).shouldBeInstanceOf<AttestationResult.Android>().attestationRecord.apply {
+                                attestationSecurityLevel shouldBe ParsedAttestationRecord.SecurityLevel.SOFTWARE
+                                keymasterSecurityLevel shouldBe ParsedAttestationRecord.SecurityLevel.TRUSTED_ENVIRONMENT
+                            }
+
+                        }
+                    }
+
+                    "with Hardware + Sowftware Attestation " {
+                        DefaultAttestationService(
+                            androidAttestationConfiguration = AndroidAttestationConfiguration(
+                                listOf(
+                                    AndroidAttestationConfiguration.AppData(
+                                        packageName,
+                                        signatureDigests
+                                    )
+                                ),
+                                enableSoftwareAttestation = true,
+                                enableNougatAttestation = true,
+                                ignoreLeafValidity = true
+                            ),
+                            DEFAULT_IOS_ATTESTATION_CFG,
+                            clock = clock
+                        ).apply {
+                            verifyAttestation(
+                                data.attestationProof,
+                                data.challenge
+                            ).shouldBeInstanceOf<AttestationResult.Android>().attestationRecord.apply {
+                                attestationSecurityLevel shouldBe ParsedAttestationRecord.SecurityLevel.SOFTWARE
+                                keymasterSecurityLevel shouldBe ParsedAttestationRecord.SecurityLevel.TRUSTED_ENVIRONMENT
+                            }
+
+                        }
+                    }
+
+                    "with Software Attestation" {
+                        DefaultAttestationService(
+                            androidAttestationConfiguration = AndroidAttestationConfiguration(
+                                listOf(
+                                    AndroidAttestationConfiguration.AppData(
+                                        packageName,
+                                        signatureDigests
+                                    )
+                                ),
+                                disableHardwareAttestation = true,
+                                enableSoftwareAttestation = true,
+                                enableNougatAttestation = true,
+                                ignoreLeafValidity = true
+                            ),
+                            DEFAULT_IOS_ATTESTATION_CFG,
+                            clock = clock
+                        ).apply {
+                            verifyAttestation(
+                                data.attestationProof,
+                                data.challenge
+                            ).shouldBeInstanceOf<AttestationResult.Android>().attestationRecord.apply {
+                                attestationSecurityLevel shouldBe ParsedAttestationRecord.SecurityLevel.SOFTWARE
+                                keymasterSecurityLevel shouldBe ParsedAttestationRecord.SecurityLevel.TRUSTED_ENVIRONMENT
+                            }
+
+                        }
+                    }
+                }
+
+                "Hardware attestation should fail" {
+                    DefaultAttestationService(
+                        androidAttestationConfiguration = AndroidAttestationConfiguration(
+                            listOf(
+                                AndroidAttestationConfiguration.AppData(
+                                    packageName,
+                                    signatureDigests
+                                )
+                            ),
+                            ignoreLeafValidity = true
+                        ),
+                        DEFAULT_IOS_ATTESTATION_CFG,
+                        clock = clock
+                    ).apply {
+                        verifyAttestation(
+                            data.attestationProof,
+                            data.challenge
+                        ).shouldBeInstanceOf<AttestationResult.Error>()
+                            .cause.shouldBeInstanceOf<AttestationException.Certificate>()
+                    }
+                }
+
+                "Hardware + SW attestation should fail" {
+                    DefaultAttestationService(
+                        androidAttestationConfiguration = AndroidAttestationConfiguration(
+                            listOf(
+                                AndroidAttestationConfiguration.AppData(
+                                    packageName,
+                                    signatureDigests
+                                )
+                            ),
+                            enableSoftwareAttestation = true,
+                            ignoreLeafValidity = true
+                        ),
+                        DEFAULT_IOS_ATTESTATION_CFG,
+                        clock = clock
+                    ).apply {
+                        verifyAttestation(
+                            data.attestationProof,
+                            data.challenge
+                        ).shouldBeInstanceOf<AttestationResult.Error>()
+                            .cause.shouldBeInstanceOf<AttestationException.Content>()
+                    }
+                }
+
+                "SW attestation should fail" {
+                    DefaultAttestationService(
+                        androidAttestationConfiguration = AndroidAttestationConfiguration(
+                            listOf(
+                                AndroidAttestationConfiguration.AppData(
+                                    packageName,
+                                    signatureDigests
+                                )
+                            ),
+                            disableHardwareAttestation = true,
+                            enableSoftwareAttestation = true,
+                            ignoreLeafValidity = true
+                        ),
+                        DEFAULT_IOS_ATTESTATION_CFG,
+                        clock = clock
+                    ).apply {
+                        verifyAttestation(
+                            data.attestationProof,
+                            data.challenge
+                        ).shouldBeInstanceOf<AttestationResult.Error>()
+                            .cause.shouldBeInstanceOf<AttestationException.Content>()
+                    }
                 }
             }
 

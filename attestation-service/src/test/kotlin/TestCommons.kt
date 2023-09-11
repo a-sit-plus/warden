@@ -10,7 +10,6 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 
-
 val AttestationData.attestationProof: List<ByteArray>
     get() = attestationProofB64.map { mimeDecoder.decode(it) }
 
@@ -248,13 +247,27 @@ val iosGood = listOf(
 )
 
 
+const val ANDROID_PACKAGE_NAME = "at.asitplus.attestation_client"
+
+val ANDROID_SIGNATURE_DIGESTS = listOf(
+    "NLl2LE1skNSEMZQMV73nMUJYsmQg7+Fqx/cnTw0zCtU=".decodeBase64ToArray(),
+    /*this one's an invalid digest and must not affect the tests*/
+    "LvfTC77F/uSecSfJDeLdxQ3gZrVLHX8+NNBp7AiUO0E=".decodeBase64ToArray()!!
+)
+
+val DEFAULT_IOS_ATTESTATION_CFG = IOSAttestationConfiguration(
+    applications = listOf(
+        IOSAttestationConfiguration.AppData(
+            "9CYHJNG644",
+            bundleIdentifier = "at.asitplus.attestation-client",
+            sandbox = false
+        )
+    )
+)
+
 fun attestationService(
-    androidPackageName: String = "at.asitplus.attestation_client",
-    androidAppSignatureDigest: List<ByteArray> = listOf(
-        "NLl2LE1skNSEMZQMV73nMUJYsmQg7+Fqx/cnTw0zCtU=".decodeBase64ToArray(),
-        /*this one's an invalid digest and must not affect the tests*/
-        "LvfTC77F/uSecSfJDeLdxQ3gZrVLHX8+NNBp7AiUO0E=".decodeBase64ToArray()!!
-    ),
+    androidPackageName: String = ANDROID_PACKAGE_NAME,
+    androidAppSignatureDigest: List<ByteArray> = ANDROID_SIGNATURE_DIGESTS,
     androidVersion: Int? = 10000,
     androidAppVersion: Int? = 1,
     androidPatchLevel: PatchLevel? = PatchLevel(2021, 8),
@@ -271,20 +284,28 @@ fun attestationService(
 ) =
     DefaultAttestationService(
         AndroidAttestationConfiguration(
-            packageName = androidPackageName,
-            signatureDigests = androidAppSignatureDigest,
-            appVersion = androidAppVersion,
+            applications = listOf(
+                AndroidAttestationConfiguration.AppData(
+                    packageName = androidPackageName,
+                    signatureDigests = androidAppSignatureDigest,
+                    appVersion = androidAppVersion
+                )
+            ),
             androidVersion = androidVersion,
             patchLevel = androidPatchLevel,
             requireStrongBox = requireStrongBox,
-            bootloaderUnlockAllowed = unlockedBootloaderAllowed,
+            allowBootloaderUnlock = unlockedBootloaderAllowed,
             requireRollbackResistance = requireRollbackResistance,
             ignoreLeafValidity = eternalLeaves,
         ),
         IOSAttestationConfiguration(
-            iosTeamIdentifier,
-            iosBundleIdentifier,
-            sandbox = iosSandbox,
+            applications = listOf(
+                IOSAttestationConfiguration.AppData(
+                    iosTeamIdentifier,
+                    iosBundleIdentifier,
+                    sandbox = iosSandbox
+                )
+            ),
             iosVersion = iosVersion
         ),
         timeSource,
