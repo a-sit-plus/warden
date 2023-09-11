@@ -157,7 +157,7 @@ Hardware attestation is enabled by default, while hybrid and software-only attes
 through `enableNougatAttestation` and `enableSoftwareAttestation`, respectively. Doing so, will chain the corresponding
 `AndroidAttestationChecker`s initially from strictest (hardware) to most useless (software-only).
 Naturally, hardware attestation can also be disabled by setting `disableHardwareAttestation = true` although there is probably
-no real use case for sich a configuration-
+no real use case for such a configuration-
 
 ### Obtaining an Attestation Result
 1. The general workflow this library caters to assumes a back-end service, sending an attestation challenge to the mobile app. This challenge needs to be kept for future reference
