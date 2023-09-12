@@ -64,3 +64,9 @@ attestation on Android, please re-read the readme!
 ### 1.1.0
 - remove `verifyAttestation`
 - introduce `verifyKeyAttestation` taking an encoded public key as a byte array
+
+### 1.2.0
+- introduce builder for `AppData`
+- Introduce `ByteArray.parseToPublicKey` which takes ANSI X9.63 and DER-encoded byte arrays
+  (only P-256 is supported for ANSI)
+- Update android-attestation to 1.1.0

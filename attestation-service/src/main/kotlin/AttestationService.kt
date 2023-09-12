@@ -83,7 +83,29 @@ data class IOSAttestationConfiguration @JvmOverloads constructor(
          * Uses [SemVer](https://semver.org/) syntax
          */
         val iosVersionOverride: String? = null,
-    )
+    ) {
+        /**
+         * Builder for more Java-friendliness
+         * @param teamIdentifier nomen est omen
+         * @param bundleIdentifier nomen est omen
+         */
+        class Builder(private val teamIdentifier: String, private val bundleIdentifier: String) {
+            private var sandbox = false
+            private var iosVersionOverride: String? = null
+
+            /**
+             * @see AppData.sandbox
+             */
+            fun sandbox(sandbox: Boolean) = apply { this.sandbox = sandbox }
+
+            /**
+             * @see AppData.iosVersionOverride
+             */
+            fun overrideIosVersion(version: String) = apply { iosVersionOverride = version }
+
+            fun build() = AppData(teamIdentifier, bundleIdentifier, sandbox, iosVersionOverride)
+        }
+    }
 
 }
 
