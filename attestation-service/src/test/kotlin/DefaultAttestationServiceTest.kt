@@ -25,6 +25,110 @@ class DefaultAttestationServiceTest : FreeSpec() {
     private val theGood = androidGood + iosGood
 
     init {
+
+        "iosIDA" {
+
+
+            val iosIDA = AttestationData(
+                "ida", "Q049ODBlZDdlMjk4NzM3NWVmYjFhYWJhMDhjNjFjM2E3ZGIsTz1FSUQtREVWLVBLSSxPVT1ULUVudg==",
+                listOf(
+                    "o2NmbXRvYXBwbGUtYXBwYXR0ZXN0Z2F0dFN0bXSiY3g1Y4JZAuwwggLoMIICbaADAgECAgYBioRZyjgwCgYIKoZ" +
+                            "Izj0EAwIwTzEjMCEGA1UEAwwaQXBwbGUgQXBwIEF0dGVzdGF0aW9uIENBIDExEzARBgNVBAoMCkFwcGxlIEluYy4xEzARBgNVBAg" +
+                            "MCkNhbGlmb3JuaWEwHhcNMjMwOTEwMTMwNjMxWhcNMjQwODEyMTE1OTMxWjCBkTFJMEcGA1UEAwxAMTY5MDI5MDVhZjY2YmQ4ZWI" +
+                            "xOTA1NGUxZTI3ZmZhNzQzNDAxMDdhNTg0MTVjZDNkY2ZjYjcyOTQ1MGVmMTc5MzEaMBgGA1UECwwRQUFBIENlcnRpZmljYXRpb24" +
+                            "xEzARBgNVBAoMCkFwcGxlIEluYy4xEzARBgNVBAgMCkNhbGlmb3JuaWEwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAASdH1ghEXv" +
+                            "8cqnSwSgpZKjN3otmKO3SZjJK4lIrCGNJyHBhCc2+ILK2Zn+A2VTQHb/ZpBSVtlnUEXzY06Zj+HDro4HxMIHuMAwGA1UdEwEB/wQ" +
+                            "CMAAwDgYDVR0PAQH/BAQDAgTwMH4GCSqGSIb3Y2QIBQRxMG+kAwIBCr+JMAMCAQG/iTEDAgEAv4kyAwIBAb+JMwMCAQG/iTQmBCQ" +
+                            "5Q1lISk5HNjQ0LmF0LmFzaXRwbHVzLm9lZ3YtZGVtby1hcHClBgQEc2tzIL+JNgMCAQW/iTcDAgEAv4k5AwIBAL+JOgMCAQAwGQY" +
+                            "JKoZIhvdjZAgHBAwwCr+KeAYEBDE2LjIwMwYJKoZIhvdjZAgCBCYwJKEiBCC5MVpWrKvwhsiJXV+2xxdfJw71s8XTKJNOrnGp9wq" +
+                            "Y0zAKBggqhkjOPQQDAgNpADBmAjEA63cDbQpgHRWJSm45XR8nWfg7XkquNB+OC7yN17X8naKQsiUOfudeCDtf69sq7f8YAjEAxCZ" +
+                            "KyCXsAuc39sdiGOvAlA3yDZHAKQhHNdPWv/gfTx70VV3FAK/SLyVXxjo9+/FjWQJHMIICQzCCAcigAwIBAgIQCbrF4bxAGtnUU5W" +
+                            "8OBoIVDAKBggqhkjOPQQDAzBSMSYwJAYDVQQDDB1BcHBsZSBBcHAgQXR0ZXN0YXRpb24gUm9vdCBDQTETMBEGA1UECgwKQXBwbGU" +
+                            "gSW5jLjETMBEGA1UECAwKQ2FsaWZvcm5pYTAeFw0yMDAzMTgxODM5NTVaFw0zMDAzMTMwMDAwMDBaME8xIzAhBgNVBAMMGkFwcGx" +
+                            "lIEFwcCBBdHRlc3RhdGlvbiBDQSAxMRMwEQYDVQQKDApBcHBsZSBJbmMuMRMwEQYDVQQIDApDYWxpZm9ybmlhMHYwEAYHKoZIzj0" +
+                            "CAQYFK4EEACIDYgAErls3oHdNebI1j0Dn0fImJvHCX+8XgC3qs4JqWYdP+NKtFSV4mqJmBBkSSLY8uWcGnpjTY71eNw+/oI4ynoB" +
+                            "zqYXndG6jWaL2bynbMq9FXiEWWNVnr54mfrJhTcIaZs6Zo2YwZDASBgNVHRMBAf8ECDAGAQH/AgEAMB8GA1UdIwQYMBaAFKyREFM" +
+                            "zvb5oQf+nDKnl+url5YqhMB0GA1UdDgQWBBQ+410cBBmpybQx+IR01uHhV3LjmzAOBgNVHQ8BAf8EBAMCAQYwCgYIKoZIzj0EAwM" +
+                            "DaQAwZgIxALu+iI1zjQUCz7z9Zm0JV1A1vNaHLD+EMEkmKe3R+RToeZkcmui1rvjTqFQz97YNBgIxAKs47dDMge0ApFLDukT5k2N" +
+                            "lU/7MKX8utN+fXr5aSsq2mVxLgg35BDhveAe7WJQ5t2dyZWNlaXB0WQ5eMIAGCSqGSIb3DQEHAqCAMIACAQExDzANBglghkgBZQM" +
+                            "EAgEFADCABgkqhkiG9w0BBwGggCSABIID6DGCBBkwLAIBAgIBAQQkOUNZSEpORzY0NC5hdC5hc2l0cGx1cy5vZWd2LWRlbW8tYXB" +
+                            "wMIIC9gIBAwIBAQSCAuwwggLoMIICbaADAgECAgYBioRZyjgwCgYIKoZIzj0EAwIwTzEjMCEGA1UEAwwaQXBwbGUgQXBwIEF0dGV" +
+                            "zdGF0aW9uIENBIDExEzARBgNVBAoMCkFwcGxlIEluYy4xEzARBgNVBAgMCkNhbGlmb3JuaWEwHhcNMjMwOTEwMTMwNjMxWhcNMjQ" +
+                            "wODEyMTE1OTMxWjCBkTFJMEcGA1UEAwxAMTY5MDI5MDVhZjY2YmQ4ZWIxOTA1NGUxZTI3ZmZhNzQzNDAxMDdhNTg0MTVjZDNkY2Z" +
+                            "jYjcyOTQ1MGVmMTc5MzEaMBgGA1UECwwRQUFBIENlcnRpZmljYXRpb24xEzARBgNVBAoMCkFwcGxlIEluYy4xEzARBgNVBAgMCkN" +
+                            "hbGlmb3JuaWEwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAASdH1ghEXv8cqnSwSgpZKjN3otmKO3SZjJK4lIrCGNJyHBhCc2+ILK" +
+                            "2Zn+A2VTQHb/ZpBSVtlnUEXzY06Zj+HDro4HxMIHuMAwGA1UdEwEB/wQCMAAwDgYDVR0PAQH/BAQDAgTwMH4GCSqGSIb3Y2QIBQR" +
+                            "xMG+kAwIBCr+JMAMCAQG/iTEDAgEAv4kyAwIBAb+JMwMCAQG/iTQmBCQ5Q1lISk5HNjQ0LmF0LmFzaXRwbHVzLm9lZ3YtZGVtby1" +
+                            "hcHClBgQEc2tzIL+JNgMCAQW/iTcDAgEAv4k5AwIBAL+JOgMCAQAwGQYJKoZIhvdjZAgHBAwwCr+KeAYEBDE2LjIwMwYJKoZIhvd" +
+                            "jZAgCBCYwJKEiBCC5MVpWrKvwhsiJXV+2xxdfJw71s8XTKJNOrnGp9wqY0zAKBggqhkjOPQQDAgNpADBmAjEA63cDbQpgHRWJSm4" +
+                            "5XR8nWfg7XkquNB+OC7yN17X8naKQsiUOfudeCDtf69sq7f8YAjEAxCZKyCXsAuc39sdiGOvAlA3yDZHAKQhHNdPWv/gfTx70VV3" +
+                            "FAK/SLyVXxjo9+/FjMCgCAQQCAQEEIHIduJSc8yt6liLZb79UH0jD9QPThPlJta8fgBr/dBR6MGACAQUCAQEEWEQxTEp0ekgzbWp" +
+                            "aS0pBU1YzNEYyVWJkbWMvSWpCZlVjRHp0MDlmaUkzQXlhT1RJVlhXdHd3V0RndnVvMXZXSmViWXNsR05yckhneUpuTXhIZGszUVR" +
+                            "RPT0wDgIBBgIBAQQGQVRURVNUMA8CAQcCAQEEB3NhbmRib3gwIAIBDAIBAQQYMjAyMy0ENTA5LTExVDEzOjA2OjMxLjYxOVowIAI" +
+                            "BFQIBAQQYMjAyMy0xMi0xMFQxMzowNjozMS42MTlaAAAAAAAAoIAwggOtMIIDVKADAgECAhB9zZlRLYx9zRYL3g44gXpCMAoGCCq" +
+                            "GSM49BAMCMHwxMDAuBgNVBAMMJ0FwcGxlIEFwcGxpY2F0aW9uIEludGVncmF0aW9uIENBIDUgLSBHMTEmMCQGA1UECwwdQXBwbGU" +
+                            "gQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkxEzARBgNVBAoMCkFwcGxlIEluYy4xCzAJBgNVBAYTAlVTMB4XDTIzMDMwODE1MjkxN1o" +
+                            "XDTI0MDQwNjE1MjkxNlowWjE2MDQGA1UEAwwtQXBwbGljYXRpb24gQXR0ZXN0YXRpb24gRnJhdWQgUmVjZWlwdCBTaWduaW5nMRM" +
+                            "wEQYDVQQKDApBcHBsZSBJbmMuMQswCQYDVQQGEwJVUzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABNqYKGfvXdIprBu9vpxxCe0" +
+                            "/10ulGXkYsERsGjIv5lZXSez5sbvVBHMCbOaU2B3TyAjdgn4es8v78f0qKeJ/EP2jggHYMIIB1DAMBgNVHRMBAf8EAjAAMB8GA1U" +
+                            "dIwQYMBaAFNkX/ktnkDhLkvTbztVXgBQLjz3JMEMGCCsGAQUFBwEBBDcwNTAzBggrBgEFBQcwAYYnaHR0cDovL29jc3AuYXBwbGU" +
+                            "uY29tL29jc3AwMy1hYWljYTVnMTAxMIIBHAYDVR0gBIIBEzCCAQ8wggELBgkqhkiG92NkBQEwgf0wgcMGCCsGAQUFBwICMIG2DIG" +
+                            "zUmVsaWFuY2Ugb24gdGhpcyBjZXJ0aWZpY2F0ZSBieSBhbnkgcGFydHkgYXNzdW1lcyBhY2NlcHRhbmNlIG9mIHRoZSB0aGVuIGF" +
+                            "wcGxpY2FibGUgc3RhbmRhcmQgdGVybXMgYW5kIGNvbmRpdGlvbnMgb2YgdXNlLCBjZXJ0aWZpY2F0ZSBwb2xpY3kgYW5kIGNlcnR" +
+                            "pZmljYXRpb24gcHJhY3RpY2Ugc3RhdGVtZW50cy4wNQYIKwYBBQUHAgEWKWh0dHA6Ly93d3cuYXBwbGUuY29tL2NlcnRpZmljYXR" +
+                            "lYXV0aG9yaXR5MB0GA1UdDgQWBBRM8aefEGGKGjlkzG3m2zsHYpd2vTAOBgNVHQ8BAf8EBAMCB4AwDwYJKoZIhvdjZAwPBAIFADA" +
+                            "KBggqhkjOPQQDAgNHADBEAiB622TidZxPBRb/LEnb85AsLxEspneOUIIKdIOcrDub7AIgRTXHYCoyQE35KoFn/Je2cuAJmdQpipb" +
+                            "nBcvtCXAXUI0wggL5MIICf6ADAgECAhBW+4PUK/+NwzeZI7Varm69MAoGCCqGSM49BAMDMGcxGzAZBgNVBAMMEkFwcGxlIFJvb3Q" +
+                            "gQ0EgLSBHMzEmMCQGA1UECwwdQXBwbGUgQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkxEzARBgNVBAoMCkFwcGxlIEluYy4xCzAJBgN" +
+                            "VBAYTAlVTMB4XDTE5MDMyMjE3NTMzM1oXDTM0MDMyMjAwMDAwMFowfDEwMC4GA1UEAwwnQXBwbGUgQXBwbGljYXRpb24gSW50ZWd" +
+                            "yYXRpb24gQ0EgNSAtIEcxMSYwJAYDVQQLDB1BcHBsZSBDZXJ0aWZpY2F0aW9uIEF1dGhvcml0eTETMBEGA1UECgwKQXBwbGUgSW5" +
+                            "jLjELMAkGA1UEBhMCVVMwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAASSzmO9fYaxqygKOxzhr/sElICRrPYx36bLKDVvREvhIeV" +
+                            "X3RKNjbqCfJW+Sfq+M8quzQQZ8S9DJfr0vrPLg366o4H3MIH0MA8GA1UdEwEB/wQFMAMBAf8wHwYDVR0jBBgwFoAUu7DeoVgziJq" +
+                            "kipnevr3rr9rLJKswRgYIKwYBBQUHAQEEOjA4MDYGCCsGAQUFBzABhipodHRwOi8vb2NzcC5hcHBsZS5jb20vb2NzcDAzLWFwcGx" +
+                            "lcm9vdGNhZzMwNwYDVR0fBDAwLjAsoCqgKIYmaHR0cDovL2NybC5hcHBsZS5jb20vYXBwbGVyb290Y2FnMy5jcmwwHQYDVR0OBBY" +
+                            "EFNkX/ktnkDhLkvTbztVXgBQLjz3JMA4GA1UdDwEB/wQEAwIBBjAQBgoqhkiG92NkBgIDBAIFADAKBggqhkjOPQQDAwNoADBlAjE" +
+                            "AjW+mn6Hg5OxbTnOKkn89eFOYj/TaH1gew3VK/jioTCqDGhqqDaZkbeG5k+jRVUztAjBnOyy04eg3B3fL1ex2qBo6VTs/NWrIxea" +
+                            "SsOFhvoBJaeRfK6ls4RECqsxh2Ti3c0owggJDMIIByaADAgECAggtxfyI0sVLlTAKBggqhkjOPQQDAzBnMRswGQYDVQQDDBJBcHB" +
+                            "sZSBSb290IENBIC0gRzMxJjAkBgNVBAsMHUFwcGxlIENlcnRpZmljYXRpb24gQXV0aG9yaXR5MRMwEQYDVQQKDApBcHBsZSBJbmM" +
+                            "uMQswCQYDVQQGEwJVUzAeFw0xNDA0MzAxODE5MDZaFw0zOTA0MzAxODE5MDZaMGcxGzAZBgNVBAMMEkFwcGxlIFJvb3QgQ0EgLSB" +
+                            "HMzEmMCQGA1UECwwdQXBwbGUgQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkxEzARBgNVBAoMCkFwcGxlIEluYy4xCzAJBgNVBAYTAlV" +
+                            "TMHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEmOkvPUBypO2TInKBExzdEJXxxaNOcdwUFtkO5aYFKndke19OONO7HES1f/UftjJiXcn" +
+                            "phFtPME8RWgD9WFgMpfUPLE0HRxN12peXl28xXO0rnXsgO9i5VNlemaQ6UQoxo0IwQDAdBgNVHQ4EFgQUu7DeoVgziJqkipnevr3" +
+                            "rr9rLJKswDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMCAQYwCgYIKoZIzj0EAwMDaAAwZQIxAIPpwcQWXhpdNBjZ7e/0bA4" +
+                            "ARku437JGEcUP/eZ6jKGma87CA9Sc9ZPGdLhq36ojFQIwbWaKEMrUDdRPzY1DPrSKY6UzbuNt2he3ZB/IUyb5iGJ0OQsXW8tRqAz" +
+                            "oGAPnorIoAAAxgf0wgfoCAQEwgZAwfDEwMC4GA1UEAwwnQXBwbGUgQXBwbGljYXRpb24gSW50ZWdyYXRpb24gQ0EgNSAtIEcxMSY" +
+                            "wJAYDVQQLDB1BcHBsZSBDZXJ0aWZpY2F0aW9uIEF1dGhvcml0eTETMBEGA1UECgwKQXBwbGUgSW5jLjELMAkGA1UEBhMCVVMCEH3" +
+                            "NmVEtjH3NFgveDjiBekIwDQYJYIZIAWUDBAIBBQAwCgYIKoZIzj0EAwIERzBFAiEA0M3dVXm17lZ/BwnJelyE3aUKrDtr+97vE+E" +
+                            "RH4bpOXYCIC8wQw9814hOPb4vH0PKLltwBJWfdN9TWzF7zIyl53IOAAAAAAAAaGF1dGhEYXRhWKSOJJVLWqwLfKJFr4bDc2sg9nR" +
+                            "b2kGynH4pvBeW43Kp5UAAAAAAYXBwYXR0ZXN0ZGV2ZWxvcAAgFpApBa9mvY6xkFTh4n/6dDQBB6WEFc09z8tylFDvF5OlAQIDJiA" +
+                            "BIVggnR9YIRF7/HKp0sEoKWSozd6LZijt0mYySuJSKwhjScgiWCBwYQnNviCytmZ/gNlU0B2/2aQUlbZZ1BF82NOmY/hw6w==",
+                    "omlzaWduYXR1cmVYSDBGAiEAjLQRt6NtttWQPfVSZpZqjAOfG0snhMtoGz/DflZPxDgCIQCq11k3Kmua6MKCPF/w" +
+                            "9R0HW4Qprd+PVoFS1oQFrFO9pHFhdXRoZW50aWNhdG9yRGF0YVgljiSVS1qsC3yiRa+Gw3NrIPZ0W9pBspx+KbwXluNyqeVAAAAA" +
+                            "AQ=="), "2023-09-11T16:02:40Z",pubKeyB64 = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEFT1XwEeF8NftY84GfnqTFBoxHNkdG7wZHcOkLKwT4W6333Jqmga1XkKySq/ApnslBPNZE1Os363SAv8X85ZIrQ=="
+            )
+
+            DefaultAttestationService(
+                AndroidAttestationConfiguration.Builder(
+                    AndroidAttestationConfiguration.AppData(
+                        "foo",
+                        listOf(byteArrayOf())
+                    )
+                ).build(),
+                IOSAttestationConfiguration(
+                    IOSAttestationConfiguration.AppData(
+                        "9CYHJNG644",
+                        "at.asitplus.oegv-demo-app",
+                        sandbox = true
+                    )
+                ), FixedTimeClock(2023u,9u,11u)
+            ).verifyKeyAttestation(
+                iosIDA.attestationProof, iosIDA.challenge, iosIDA.publicKey!!
+            ).apply {
+               isSuccess.shouldBeTrue()
+            }
+        }
+
+
         "The Good" - {
             theGood.forEach { recordedAttestation ->
                 recordedAttestation.name - {

@@ -60,3 +60,7 @@ attestation on Android, please re-read the readme!
 - Kotlin 1.9.10!
 - Bouncy Castle 1.76
 - Android-Attestation 1.0.0
+
+### 1.1.0
+- remove `verifyAttestation`
+- introduce `verifyKeyAttestation` taking an encoded public key as a byte array

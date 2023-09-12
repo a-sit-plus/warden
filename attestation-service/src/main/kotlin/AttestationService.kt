@@ -87,35 +87,10 @@ data class IOSAttestationConfiguration @JvmOverloads constructor(
 
 }
 
-interface AttestationService {
+abstract class AttestationService {
 
-    /**
-     * Convenience method to verifies both Android Key Attestation or Apple App Attestation
-     * structures of the client (in [attestationProof]) if the device can be verified and [challenge] matches
-     * the attestation challenge. On Android, this is simply the certificate chain from the attestation certificate
-     * (i.e. the certificate corresponding to the key to be attested) up to one of the [Google hardware attestation root
-       certificates](https://developer.android.com/training/articles/security-key-attestation#root_certificate).
-     * on iOS this contains at least the [AppAttest attestation statement](https://developer.apple.com/documentation/devicecheck/validating_apps_that_connect_to_your_server#3576643).
-     * Calls [verifyAttestationAndroid] or [verifyAttestationApple] depending on the kind of attestation proof prpvoded.
-     *
-     * For iOS clients it is optionally possible to pass [clientData]. In this case [attestationProof] must also
-     * contain an [assertion](https://developer.apple.com/documentation/devicecheck/validating_apps_that_connect_to_your_server#3576644)
-     * at index `1`, which, by default, is verified to match [clientData].
-     * The signature counter in the attestation must be `0` and the signature counter in the assertion must be `1`.
-     *
-     * Passing a public key created in the same app on the iDevice's secure hardware as [clientData] effectively
-     * emulates Android's key attestation: Attesting such a secondary key through an assertion, proves that
-     * it was also created within the same app, on the same device, resulting in an attested key, which can then be used
-     * for general-purpose crypto. **BEWARE if you pass the public key on iOS to be signed as is. iOS uses the ANSI X9.63
-     * format represent public keys, so conversion is needed**
-     *
-     * @see verifyAttestationApple
-     * @see verifyAttestationAndroid
-     *
-     * @return [AttestationResult] indicating whether Android or iOS was successfully attested,
-     * [AttestationResult.Error] in case attestation failed
-     */
-    fun verifyAttestation(
+
+    internal abstract fun verifyAttestation(
         attestationProof: List<ByteArray>,
         challenge: ByteArray,
         clientData: ByteArray? = null
@@ -123,11 +98,10 @@ interface AttestationService {
 
 
     /**
-     * Verifies key attestation for both Android and Apple devices.
-     *
+     * Verifies key attestation for both Android and Apple devices.     *
      *
      * Succeeds if attestation data structures of the client (in [attestationProof]) can be verified and [expectedChallenge] matches
-     * the attestation challenge. For Android clients, this function Makes sure that [keyToBeAttested] matches the key contained in the attestation certificate.
+     * the attestation challenge. For Android clients, this function makes sure that [keyToBeAttested] matches the key contained in the attestation certificate.
      * For iOS this key needs to be specified explicitly anyhow to emulate key attestation
      *
      * @param attestationProof On Android, this is simply the certificate chain from the attestation certificate
@@ -185,13 +159,22 @@ interface AttestationService {
             is AttestationResult.IOS -> KeyAttestation(keyToBeAttested, firstTry)
         }
 
+    /** Same as [verifyKeyAttestation], but taking an encoded (either ANSI X9.63 or DER) publix key as a byte array
+     * @see verifyKeyAttestation
+     */
+    fun verifyKeyAttestation(
+        attestationProof: List<ByteArray>,
+        challenge: ByteArray,
+        encodedPublicKey: ByteArray
+    ): KeyAttestation<PublicKey> =
+        verifyKeyAttestation(attestationProof, challenge, encodedPublicKey.parseToPublicKey())
 
     /**
      * Groups ios-specific API to reduce toplevel clutter.
      *
      * Exposes iOS-specific functionality in a more expressive, and less confusing manner
      */
-    val ios: IOS
+    abstract val ios: IOS
 
     interface IOS {
         /**
@@ -225,7 +208,7 @@ interface AttestationService {
         ): AttestationResult
     }
 
-    val android: Android
+    abstract val android: Android
 
     interface Android {
         /**
@@ -300,7 +283,14 @@ sealed class AttestationResult {
                 "Verified(keyMaster security level: ${attestationRecord.keymasterSecurityLevel.name}, " +
                         "attestation security level: ${attestationRecord.attestationSecurityLevel.name}, " +
                         "${attestationRecord.attestedKey.algorithm} public key: ${attestationRecord.attestedKey.encoded.encodeBase64()}" + attestationRecord.softwareEnforced.attestationApplicationId.getOrNull()
-                    ?.let { app -> ", packageInfos: ${app.packageInfos.joinToString(prefix = "[", postfix = "]") { info -> "${info.packageName}:${info.version}" }}" }
+                    ?.let { app ->
+                        ", packageInfos: ${
+                            app.packageInfos.joinToString(
+                                prefix = "[",
+                                postfix = "]"
+                            ) { info -> "${info.packageName}:${info.version}" }
+                        }"
+                    }
         }
     }
 
@@ -370,7 +360,7 @@ data class KeyAttestation<T : PublicKey> internal constructor(
  * Do not use in production!
  */
 
-object NoopAttestationService : AttestationService {
+object NoopAttestationService : AttestationService() {
 
     private val log = LoggerFactory.getLogger(this.javaClass)
     override fun verifyAttestation(
@@ -381,8 +371,8 @@ object NoopAttestationService : AttestationService {
         if (attestationProof.size > 2) AttestationResult.Android.NOOP(attestationProof)
         else AttestationResult.IOS.NOOP(clientData)
 
-    override val ios: AttestationService.IOS
-        get() = object : AttestationService.IOS {
+    override val ios: IOS
+        get() = object : IOS {
             override fun verifyAppAttestation(attestationObject: ByteArray, challenge: ByteArray) =
                 verifyAttestation(listOf(attestationObject), challenge, clientData = null)
 
@@ -395,7 +385,7 @@ object NoopAttestationService : AttestationService {
             ) = verifyAttestation(listOf(attestationObject, assertionFromDevice), challenge, referenceClientData)
 
         }
-    override val android: AttestationService.Android
+    override val android: Android
         get() = TODO("Not yet implemented")
 }
 
@@ -416,7 +406,7 @@ class DefaultAttestationService(
     private val iosAttestationConfiguration: IOSAttestationConfiguration,
     private val clock: Clock = Clock.System,
     private val verificationTimeOffset: Duration = Duration.ZERO
-) : AttestationService {
+) : AttestationService() {
 
     /**
      * Java-friendly constructor with `java.time` types
@@ -487,7 +477,7 @@ class DefaultAttestationService(
             )
         }
 
-    override val ios = object : AttestationService.IOS {
+    override val ios = object : IOS {
         override fun verifyAppAttestation(attestationObject: ByteArray, challenge: ByteArray) =
             verifyAttestationApple(attestationObject, challenge, assertionData = null, counter = 0L)
 
@@ -505,7 +495,7 @@ class DefaultAttestationService(
         )
     }
 
-    override val android = object : AttestationService.Android {
+    override val android = object : Android {
         override fun verifyKeyAttestation(
             attestationCerts: List<X509Certificate>,
             expectedChallenge: ByteArray

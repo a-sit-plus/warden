@@ -98,28 +98,6 @@ public class JavaInteropTest {
                         "14.1"),
                 Duration.ZERO);
 
-        AttestationResult result = service.verifyAttestation(Collections.emptyList(), new byte[]{}, null);
-
-
-        if (result instanceof AttestationResult.Android) {
-            ((AttestationResult.Android) result).getAttestationCertificate();
-            ((AttestationResult.Android) result).getAttestationRecord();
-        }
-
-        if (result instanceof AttestationResult.IOS) {
-            ((AttestationResult.IOS) result).getClientData();
-        }
-
-        if (result instanceof AttestationResult.Error) {
-            Throwable cause = ((AttestationResult.Error) result).getCause();
-            String explanation = ((AttestationResult.Error) result).getExplanation();
-            Assertions.assertEquals("Attestation proof is empty", explanation);
-            Assertions.assertNull(cause);
-        }
-
-        Assertions.assertTrue(result instanceof AttestationResult.Error);
-
-
         KeyAttestation<ECPublicKey> keyAttestationResult = service.verifyKeyAttestation(Collections.emptyList(),
                 new byte[]{0, 2, 3, 2, 2}, (ECPublicKey) KeyPairGenerator.getInstance("EC").
                         generateKeyPair().getPublic());

@@ -163,7 +163,7 @@ no real use case for such a configuration-
 1. The general workflow this library caters to assumes a back-end service, sending an attestation challenge to the mobile app. This challenge needs to be kept for future reference
 2. The app is assumed to generate a key pair with attestation (passing the received challenge the platforms' respective crypto APIs)
 3. The app responds with a platform-dependent attestation proof and the public key just created.
-4. On the back-end, a single call to `service.verifyKeyAttestation()` (or `service.verifyAttestation()`) is sufficient to remotely verify
+4. On the back-end, a single call to `service.verifyKeyAttestation()`  is sufficient to remotely verify
    whether the key is indeed stored in HW (and whether the app can be trusted). This call requires the challenge from step 1.
 
 Various flavours of this attestation call from step 4 exist, some of which are platform-dependent

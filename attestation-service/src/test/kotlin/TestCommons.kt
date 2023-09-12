@@ -246,7 +246,6 @@ val iosGood = listOf(
     ios16,
 )
 
-
 const val ANDROID_PACKAGE_NAME = "at.asitplus.attestation_client"
 
 val ANDROID_SIGNATURE_DIGESTS = listOf(
