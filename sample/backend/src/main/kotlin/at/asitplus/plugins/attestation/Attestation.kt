@@ -59,12 +59,14 @@ fun Application.configureAttestation() {
         ),
         iosAttestationConfiguration = IOSAttestationConfiguration(
             IOSAttestationConfiguration.AppData(
-            teamIdentifier = environment.config.property("attestation.ios.team-identifier").getString().also {
-                log.info("iOS team identifier: $it")
-            },
-            bundleIdentifier = environment.config.property("attestation.ios.bundle-identifier").getString().also {
-                log.info("iOS bundle identifier: $it")
-            }),
+                teamIdentifier = environment.config.property("attestation.ios.team-identifier").getString().also {
+                    log.info("iOS team identifier: $it")
+                },
+                bundleIdentifier = environment.config.property("attestation.ios.bundle-identifier").getString().also {
+                    log.info("iOS bundle identifier: $it")
+                }, sandbox = environment.config.property("attestation.ios.sandbox").getString().toBoolean().also {
+                    log.info("iOS sandbox: $it")
+                }),
             iosVersion = runCatching {
                 environment.config.property("attestation.ios.min-version").getString()
             }.getOrNull().also {
@@ -116,7 +118,7 @@ fun Application.configureAttestation() {
                                     } ?: (HttpStatusCode.InternalServerError to
                                             AttestationResponse.Error("internal server error"))
                                 }
-                            )!!
+                            )
                         call.respond(status, message)
                     }
 

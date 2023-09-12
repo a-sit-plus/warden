@@ -84,6 +84,8 @@ private fun verifyJWTAndExtractSignerSubject(jwt: SignedJWT, offset: Duration, l
 
     val verificationKey = com.nimbusds.jose.jwk.ECKey.parse(bindingCert)
 
+    logger.info("Binding key: ${verificationKey.toJSONString()}")
+
     //we know this is EC, so here we go
     if (!jwt.verify(ECDSAVerifier(verificationKey))) throw SecurityException("Could not verify JWT")
     logger.info("JWT cryptographically verified")
