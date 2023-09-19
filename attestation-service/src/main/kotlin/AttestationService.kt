@@ -192,7 +192,7 @@ abstract class AttestationService {
         verifyKeyAttestation(attestationProof, challenge, encodedPublicKey.parseToPublicKey())
 
     /**
-     * Groups ios-specific API to reduce toplevel clutter.
+     * Groups iOS-specific API to reduce toplevel clutter.
      *
      * Exposes iOS-specific functionality in a more expressive, and less confusing manner
      */
@@ -200,7 +200,7 @@ abstract class AttestationService {
 
     interface IOS {
         /**
-         * convenience method for [verifyAttestation] specific to iOS, which only verifies App Attestation and no assertion
+         * convenience method specific to iOS, which only verifies App Attestation and no assertion
          * @param attestationObject the AppAttest attestation object to verify
          * @param challenge the challenge to verify against
          */
@@ -212,7 +212,7 @@ abstract class AttestationService {
         /**
          * Verifies an App Attestation in conjunction with an assertion for some client data.
          *
-         * First, it verifies the app attestation, afterwards it verifies, the assertion, checks whether at most [counter] many signatures
+         * First, it verifies the app attestation, afterwards it verifies the assertion, checks whether at most [counter] many signatures
          * have been performed using the key bound to the attestation before signing the assertion and verifies whether the client data
          * referenced within the assertion matches [referenceClientData]
          *
@@ -230,6 +230,9 @@ abstract class AttestationService {
         ): AttestationResult
     }
 
+    /**
+     * Exposes Android-specific API to reduce toplevel clutter
+     */
     abstract val android: Android
 
     interface Android {
@@ -262,7 +265,8 @@ value class AssertionData private constructor(private val pair: Pair<ByteArray, 
 }
 
 /**
- * Attestation result class. Successful results contain attested data.
+ * Attestation result class. Successful results contain attested data. Typically contained within a
+ * [KeyAttestation] object.
  */
 sealed class AttestationResult {
 
@@ -270,9 +274,9 @@ sealed class AttestationResult {
     protected abstract val details: String
 
     /**
-     * Successful Android Key Attestation result. [attestationCertificate] contains the attested certificate.
+     * Successful Android Key Attestation result. [attestationCertificateChain] contains the attested certificate.
      *
-     * All attested information in [attestationRecord] for further processing, should this be desired.
+     * All attested information in [attestationRecord] is available for further processing, should this be desired.
      * Note: this will fail when using the [NoopAttestationService]!
      */
     @Suppress("MemberVisibilityCanBePrivate")
@@ -318,10 +322,10 @@ sealed class AttestationResult {
 
 
     /**
-     * Successful iOS attestation. If `clientData` and an assertion object were passed to
-     * [AttestationService.verifyAttestation], it is contained in [clientData] for convenience.
-     * The [DefaultAttestationService], returns [IOS.Verified], also setting [attestation] and [assertion] (if
-     * `clientData` was passed). The [NoopAttestationService] returns [IOS.NOOP] (which is useful to as it enables skipping any
+     * Successful iOS attestation. If [AttestationService.verifyKeyAttestation] returned this, [clientData] contains the
+     * encoded attested public key.
+     * The [DefaultAttestationService], returns [IOS.Verified], also setting [IOS.Verified.attestation].
+     * The [NoopAttestationService] returns [IOS.NOOP] (which is useful to as it enables skipping any
      * and all attestation checks for unit testing, when used with dependency injection, for example.
      */
     @Suppress("MemberVisibilityCanBePrivate")
@@ -416,8 +420,9 @@ object NoopAttestationService : AttestationService() {
  *
  * Once configured, this class provides a streamlined interface for mobile client attestation
  *
- * @param androidAttestationConfiguration Configuration for Android key attestation. See [AndroidAttestationConfiguration]
- * for details
+ * @param androidAttestationConfiguration Configuration for Android key attestation.
+ * See [AndroidAttestationConfiguration](https://a-sit-plus.github.io/android-attestation/-android%20%20-attestation%20-library/at.asitplus.attestation.android/-android-attestation-configuration/index.html)
+ * for details.
  * @param iosAttestationConfiguration IOS AppAttest configuration.  See [IOSAttestationConfiguration] for details.
  * @param clock a clock to set the time of verification (used for certificate validity checks)
  * @param verificationTimeOffset allows for fine-grained clock drift compensation (this duration is added to the certificate
