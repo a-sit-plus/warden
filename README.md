@@ -17,7 +17,7 @@ Full API docs are available [here](https://a-sit-plus.github.io/attestation-serv
 
 ## Demonstration / Usage Example
 This library is intended for integration into back-end services which need to remotely establish trust in mobile clients
-(both Android and iOS). Usually, this means that mobile client initially request a binding certificate from the back-end
+(both Android and iOS). Usually, this means that a mobile client initially request a binding certificate from the back-end
 based on a public/private key pair stored inside cryptographic hardware.
 This binding is only granted if device and app integrity can be verified, and if the key can be proven to be stored in hardware.
 <br>
@@ -33,71 +33,71 @@ See the provided [sample service](https://github.com/a-sit-plus/attestation-serv
 
 ## Background
 Apple and Google pursue different strategies wrt. establishing trust in mobile clients.
-On Android, things are kept rather simple from a technological point of view.
+On Android, things are kept rather simpler from an architectural point of view, while iOS attestation depends on infrastructure operated by Apple.
 
 ### Android
-Device manufacturers provision signing keys and matching certificates into secure hardware during a device's production process.
-These certificates have previously been signed by Google, resulting in a certificate chain from a publicly known Google root certificate
-down to virtually every individual Android device that ships with Google play services.
-Apps can then generate cryptographic keys, which are securely stored in dedicated cryptographic hardware on the device
-and have this hardware issue certificates for those keys.
-These certificates, are signed by the private key provisioned during manufacturing.
-This ultimately leads to a chain of trust from the Google root certificate to cryptographic material created
+During a device's manufacturing process, manufacturers provision signing keys and matching certificates into every device's
+cryptographic hardware.
+The device manufacturers' certificates are signed by Google, resulting in a certificate chain from a certificate signed
+by the [attestation root key published by Google](https://developer.android.com/training/articles/security-key-attestation#root_certificate).
+down to every individual Android device that ships with Google play services.
+Apps can then generate cryptographic keys, which are again securely stored in cryptographic hardware on the device
+and have this hardware module issue certificates for those keys.
+These certificates are signed by the previously mentioned device manufacturer signing key provisioned during the manufacturing process.
+In the end, this leads to a chain of trust from the Google root certificate to the cryptographic material created
 on the device.
 <br>
-The cryptographic material referenced by the leaf certificate can be used by the app as desired (e.g. to perform
+The cryptographic material referenced by the leaf certificate of the aforementioned chain can be used by the app as desired (e.g. to perform
 signatures, etc.).
 
-Although quite some properties of this certificate chain leaf need to be evaluated in a particular manner, to establish
-trust in an Android client app, it is really dead-simple on a technical level: Validate the chain, and evaluate certain
-extensions of the leaf certificate (Figure&nbsp;2 illustrates this high-level concept in more detail). 
-iOS, on the other hand is a different beast. 
+To establish trust in an Android device and a client app, quite some properties of such a leaf certificate need to be evaluated
+in a particular manner.
+From a high-level point of view, it really is simple: Validate the certificate chain just like any certificate chain, and evaluate
+a well-documented extension of the leaf certificate to establish trust in an Android client app (Figure&nbsp;2 illustrates this high-level concept in more detail).
+This is one core feature of this library -- make establishing trust in client apps just as simple and straight-forward.
+The other one is providing a unified API to provide a inified API to achieve the same for iOS clients.
 
 ![android.png](android.png)
 <div style="text-align: center;">Figure 2: High-level structure of an Android key attestation result</div>
 
 ### iOS
+iOS's attestation, is a rather different beast compared to Android.
 Apple relies on their own heuristics employed as part of a service operated by the company to assess whether a device
 and an app can be trusted or not.
 While some of the same basic principles apply here as well (i.e. keys generated in hardware come with chain of trust rooted in
-an Apple certificate), the semantics are different.
+the manufacturer's certificate), the semantics are quite different.
 Android primarily attests the properties of a cryptographic key.
 Apple's [App Attest](https://developer.apple.com/documentation/devicecheck/establishing_your_app_s_integrity), on the
 other hand, attests the integrity of apps.
 The cryptographic material is in this case a mere vehicle to realise the idea of attesting app integrity.
-Therefore, the involved key material cannot be used by the app for arbitrary cryptographic operations, but only to sign
-attestations and related assertions.
+Therefore, the involved key material cannot be used for arbitrary cryptographic operations, but is only employed to sign
+attestations (and related assertions; see below).
 
 This begs the question: How to enable key attestation on iOS?
-After all, many applications exists, which require some proof that a key used for critical operations resides in hardware.
+After all, many applications exist, which require some proof that a key used for critical operations resides in hardware.
 <br>
 Here, the ability to obtain a so-called *assertion* comes to the rescue: iOS allows generating an *assertion* for some
 data by signing it using the same key backing a previously obtained attestation.
-By that logic, computing an assertion over a public key of a freshly generated public/private key pair, proves that an
-authentic, an uncompromised app on a non-jailbroken device was used to generate this key pair as intended by the app developer.
+By that logic, computing an assertion over the public key of a freshly generated public/private key pair proves that an
+authentic, uncompromised app on a non-jailbroken device was used to generate this key pair as intended by the app developer.
 
 This library abstracts away all the nitty-gritty details of this verification process and provides a unified API
 which works with both Android and iOS.
 
 ## Usage
 Written in Kotlin, plays nicely with Java (cf. `@JvmOverloads`), published at maven central.
-### Gradle
 
+### Gradle
+Add the dependency:
 ```kotlin
  dependencies {
      implementation("at.asitplus:attestation-service:$version")
  }
 ```
-
-
-While still not complete, the test suite in this repository should provide a nice overview. [FeatureDemonstration](https://github.com/a-sit-plus/attestation-service/blob/main/attestation-service/src/test/kotlin/FeatureDemonstration.kt),
-in particular, was designed to demonstrate this library's API.
-<br>
-See the provided [sample service](https://github.com/a-sit-plus/attestation-service/tree/main/sample/backend) and its mobile clients for an MWE that integrates this library.
-The sample also contains Android and iOS clients.
-
 ### Configuration
 Every parameter is configurable and multiple instance of an attestation service can be created and used in parallel.
+
+Android and iOS attestation require different configuration parameters. Hence, distinct configuration classes exist.
 The following snippet lists all configuration values:
 
 ```kotlin
@@ -157,23 +157,33 @@ Hardware attestation is enabled by default, while hybrid and software-only attes
 through `enableNougatAttestation` and `enableSoftwareAttestation`, respectively. Doing so, will chain the corresponding
 `AndroidAttestationChecker`s initially from strictest (hardware) to most useless (software-only).
 Naturally, hardware attestation can also be disabled by setting `disableHardwareAttestation = true` although there is probably
-no real use case for such a configuration-
+no real use case for such a configuration.
+Note that not all flavours use different the same root of trust by default.
 
-### Obtaining an Attestation Result
-1. The general workflow this library caters to assumes a back-end service, sending an attestation challenge to the mobile app. This challenge needs to be kept for future reference
-2. The app is assumed to generate a key pair with attestation (passing the received challenge the platforms' respective crypto APIs)
-3. The app responds with a platform-dependent attestation proof and the public key just created.
-4. On the back-end, a single call to `service.verifyKeyAttestation()`  is sufficient to remotely verify
+### Example Usage
+While still not complete, the test suite in this repository should provide a nice overview. [FeatureDemonstration](https://github.com/a-sit-plus/attestation-service/blob/main/attestation-service/src/test/kotlin/FeatureDemonstration.kt),
+in particular, was designed to demonstrate this library's API.
+<br>
+See the provided [sample service](https://github.com/a-sit-plus/attestation-service/tree/main/sample/backend) and its mobile clients for an MWE that integrates this library.
+The sample also contains Android and iOS clients.
+
+#### Obtaining a Key Attestation Result
+* The general workflow this library caters to assumes a back-end service, sending an attestation challenge to the mobile app. This challenge needs to be kept for future reference
+* The app is assumed to generate a key pair with attestation (passing the received challenge to the platform's respective crypto APIs)
+* The app responds with a platform-dependent attestation proof, the public key just created, and the challenge.
+  * On Android, this proof is simply the certificate chain associated with the newly created key pair, which obtainable through the Android KeyStore API.
+    * The certificate chain needs to be encoded into a list of byte arrays.
+    * The first (index `0`) certificate is assumed to be the leaf, while tha last is assumed to be a certificate signed by the Google hardware attestation root key.
+  * On iOS, the list of byte arrays must contain exactly two entries:
+    * Index `0` contains an attestation object
+    * Index `1` contains an assertion over the to-be-attested public key (either ANSI X9.63 encoded or DER encoded)
+* On the back-end, a single call to `verifyKeyAttestation()`  is sufficient to remotely verify
    whether the key is indeed stored in HW (and whether the app can be trusted). This call requires the challenge from step 1.
 
-Various flavours of this attestation call from step 4 exist, some of which are platform-dependent
+Various advanced, platform-specific variants of this `verifyKeyAttestation()` call exist, to cater towards features specific to Android and iOS
 (do see [FeatureDemonstration](https://github.com/a-sit-plus/attestation-service/blob/main/attestation-service/src/test/kotlin/FeatureDemonstration.kt) for details).
+However, only `verifyKeyAttestation()` works for both Android and iOS and returns a [KeyAttestation](https://github.com/a-sit-plus/attestation-service/blob/main/attestation-service/src/main/kotlin/AttestationService.kt#L293) object:
 
-#### Key Attestation 
-The most important one of these is the `verifyKeyAttestation()` function, which returns a
-[KeyAttestation](https://github.com/a-sit-plus/attestation-service/blob/main/attestation-service/src/main/kotlin/AttestationService.kt#L293) object.
-
-##### Signature
 ```kotlin
  fun <T : PublicKey> verifyKeyAttestation(
         attestationProof: List<ByteArray>,
@@ -181,15 +191,13 @@ The most important one of these is the `verifyKeyAttestation()` function, which 
         keyToBeAttested: T
     ): KeyAttestation<T>
 ```
-The returned `KeyAttestation` object contains the attested key on success.
+The returned `KeyAttestation` object contains the attested key on success, or an error on failure.
 
-##### Semantics
+#### Semantics
+The call succeeds if attestation data structures of the client (in `attestationProof`) can be verified and `expectedChallenge` matches
+the attestation challenge and if `keyToBeAttested` matches the key contained in the proof.
 
-Succeeds if attestation data structures of the client (in `attestationProof`) can be verified and `expectedChallenge` matches
-the attestation challenge. For Android clients, this function Makes sure that `keyToBeAttested` matches the key contained in the attestation certificate.
-For iOS this key needs to be specified explicitly anyhow to emulate key attestation
-
-The contents of **attestationProof** are platform-specific!
+As mentioned, the contents of **attestationProof** are platform-specific!
 On Android, this is simply the certificate chain from the attestation certificate
 (i.e. the certificate corresponding to the key to be attested) up to one of the
 [Google hardware attestation root certificates](https://developer.android.com/training/articles/security-key-attestation#root_certificate).
@@ -198,12 +206,12 @@ at index `0` and an [assertion](https://developer.apple.com/documentation/device
 at index `1`, which, is verified for integrity and to match `keyToBeAttested`.
 The signature counter in the attestation must be `0` and the signature counter in the assertion must be `1`.
 
-Passing a public key created in the same app on the iDevice's secure hardware as `clientData` to create an assertion effectively
-emulates Android's key attestation: Attesting such a secondary key through an assertion, proves that
+Passing a public key created in the same app on an iDevice's secure hardware as `clientData` to create an assertion effectively
+emulates Android's key attestation: Attesting such a secondary key through an assertion proves that
 it was also created within the same app, on the same device, resulting in an attested key, which can then be used
 for general-purpose crypto.
 <br>
-**BEWARE: supports only EC key on iOS (either ANSI X9.63 encoded or DER encoded).**
+**Limitation: supports only EC key on iOS (either ANSI X9.63 encoded or DER encoded).**
 The key can be passed in either encoding to the secure enclave when creating an assertion.
 
 <br>
