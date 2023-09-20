@@ -70,3 +70,8 @@ attestation on Android, please re-read the readme!
 - Introduce `ByteArray.parseToPublicKey` which takes ANSI X9.63 and DER-encoded byte arrays
   (only P-256 is supported for ANSI)
 - Update android-attestation to 1.1.0
+
+### 1.3.0
+- Documentation updates
+- Update to android-attestation 1.2.0
+- Refactor exceptions

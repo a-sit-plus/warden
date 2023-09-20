@@ -1,8 +1,8 @@
 package at.asitplus.attestation
 
+import at.asitplus.attestation.AttestationException
 import at.asitplus.attestation.IOSAttestationConfiguration.AppData
 import at.asitplus.attestation.android.*
-import at.asitplus.attestation.android.exceptions.AttestationException
 import at.asitplus.attestation.android.exceptions.CertificateInvalidException
 import ch.veehait.devicecheck.appattest.AppleAppAttest
 import ch.veehait.devicecheck.appattest.assertion.Assertion
@@ -55,7 +55,8 @@ data class IOSAttestationConfiguration @JvmOverloads constructor(
     constructor(singleApp: AppData, iosVersion: String? = null) : this(listOf(singleApp), iosVersion)
 
     init {
-        if (applications.isEmpty()) throw AttestationException("No apps configured")
+        if (applications.isEmpty())
+            throw AttestationException.Configuration(Platform.IOS, "No apps configured")
     }
 
     /**
@@ -681,7 +682,7 @@ class DefaultAttestationService(
             val configuredVersion = SemVer.parse(it)
             if (parsedVersion < configuredVersion)
                 return AttestationResult.Error(
-                    "iOS version  $parsedVersion <$configuredVersion",
+                    "iOS version  $parsedVersion < $configuredVersion",
                     AttException.Content(Platform.IOS)
                 )
         }

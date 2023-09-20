@@ -3,7 +3,8 @@ import at.asitplus.attestation.android.AndroidAttestationChecker;
 import at.asitplus.attestation.android.AndroidAttestationConfiguration;
 import at.asitplus.attestation.android.HardwareAttestationChecker;
 import at.asitplus.attestation.android.PatchLevel;
-import at.asitplus.attestation.android.exceptions.AttestationException;
+import at.asitplus.attestation.android.exceptions.AndroidAttestationException;
+import at.asitplus.attestation.android.exceptions.AttestationValueException;
 import at.asitplus.attestation.android.exceptions.CertificateInvalidException;
 import at.asitplus.attestation.android.exceptions.RevocationException;
 import com.google.android.attestation.ParsedAttestationRecord;
@@ -21,7 +22,7 @@ public class JavaInteropTest {
 
 
     public static void testDefaults() {
-        Assertions.assertThrows(AttestationException.class, () -> {
+        Assertions.assertThrows(AndroidAttestationException.class, () -> {
                     new DefaultAttestationService(
                             new AndroidAttestationConfiguration.Builder(new AndroidAttestationConfiguration.AppData(
                                     "at.asitplus.attestation-example", Collections.emptyList())).build(),
@@ -31,7 +32,7 @@ public class JavaInteropTest {
                 },
                 "No signature digests specified");
 
-        Assertions.assertThrows(AttestationException.class, () -> {
+        Assertions.assertThrows(AndroidAttestationException.class, () -> {
                     new DefaultAttestationService(
                             new AndroidAttestationConfiguration.Builder(new AndroidAttestationConfiguration.AppData("at.asitplus.attestation-example",
                                     new ArrayList<>()
@@ -43,7 +44,7 @@ public class JavaInteropTest {
                 },
                 "No signature digests specified");
 
-        Assertions.assertThrows(AttestationException.class, () -> {
+        Assertions.assertThrows(AndroidAttestationException.class, () -> {
                     new DefaultAttestationService(
                             new AndroidAttestationConfiguration.Builder(new AndroidAttestationConfiguration.AppData("at.asitplus.attestation-example",
                                     new ArrayList<>(),
@@ -56,7 +57,7 @@ public class JavaInteropTest {
                 },
                 "No signature digests specified");
 
-        Assertions.assertThrows(AttestationException.class, () -> {
+        Assertions.assertThrows(AndroidAttestationException.class, () -> {
                     new DefaultAttestationService(
                             new AndroidAttestationConfiguration.Builder(new AndroidAttestationConfiguration.AppData("at.asitplus.attestation-example",
                                     new ArrayList<>(),
@@ -71,7 +72,7 @@ public class JavaInteropTest {
                 },
                 "No signature digests specified");
 
-        Assertions.assertThrows(AttestationException.class, () -> {
+        Assertions.assertThrows(AndroidAttestationException.class, () -> {
                     new DefaultAttestationService(
                             new AndroidAttestationConfiguration.Builder(new AndroidAttestationConfiguration.AppData("at.asitplus.attestation-example",
                                     new ArrayList<>()
@@ -133,7 +134,7 @@ public class JavaInteropTest {
         try {
             ParsedAttestationRecord attestationRecord = checker.verifyAttestation(certificateChain, new Date(), challenge);
             //all good
-        } catch (AttestationException | CertificateInvalidException | RevocationException e) {
+        } catch (AttestationValueException | CertificateInvalidException | RevocationException e) {
             //untrusted device/app
         }
     }

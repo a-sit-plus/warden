@@ -521,7 +521,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
 
                             //just to check whether this propagates
                             "no signature digests, cannot instantiate" {
-                                shouldThrow<at.asitplus.attestation.android.exceptions.AttestationException> {
+                                shouldThrow<at.asitplus.attestation.android.exceptions.AndroidAttestationException> {
                                     attestationService(
                                         androidAppSignatureDigest = listOf(), timeSource = FixedTimeClock(
                                             recordedAttestation.verificationDate.toInstant()
