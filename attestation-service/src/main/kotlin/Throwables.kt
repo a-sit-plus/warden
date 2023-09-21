@@ -37,8 +37,22 @@ sealed class AttestationException(val platform: Platform, message: String? = nul
      * (or just Samsung being Samsung and being unable to correctly encode a timestamp conforming to ASN.1)
      */
 
-    class Certificate(platform: Platform, message: String? = null, cause: Throwable? = null) :
-        AttestationException(platform, message = message, cause = cause)
+    sealed class Certificate(platform: Platform, message: String?, cause: Throwable?) :
+        AttestationException(platform, message = message, cause = cause) {
+
+        /**
+         * Indicates that temporal certificate chain verification failed
+         * (i.e. the client's clock is not synchronised with the back-end)
+         */
+        class Time(platform: Platform, message: String? = null, cause: Throwable? = null) :
+            Certificate(platform, message, cause)
+
+        /**
+         * Indicates either a borked certificate chain or one that is not rooted in one of the configured trust anchors
+         */
+        class Trust(platform: Platform, message: String? = null, cause: Throwable? = null) :
+            Certificate(platform, message, cause)
+    }
 
     /**
      * Thrown on instantiation, for illegal configurations (e.g. no apps configured)

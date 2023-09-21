@@ -1,17 +1,10 @@
 package at.asitplus.attestation
 
 import at.asitplus.attestation.data.AttestationData
-import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FreeSpec
-import io.kotest.core.spec.style.scopes.FreeSpecContainerScope
 import io.kotest.datatest.withData
 import io.kotest.matchers.types.shouldBeInstanceOf
 import io.kotest.matchers.types.shouldNotBeInstanceOf
-import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.bouncycastle.pkcs.PKCS10CertificationRequest
-import org.bouncycastle.util.encoders.Hex
-import org.junit.jupiter.api.Test
-import java.security.Security
 import java.security.interfaces.ECPublicKey
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
@@ -39,7 +32,7 @@ class TemporalOffsetTest : FreeSpec() {
             withData(exactStartOfValidity) {
                 attestationService(
                     timeSource = FixedTimeClock(it.verificationDate.time),
-                    offset = 1.days
+                    offset = 1.days,
                 ).verifyAttestation(
                     it.attestationProof,
                     it.challenge,
@@ -53,13 +46,14 @@ class TemporalOffsetTest : FreeSpec() {
             withData(exactStartOfValidity) {
                 attestationService(
                     timeSource = FixedTimeClock(it.verificationDate.time),
-                    offset = (-1).days
+                    offset = (-1).days,
+                    androidN = true, androidSW = true
                 ).verifyAttestation(
                     it.attestationProof,
                     it.challenge,
                 ).apply {
                     shouldBeInstanceOf<AttestationResult.Error>()
-                        .cause.shouldBeInstanceOf<AttestationException.Certificate>()
+                        .cause.shouldBeInstanceOf<AttestationException.Certificate.Time>()
 
                 }
             }
@@ -69,13 +63,14 @@ class TemporalOffsetTest : FreeSpec() {
             withData("eternal" to true, "expiring" to false) {
                 attestationService(
                     timeSource = FixedTimeClock(pixel6KeyMint200Good.verificationDate.time),
-                    offset = (-1).days
+                    offset = (-1).days,
+                    androidN = true, androidSW = true
                 ).verifyAttestation(
                     pixel6KeyMint200Good.attestationProof,
                     pixel6KeyMint200Good.challenge,
                 ).apply {
                     shouldBeInstanceOf<AttestationResult.Error>()
-                        .cause.shouldBeInstanceOf<AttestationException.Certificate>()
+                        .cause.shouldBeInstanceOf<AttestationException.Certificate.Time>()
 
                 }
             }

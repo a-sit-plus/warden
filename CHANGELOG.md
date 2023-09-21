@@ -75,3 +75,6 @@ attestation on Android, please re-read the readme!
 - Documentation updates
 - Update to android-attestation 1.2.0
 - Refactor exceptions
+
+### 1.4.0
+- Discriminate between temporal certificate validation errors and trust-related ones

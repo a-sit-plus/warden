@@ -139,7 +139,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                 iosVersion = null,
                                 timeSource = FixedTimeClock(
                                     recordedAttestation.verificationDate.toInstant().toKotlinInstant()
-                                )
+                                ),
                             ).apply {
                                 "Generic" {
                                     verifyAttestation(
@@ -176,7 +176,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                     timeSource = FixedTimeClock(
                                         recordedAttestation.verificationDate.toInstant().toKotlinInstant() - leeway
                                     ),
-                                    offset = leeway
+                                    offset = leeway,
                                 ).verifyAttestation(
                                     recordedAttestation.attestationProof,
                                     recordedAttestation.challenge
@@ -196,12 +196,12 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                     timeSource = FixedTimeClock(
                                         recordedAttestation.verificationDate.toInstant()
                                             .toKotlinInstant() - 3000.days
-                                    )
+                                    ),
                                 ).verifyAttestation(
                                     recordedAttestation.attestationProof,
                                     recordedAttestation.challenge
                                 ).shouldBeInstanceOf<AttestationResult.Error>()
-                                    .cause.shouldBeInstanceOf<AttestationException.Certificate>()
+                                    .cause.shouldBeInstanceOf<AttestationException.Certificate.Time>()
                             }
 
                             "too late" {
@@ -210,12 +210,12 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                     timeSource = FixedTimeClock(
                                         recordedAttestation.verificationDate.toInstant()
                                             .toKotlinInstant() + 3000.days
-                                    )
+                                    ),
                                 ).verifyAttestation(
                                     recordedAttestation.attestationProof,
                                     recordedAttestation.challenge
                                 ).shouldBeInstanceOf<AttestationResult.Error>()
-                                    .cause.shouldBeInstanceOf<AttestationException.Certificate>()
+                                    .cause.shouldBeInstanceOf<AttestationException.Certificate.Time>()
                             }
                         }
 
@@ -226,7 +226,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                 timeSource = FixedTimeClock(
                                     recordedAttestation.verificationDate.toInstant()
                                         .toKotlinInstant()
-                                )
+                                ),
                             ).verifyAttestation(
                                 recordedAttestation.attestationProof,
                                 recordedAttestation.challenge
@@ -241,7 +241,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                 timeSource = FixedTimeClock(
                                     recordedAttestation.verificationDate.toInstant()
                                         .toKotlinInstant()
-                                )
+                                ),
                             ).verifyAttestation(
                                 recordedAttestation.attestationProof,
                                 recordedAttestation.challenge
@@ -256,7 +256,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                 timeSource = FixedTimeClock(
                                     recordedAttestation.verificationDate.toInstant()
                                         .toKotlinInstant()
-                                )
+                                ),
                             ).verifyKeyAttestation(
                                 recordedAttestation.attestationProof,
                                 recordedAttestation.challenge,
@@ -284,7 +284,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                     timeSource = FixedTimeClock(
                                         recordedAttestation.verificationDate.toInstant()
                                             .toKotlinInstant()
-                                    )
+                                    ),
                                 ).verifyAttestation(
                                     recordedAttestation.attestationProof,
                                     recordedAttestation.challenge
@@ -305,7 +305,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                 timeSource = FixedTimeClock(
                                     recordedAttestation.verificationDate.toInstant()
                                         .toKotlinInstant()
-                                )
+                                ),
                             ).verifyAttestation(
                                 recordedAttestation.attestationProof,
                                 recordedAttestation.challenge
@@ -330,7 +330,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                     androidPatchLevel = null,
                                     timeSource = FixedTimeClock(
                                         recordedAttestation.verificationDate.toInstant().toKotlinInstant()
-                                    )
+                                    ),
                                 ).verifyAttestation(
                                     recordedAttestation.attestationProof,
                                     recordedAttestation.challenge
@@ -342,7 +342,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                     unlockedBootloaderAllowed = false,
                                     timeSource = FixedTimeClock(
                                         recordedAttestation.verificationDate.toInstant().toKotlinInstant()
-                                    )
+                                    ),
                                 ).verifyAttestation(
                                     recordedAttestation.attestationProof,
                                     recordedAttestation.challenge
@@ -354,7 +354,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                     unlockedBootloaderAllowed = true,
                                     timeSource = FixedTimeClock(
                                         recordedAttestation.verificationDate.toInstant().toKotlinInstant()
-                                    )
+                                    ),
                                 ).verifyAttestation(
                                     recordedAttestation.attestationProof,
                                     recordedAttestation.challenge
@@ -386,7 +386,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                         recordedAttestation.attestationProof,
                                         recordedAttestation.challenge
                                     ).shouldBeInstanceOf<AttestationResult.Error>()
-                                        .cause.shouldBeInstanceOf<AttestationException.Certificate>()
+                                        .cause.shouldBeInstanceOf<AttestationException.Certificate.Trust>()
                                 }
                             }
 
@@ -410,7 +410,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                         recordedAttestation.attestationProof,
                                         recordedAttestation.challenge
                                     ).shouldBeInstanceOf<AttestationResult.Error>()
-                                        .cause.shouldBeInstanceOf<AttestationException.Certificate>()
+                                        .cause.shouldBeInstanceOf<AttestationException.Certificate.Trust>()
                                 }
                             }
                             "Software + Nougat attestation" {
@@ -434,7 +434,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                         recordedAttestation.attestationProof,
                                         recordedAttestation.challenge
                                     ).shouldBeInstanceOf<AttestationResult.Error>().also { println(it) }
-                                        .cause.shouldBeInstanceOf<AttestationException.Certificate>()
+                                        .cause.shouldBeInstanceOf<AttestationException.Certificate.Trust>()
                                 }
                             }
                         }
@@ -452,39 +452,39 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                         unlockedBootloaderAllowed = false,
                                         timeSource = FixedTimeClock(
                                             recordedAttestation.verificationDate.toInstant().toKotlinInstant()
-                                        )
+                                        ),
                                     ).verifyAttestation(
                                         chain,
                                         recordedAttestation.challenge
                                     ).apply {//makes interactive debugging easier
                                         shouldBeInstanceOf<AttestationResult.Error>()
-                                            .cause.shouldBeInstanceOf<AttestationException.Certificate>()
+                                            .cause.shouldBeInstanceOf<AttestationException.Certificate.Trust>()
                                     }
 
                                     attestationService(
                                         unlockedBootloaderAllowed = false,
                                         timeSource = FixedTimeClock(
                                             recordedAttestation.verificationDate.toInstant().toKotlinInstant()
-                                        )
+                                        ),
                                     ).verifyAttestation(
                                         chain,
                                         recordedAttestation.challenge
                                     ).apply {//makes interactive debugging easier
                                         shouldBeInstanceOf<AttestationResult.Error>()
-                                            .cause.shouldBeInstanceOf<AttestationException.Certificate>()
+                                            .cause.shouldBeInstanceOf<AttestationException.Certificate.Trust>()
                                     }
 
                                     attestationService(
                                         unlockedBootloaderAllowed = false,
                                         timeSource = FixedTimeClock(
                                             recordedAttestation.verificationDate.toInstant().toKotlinInstant()
-                                        )
+                                        ),
                                     ).verifyAttestation(
                                         chain,
                                         recordedAttestation.challenge
                                     ).apply { //makes interactive debugging easier
                                         shouldBeInstanceOf<AttestationResult.Error>()
-                                            .cause.shouldBeInstanceOf<AttestationException.Certificate>()
+                                            .cause.shouldBeInstanceOf<AttestationException.Certificate.Trust>()
                                     }
                                 }
                             }
@@ -494,7 +494,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                     requireStrongBox = true,
                                     timeSource = FixedTimeClock(
                                         recordedAttestation.verificationDate.toInstant().toKotlinInstant()
-                                    )
+                                    ),
                                 ).verifyAttestation(
                                     recordedAttestation.attestationProof,
                                     recordedAttestation.challenge
@@ -508,10 +508,11 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                         byteArrayOf(0, 32, 55, 29, 120, 22, 0),
                                         /*this one's an invalid digest and must not affect the tests*/
                                         "LvfTC77F/uSecSfJDeLdxQ3gZrVLHX8+NNBp7AiUO0E=".decodeBase64ToArray()!!
-                                    ), timeSource = FixedTimeClock(
+                                    ),
+                                    timeSource = FixedTimeClock(
                                         recordedAttestation.verificationDate.toInstant()
                                             .toKotlinInstant()
-                                    )
+                                    ),
                                 ).verifyAttestation(
                                     recordedAttestation.attestationProof,
                                     recordedAttestation.challenge
@@ -523,10 +524,11 @@ class DefaultAttestationServiceTest : FreeSpec() {
                             "no signature digests, cannot instantiate" {
                                 shouldThrow<at.asitplus.attestation.android.exceptions.AndroidAttestationException> {
                                     attestationService(
-                                        androidAppSignatureDigest = listOf(), timeSource = FixedTimeClock(
+                                        androidAppSignatureDigest = listOf(),
+                                        timeSource = FixedTimeClock(
                                             recordedAttestation.verificationDate.toInstant()
                                                 .toKotlinInstant()
-                                        )
+                                        ),
                                     )
                                 }
                             }
@@ -537,7 +539,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                     timeSource = FixedTimeClock(
                                         recordedAttestation.verificationDate.toInstant()
                                             .toKotlinInstant()
-                                    )
+                                    ),
                                 ).verifyAttestation(
                                     recordedAttestation.attestationProof,
                                     recordedAttestation.challenge
@@ -552,7 +554,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                     timeSource = FixedTimeClock(
                                         recordedAttestation.verificationDate.toInstant()
                                             .toKotlinInstant()
-                                    )
+                                    ),
                                 ).verifyAttestation(
                                     recordedAttestation.attestationProof,
                                     recordedAttestation.challenge
@@ -566,7 +568,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                     timeSource = FixedTimeClock(
                                         recordedAttestation.verificationDate.toInstant()
                                             .toKotlinInstant()
-                                    )
+                                    ),
                                 ).verifyAttestation(
                                     recordedAttestation.attestationProof,
                                     recordedAttestation.challenge
@@ -636,12 +638,12 @@ class DefaultAttestationServiceTest : FreeSpec() {
                     val clock = FixedTimeClock(verificationDate.toInstant().toKotlinInstant())
                     "HW Attestation should fail" {
                         attestationService(
-                            timeSource = clock
+                            timeSource = clock,
                         ).verifyAttestation(
                             attestationProof,
                             challenge
                         ).shouldBeInstanceOf<AttestationResult.Error>()
-                            .cause.shouldBeInstanceOf<AttestationException.Certificate>()
+                            .cause.shouldBeInstanceOf<AttestationException.Certificate.Trust>()
                     }
 
                     "Nougat Hybrid attestation should fail" {
@@ -916,7 +918,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                             data.attestationProof,
                             data.challenge
                         ).shouldBeInstanceOf<AttestationResult.Error>()
-                            .cause.shouldBeInstanceOf<AttestationException.Certificate>()
+                            .cause.shouldBeInstanceOf<AttestationException.Certificate.Trust>()
                     }
                 }
 

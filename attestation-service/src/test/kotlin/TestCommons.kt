@@ -280,6 +280,8 @@ fun attestationService(
     timeSource: Clock,
     offset: Duration = 0.seconds,
     eternalLeaves: Boolean = false,
+    androidSW: Boolean = false,
+    androidN: Boolean=false,
 ) =
     DefaultAttestationService(
         AndroidAttestationConfiguration(
@@ -296,6 +298,8 @@ fun attestationService(
             allowBootloaderUnlock = unlockedBootloaderAllowed,
             requireRollbackResistance = requireRollbackResistance,
             ignoreLeafValidity = eternalLeaves,
+            enableSoftwareAttestation = androidSW,
+            enableNougatAttestation = androidN,
         ),
         IOSAttestationConfiguration(
             applications = listOf(

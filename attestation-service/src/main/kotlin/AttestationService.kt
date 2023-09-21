@@ -23,6 +23,8 @@ import org.bouncycastle.cert.X509CertificateHolder
 import org.slf4j.LoggerFactory
 import java.security.MessageDigest
 import java.security.PublicKey
+import java.security.cert.CertPathValidatorException
+import java.security.cert.CertPathValidatorException.BasicReason
 import java.security.cert.CertificateException
 import java.security.cert.X509Certificate
 import java.security.interfaces.ECPublicKey
@@ -599,14 +601,26 @@ class DefaultAttestationService(
                 )
             }
         }
-        if (results.filter { it.isFailure }.size == androidAttestationCheckers.size) throw results.last() //this way we are most lenient
-            .exceptionOrNull()!!
+        if (results.filter { it.isFailure }.size == androidAttestationCheckers.size) {
+            //if time is off, then we need to treat is separately
+            results.firstOrNull {
+                it.exceptionOrNull() is CertificateInvalidException &&
+                        (it.exceptionOrNull() as CertificateInvalidException).reason == CertificateInvalidException.Reason.TIME
+            }?.exceptionOrNull()?.let { throw it }
+
+            throw results.last() //this way we are most lenient
+                .exceptionOrNull()!!
+        }
 
         AttestationResult.Android.Verified(certificates)
     }.getOrElse {
         AttestationResult.Error(
             "Android Attestation Error: " + (it.message ?: it::class.simpleName),
-            if (it is CertificateException || it is CertificateInvalidException) AttException.Certificate(
+            if ((it is CertificateInvalidException) && (it.reason == CertificateInvalidException.Reason.TIME)) AttException.Certificate.Time(
+                Platform.ANDROID,
+                cause = it
+            )
+            else if (it is CertificateException || it is CertificateInvalidException) AttException.Certificate.Trust(
                 Platform.ANDROID,
                 cause = it
             )
@@ -711,10 +725,7 @@ class DefaultAttestationService(
             }.getOrElse {
                 AttestationResult.Error(
                     it.message ?: "iOS Assertion validation error due to ${it::class.simpleName}",
-                    if (it is ch.veehait.devicecheck.appattest.attestation.AttestationException.InvalidCertificateChain || it is ReceiptException.InvalidCertificateChain) AttException.Certificate(
-                        Platform.IOS,
-                        cause = it
-                    ) else AttException.Content(Platform.IOS, cause = it)
+                    encapsulateIosAttestationException(it)
 
                 )
             }
@@ -723,11 +734,22 @@ class DefaultAttestationService(
     }.getOrElse {
         AttestationResult.Error(
             it.message ?: "iOS Attestation failed due to ${it::class.simpleName}",
-            if (it is ch.veehait.devicecheck.appattest.attestation.AttestationException.InvalidCertificateChain || it is ReceiptException.InvalidCertificateChain) AttException.Certificate(
-                Platform.IOS,
-                cause = it
-            ) else AttException.Content(Platform.IOS, cause = it)
+            encapsulateIosAttestationException(it)
         )
     }
+
+    private fun encapsulateIosAttestationException(it: Throwable) =
+        if (it is ch.veehait.devicecheck.appattest.attestation.AttestationException.InvalidCertificateChain || it is ReceiptException.InvalidCertificateChain) {
+            var ex = it.cause
+            while (ex !is CertPathValidatorException) ex = ex?.cause
+            if ((ex.reason == BasicReason.NOT_YET_VALID) || (ex.reason == BasicReason.EXPIRED))
+                AttException.Certificate.Time(
+                    Platform.IOS,
+                    cause = it
+                ) else AttException.Certificate.Trust(
+                Platform.IOS,
+                cause = it
+            )
+        } else AttException.Content(Platform.IOS, cause = it)
 
 }
