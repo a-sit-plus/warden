@@ -132,15 +132,15 @@ val service = DefaultAttestationService(
    ),
    iosAttestationConfiguration = IOSAttestationConfiguration(
       applications = listOf(
-      IOSAttestationConfiguration.AppData(
-        teamIdentifier = "9CYHJNG644",
-        bundleIdentifier = "at.asitplus.attestation-client",
-        iosVersionOverride = "16.0",     //OPTIONAL, null by default
-        sandbox = false                  //OPTIONAL, defaults to false
-        )
-     )
+        IOSAttestationConfiguration.AppData(
+          teamIdentifier = "9CYHJNG644",
+          bundleIdentifier = "at.asitplus.attestation-client",
+          iosVersionOverride = "16.0",     //OPTIONAL, null by default
+          sandbox = false                  //OPTIONAL, defaults to false
+          )
+      ),
+      iosVersion = 14,                                               //OPTIONAL, null by default
    ),
-   iosVersion = 14,                                                 //OPTIONAL, null by default
    clock = FixedTimeClock(Instant.parse("2023-04-13T00:00:00Z")),   //OPTIONAL, system clock by default,
    verificationTimeOffset = Duration.ZERO                           //OPTIONAL, defaults to zero
 )
