@@ -64,7 +64,7 @@ data class IOSAttestationConfiguration @JvmOverloads constructor(
     /**
      * Specifies a to-be attested app
      */
-    class AppData @JvmOverloads constructor(
+    data class AppData @JvmOverloads constructor(
         /**
          * Nomen est omen
          */

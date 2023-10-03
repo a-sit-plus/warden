@@ -78,3 +78,7 @@ attestation on Android, please re-read the readme!
 
 ### 1.4.0
 - Discriminate between temporal certificate validation errors and trust-related ones
+
+#### 1.4.1
+- make all config classes `data` classes
+- update to android attestation 1.2.1
