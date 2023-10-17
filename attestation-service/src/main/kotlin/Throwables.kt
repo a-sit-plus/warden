@@ -59,4 +59,7 @@ sealed class AttestationException(val platform: Platform, message: String? = nul
      */
     class Configuration(platform: Platform, message: String? = null, cause: Throwable? = null) :
         AttestationException(platform, message = message, cause = cause)
+
+    override fun toString() =
+        "AttestationException.${this::class.simpleName}: platform: $platform, message: ${message ?: cause?.message}, cause: $cause"
 }

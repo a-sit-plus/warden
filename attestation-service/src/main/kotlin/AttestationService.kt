@@ -738,18 +738,34 @@ class DefaultAttestationService(
         )
     }
 
-    private fun encapsulateIosAttestationException(it: Throwable) =
-        if (it is ch.veehait.devicecheck.appattest.attestation.AttestationException.InvalidCertificateChain || it is ReceiptException.InvalidCertificateChain) {
+    private fun encapsulateIosAttestationException(it: Throwable): AttException {
+        return if (it is ch.veehait.devicecheck.appattest.attestation.AttestationException.InvalidCertificateChain || it is ReceiptException.InvalidCertificateChain) {
             var ex = it.cause
-            while (ex !is CertPathValidatorException) ex = ex?.cause
+            while (ex !is CertPathValidatorException) {
+                if (ex == null) return AttException.Content(Platform.IOS, cause = it)
+                ex = ex.cause
+            }
             if ((ex.reason == BasicReason.NOT_YET_VALID) || (ex.reason == BasicReason.EXPIRED))
                 AttException.Certificate.Time(
                     Platform.IOS,
-                    cause = it
+                    cause = ex
                 ) else AttException.Certificate.Trust(
                 Platform.IOS,
-                cause = it
+                cause = ex
             )
+        } else if (it is ch.veehait.devicecheck.appattest.attestation.AttestationException.InvalidReceipt) {
+            var ex = it.cause
+            while (ex !is ReceiptException.InvalidPayload) {
+                if (ex == null) return AttException.Content(Platform.IOS, cause = it)
+                ex = ex.cause
+            }
+            if (ex.message?.startsWith("Receipt's creation time is after") == true)
+                AttException.Certificate.Time(
+                    Platform.IOS,
+                    cause = ex
+                )
+            else AttException.Content(Platform.IOS, cause = it)
         } else AttException.Content(Platform.IOS, cause = it)
+    }
 
 }

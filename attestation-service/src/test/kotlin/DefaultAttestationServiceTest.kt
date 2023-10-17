@@ -27,10 +27,9 @@ class DefaultAttestationServiceTest : FreeSpec() {
     init {
 
         "iosIDA" {
-
-
             val iosIDA = AttestationData(
-                "ida", "Q049ODBlZDdlMjk4NzM3NWVmYjFhYWJhMDhjNjFjM2E3ZGIsTz1FSUQtREVWLVBLSSxPVT1ULUVudg==",
+                "ida",
+                "Q049ODBlZDdlMjk4NzM3NWVmYjFhYWJhMDhjNjFjM2E3ZGIsTz1FSUQtREVWLVBLSSxPVT1ULUVudg==",
                 listOf(
                     "o2NmbXRvYXBwbGUtYXBwYXR0ZXN0Z2F0dFN0bXSiY3g1Y4JZAuwwggLoMIICbaADAgECAgYBioRZyjgwCgYIKoZ" +
                             "Izj0EAwIwTzEjMCEGA1UEAwwaQXBwbGUgQXBwIEF0dGVzdGF0aW9uIENBIDExEzARBgNVBAoMCkFwcGxlIEluYy4xEzARBgNVBAg" +
@@ -104,7 +103,10 @@ class DefaultAttestationServiceTest : FreeSpec() {
                             "BIVggnR9YIRF7/HKp0sEoKWSozd6LZijt0mYySuJSKwhjScgiWCBwYQnNviCytmZ/gNlU0B2/2aQUlbZZ1BF82NOmY/hw6w==",
                     "omlzaWduYXR1cmVYSDBGAiEAjLQRt6NtttWQPfVSZpZqjAOfG0snhMtoGz/DflZPxDgCIQCq11k3Kmua6MKCPF/w" +
                             "9R0HW4Qprd+PVoFS1oQFrFO9pHFhdXRoZW50aWNhdG9yRGF0YVgljiSVS1qsC3yiRa+Gw3NrIPZ0W9pBspx+KbwXluNyqeVAAAAA" +
-                            "AQ=="), "2023-09-11T16:02:40Z",pubKeyB64 = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEFT1XwEeF8NftY84GfnqTFBoxHNkdG7wZHcOkLKwT4W6333Jqmga1XkKySq/ApnslBPNZE1Os363SAv8X85ZIrQ=="
+                            "AQ=="
+                ),
+                "2023-09-11T16:02:40Z",
+                pubKeyB64 = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEFT1XwEeF8NftY84GfnqTFBoxHNkdG7wZHcOkLKwT4W6333Jqmga1XkKySq/ApnslBPNZE1Os363SAv8X85ZIrQ=="
             )
 
             DefaultAttestationService(
@@ -127,7 +129,6 @@ class DefaultAttestationServiceTest : FreeSpec() {
                isSuccess.shouldBeTrue()
             }
         }
-
 
         "The Good" - {
             theGood.forEach { recordedAttestation ->

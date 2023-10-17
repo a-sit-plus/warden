@@ -11,7 +11,7 @@ plugins {
 }
 
 group = "at.asitplus"
-version = "1.4.1"
+version = "1.4.2"
 
 sourceSets.test {
     kotlin {

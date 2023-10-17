@@ -82,3 +82,6 @@ attestation on Android, please re-read the readme!
 #### 1.4.1
 - make all config classes `data` classes
 - update to android attestation 1.2.1
+
+#### 1.4.2
+- fix temporal iOS receipt validation error not being propagated as such 
