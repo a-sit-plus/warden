@@ -285,7 +285,7 @@ fun attestationService(
 ) =
     DefaultAttestationService(
         AndroidAttestationConfiguration(
-            applications = listOf(
+           listOf(
                 AndroidAttestationConfiguration.AppData(
                     packageName = androidPackageName,
                     signatureDigests = androidAppSignatureDigest,

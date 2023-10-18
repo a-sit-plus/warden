@@ -85,3 +85,6 @@ attestation on Android, please re-read the readme!
 
 #### 1.4.2
 - fix temporal iOS receipt validation error not being propagated as such 
+
+#### 1.4.3
+- update android-attestation
