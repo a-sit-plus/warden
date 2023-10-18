@@ -88,3 +88,7 @@ attestation on Android, please re-read the readme!
 
 #### 1.4.3
 - update android-attestation
+
+#### 1.4.4
+- update android-attestation
+- update gradle conventions

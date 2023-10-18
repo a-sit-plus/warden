@@ -11,7 +11,6 @@ class KeyConversionTests : FreeSpec({
             "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEFT1XwEeF8NftY84GfnqTFBoxHNkdG7wZHcOkLKwT4W6333Jqmga1XkKySq/ApnslBPNZE1Os363SAv8X85ZIrQ==".decodeBase64ToArray()
         "it should be parsable" - {
             val parsedKey = x509Key.parseToPublicKey()
-            parsedKey
             "and encodable to ANSI X9.62" - {
                 val ansBytes = (parsedKey as ECPublicKey).toAnsi()
                 "and decodable" - {

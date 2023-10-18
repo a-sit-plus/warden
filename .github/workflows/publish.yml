@@ -20,6 +20,12 @@ jobs:
           ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.PUBLISH_SIGNING_PASSWORD }}
           ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.PUBLISH_SONATYPE_USER }}
           ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.PUBLISH_SONATYPE_PASSWORD }}
+      - name: Upload jar
+        uses: actions/upload-artifact@v3
+        with:
+          name: attestation-service
+          path: |
+            attestation-service/build/libs/*jar
   deploy-docs:
     needs: build
     environment:

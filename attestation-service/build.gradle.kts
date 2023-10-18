@@ -11,7 +11,7 @@ plugins {
 }
 
 group = "at.asitplus"
-version = "1.4.3"
+version = "1.4.4"
 
 sourceSets.test {
     kotlin {
@@ -20,7 +20,7 @@ sourceSets.test {
 }
 
 dependencies {
-    api("at.asitplus:android-attestation:1.3.0")
+    api("at.asitplus:android-attestation:1.4.0")
     api(datetime())
     implementation("ch.veehait.devicecheck:devicecheck-appattest:0.9.6")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.14.2")
