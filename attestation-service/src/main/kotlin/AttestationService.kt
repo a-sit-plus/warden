@@ -372,7 +372,7 @@ data class KeyAttestation<T : PublicKey> internal constructor(
 
     override fun toString() = "Key$details"
 
-    fun <R> fold(
+    inline fun <R> fold(
         onError: (AttestationResult.Error) -> R,
         onSuccess: (T, AttestationResult) -> R
     ): R =

@@ -92,3 +92,6 @@ attestation on Android, please re-read the readme!
 #### 1.4.4
 - update android-attestation
 - update gradle conventions
+
+#### 1.4.5
+- make `fold` function of `KeyAttestation` inline
