@@ -3,7 +3,8 @@ package at.asitplus.attestation
 
 enum class Platform {
     IOS,
-    ANDROID
+    ANDROID,
+    UNKNOWN
 }
 
 /**
@@ -18,14 +19,14 @@ enum class Platform {
  *  will provide insights.
  *
  */
-sealed class AttestationException(val platform: Platform, message: String? = null, cause: Throwable? = null) :
+sealed class AttestationException(val platform: Platform, message: String? = null, cause: Throwable) :
     Throwable(message, cause) {
 
     /**
      * Indicates that some value (key to be attests, bundle identifier or package name, team identified or signer certificate, etc.) failed to verify
      * This usually means that either the client's OS or the app was compromised/modified.
      */
-    open class Content(platform: Platform, message: String? = null, cause: Throwable? = null) :
+    open class Content(platform: Platform, message: String? = null, cause: Throwable) :
         AttestationException(platform, message = message, cause = cause)
 
     /**
@@ -37,29 +38,43 @@ sealed class AttestationException(val platform: Platform, message: String? = nul
      * (or just Samsung being Samsung and being unable to correctly encode a timestamp conforming to ASN.1)
      */
 
-    sealed class Certificate(platform: Platform, message: String?, cause: Throwable?) :
+    sealed class Certificate(platform: Platform, message: String?, cause: Throwable) :
         AttestationException(platform, message = message, cause = cause) {
 
         /**
          * Indicates that temporal certificate chain verification failed
          * (i.e. the client's clock is not synchronised with the back-end)
          */
-        class Time(platform: Platform, message: String? = null, cause: Throwable? = null) :
+        class Time(platform: Platform, message: String? = null, cause: Throwable) :
             Certificate(platform, message, cause)
 
         /**
          * Indicates either a borked certificate chain or one that is not rooted in one of the configured trust anchors
          */
-        class Trust(platform: Platform, message: String? = null, cause: Throwable? = null) :
+        class Trust(platform: Platform, message: String? = null, cause: Throwable) :
             Certificate(platform, message, cause)
     }
 
     /**
      * Thrown on instantiation, for illegal configurations (e.g. no apps configured)
      */
-    class Configuration(platform: Platform, message: String? = null, cause: Throwable? = null) :
+    class Configuration(platform: Platform, message: String? = null, cause: Throwable) :
         AttestationException(platform, message = message, cause = cause)
 
     override fun toString() =
         "AttestationException.${this::class.simpleName}: platform: $platform, message: ${message ?: cause?.message}, cause: $cause"
+}
+
+class IosAssertionError(msg: String, val reason: Reason) : Throwable(msg) {
+    enum class Reason {
+        /**
+         * Version number does not satisfy constraints (e.g. iOS version is too old)
+         */
+        VERSION,
+
+        /**
+         * Signature counter in the assertion is too high. This could mean either an implementation error on the client, or a compromised client app.
+         */
+        SIG_CTR,
+    }
 }

@@ -30,6 +30,7 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.14.2")
 
     testImplementation("org.slf4j:slf4j-reload4j:1.7.36")
+    testImplementation(kotlin("reflect"))
 }
 
 
