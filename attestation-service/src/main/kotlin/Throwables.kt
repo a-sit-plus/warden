@@ -1,5 +1,10 @@
 package at.asitplus.attestation
 
+import at.asitplus.attestation.AttestationException.Certificate
+import at.asitplus.attestation.AttestationException.Content
+import at.asitplus.attestation.android.exceptions.AndroidAttestationException
+import at.asitplus.attestation.android.exceptions.AttestationValueException
+
 
 enum class Platform {
     IOS,
@@ -13,10 +18,12 @@ enum class Platform {
  *  * [Content] e.g. version, app name, challenge, or key mismatch
  *  * [Certificate] e.g. chain rooted in an untrusted certificate, revocation, validity period
  *
- *  If more specific details about why the attestation failed are available, [message] and/or [cause] will be set.
+ *  More specific details about why the attestation failed are communicated to humans in [message] and are differentiated in [cause].
  *  Especially when acting upon Errors propagating from a failed Android attestation, the type of the [cause] and
  *  [error codes contained within](https://a-sit-plus.github.io/android-attestation/-android%20%20-attestation%20-library/at.asitplus.attestation.android.exceptions/index.html)
  *  will provide insights.
+ *  <br>
+ *  For iOS, less verbose details are communicated
  *
  */
 sealed class AttestationException(val platform: Platform, message: String? = null, cause: Throwable) :
@@ -26,8 +33,17 @@ sealed class AttestationException(val platform: Platform, message: String? = nul
      * Indicates that some value (key to be attests, bundle identifier or package name, team identified or signer certificate, etc.) failed to verify
      * This usually means that either the client's OS or the app was compromised/modified.
      */
-    open class Content(platform: Platform, message: String? = null, cause: Throwable) :
-        AttestationException(platform, message = message, cause = cause)
+    open class Content private constructor(platform: Platform, message: String?, cause: Throwable) :
+        AttestationException(platform, message = message, cause = cause) {
+        companion object {
+            fun Android(message: String? = null, cause: AttestationValueException) =
+                Content(Platform.ANDROID, message, cause)
+
+            fun iOS(message: String? = null, cause:  IosAttestationException) = Content(Platform.IOS, message, cause)
+
+            fun Unknown(message: String? = null, cause: Throwable) = Content(Platform.UNKNOWN, message, cause)
+        }
+    }
 
     /**
      * Indicates a problem verifying the certificate chain the attestation statement is built upon.
@@ -45,14 +61,36 @@ sealed class AttestationException(val platform: Platform, message: String? = nul
          * Indicates that temporal certificate chain verification failed
          * (i.e. the client's clock is not synchronised with the back-end)
          */
-        class Time(platform: Platform, message: String? = null, cause: Throwable) :
-            Certificate(platform, message, cause)
+        class Time private constructor(platform: Platform, message: String?, cause: Throwable) :
+            Certificate(platform, message, cause) {
+            companion object {
+                fun Android(message: String? = null, cause: AndroidAttestationException) =
+                    Time(Platform.ANDROID, message, cause)
+
+                fun iOS(
+                    message: String? = null,
+                    cause: Throwable
+                ) = Time(Platform.IOS, message, cause)
+
+            }
+        }
 
         /**
          * Indicates either a borked certificate chain or one that is not rooted in one of the configured trust anchors
          */
-        class Trust(platform: Platform, message: String? = null, cause: Throwable) :
-            Certificate(platform, message, cause)
+        class Trust private constructor(platform: Platform, message: String?, cause: Throwable) :
+            Certificate(platform, message, cause) {
+            companion object {
+                fun Android(message: String? = null, cause: AndroidAttestationException) =
+                    Trust(Platform.ANDROID, message, cause)
+
+                fun iOS(
+                    message: String? = null,
+                    cause: Throwable
+                ) = Trust(Platform.IOS, message, cause)
+
+            }
+        }
     }
 
     /**
@@ -65,16 +103,37 @@ sealed class AttestationException(val platform: Platform, message: String? = nul
         "AttestationException.${this::class.simpleName}: platform: $platform, message: ${message ?: cause?.message}, cause: $cause"
 }
 
-class IosAssertionError(msg: String, val reason: Reason) : Throwable(msg) {
+
+class IosAttestationException(msg: String? = null, cause: Throwable?=null, val reason: Reason) : Throwable(msg ?: cause?.message, cause) {
     enum class Reason {
         /**
          * Version number does not satisfy constraints (e.g. iOS version is too old)
          */
-        VERSION,
+        OS_VERSION,
 
         /**
          * Signature counter in the assertion is too high. This could mean either an implementation error on the client, or a compromised client app.
          */
         SIG_CTR,
+
+        /**
+         * Team ID and/or bundle ID and/or stage (development, production) mismatch
+         */
+        IDENTIFIER,
+
+        /**
+         * Happens if the challenge in the attestation record does not match the expected challenge
+         */
+        CHALLENGE,
+
+
+        /**
+         * Generic case, which must not happen for an authentic app. could be borked assertion data
+         * (initial counter not zero, invalid attestation data, etc, KID mismatch).
+         * In general, it is hard to tell whether app developers made a mistake or something fishy is going on
+         */
+        APP_UNEXPECTED,
+
+
     }
 }
