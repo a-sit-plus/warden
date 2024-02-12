@@ -98,3 +98,5 @@ attestation on Android, please re-read the readme!
 
 ### 1.5.0
 - better iOS-specific exception handling and enumerable error cases
+- Kotlin 1.9.22
+- Various dependency updates including BC
