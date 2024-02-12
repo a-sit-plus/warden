@@ -6,32 +6,71 @@ import at.asitplus.attestation.android.exceptions.AndroidAttestationException
 import at.asitplus.attestation.android.exceptions.AttestationValueException
 
 
+/**
+ * Indicated the platform an attestation check failed for.
+ */
 enum class Platform {
     IOS,
     ANDROID,
+
+    /**
+     * Indicates that the attestation data provided was utterly incomprehensible and no indication of platform is possible
+     */
     UNKNOWN
 }
 
 /**
  * Provides additional details on why an attestation attempt failed, indicating which [platform] was being attested.
- * Although many reasons exist, why an attestation may fail, these can be put into two categories:
+ * Although many reasons exist why an attestation may fail, all of them can be put into two categories:
  *  * [Content] e.g. version, app name, challenge, or key mismatch
  *  * [Certificate] e.g. chain rooted in an untrusted certificate, revocation, validity period
+ *      * [Certificate.Trust] for trust issues
+ *      * [Certificate.Time] for clock offset-related issues
  *
  *  More specific details about why the attestation failed are communicated to humans in [message] and are differentiated in [cause].
- *  Especially when acting upon Errors propagating from a failed Android attestation, the type of the [cause] and
- *  [error codes contained within](https://a-sit-plus.github.io/android-attestation/-android%20%20-attestation%20-library/at.asitplus.attestation.android.exceptions/index.html)
- *  will provide insights.
+ *  A dedicated lazy property [platformSpecificCause] is present to evaluate and act upon such details (which is just an alias for [cause]).
+ *  On Android, [platformSpecificCause] will always be an instance of [AndroidAttestationException] containing an
+ *  [enumerable reason](https://a-sit-plus.github.io/android-attestation/-android%20%20-attestation%20-library/at.asitplus.attestation.android.exceptions/index.html)
+ *  which will provide insights.
  *  <br>
- *  For iOS, less verbose details are communicated
+ *  For iOS, less verbose details are communicated in [platformSpecificCause] due to a lack of a common root for all throwables.
+ *
+ *  Concrete examples of platform-specific error cases and their corresponding exceptions and reason codes, refer to [Content], [Certificate.Trust], and [Certificate.Time]
  *
  */
 sealed class AttestationException(val platform: Platform, message: String? = null, cause: Throwable) :
     Throwable(message, cause) {
 
     /**
+     * Alias for [cause] (with more accurate semantics)
+     */
+    val platformSpecificCause by lazy { cause }
+
+    /**
      * Indicates that some value (key to be attests, bundle identifier or package name, team identified or signer certificate, etc.) failed to verify
-     * This usually means that either the client's OS or the app was compromised/modified.
+     * This usually means that either the client's OS or the app was compromised/modified (or an implementation error occurred).
+     * <br>
+     * For Android, [platformSpecificCause] is always an [AttestationValueException], on iOS it is always an [IosAttestationException],
+     * both of which have enumerable `reason` property, which is documented.
+     *
+     * ### Android Examples:
+     * * Invalid package name: `platformSpecificCause.shouldBeInstanceOf<AttestationValueException>().reason shouldBe AttestationValueException.Reason.PACKAGE_NAME`
+     * * Challenge mismatch: `platformSpecificCause.shouldBeInstanceOf<AttestationValueException>().reason shouldBe AttestationValueException.Reason.CHALLENGE`
+     * * OS version too low: `platformSpecificCause.shouldBeInstanceOf<AttestationValueException>().reason shouldBe AttestationValueException.Reason.OS_VERSION`
+     * * Public Key mismatch: `platformSpecificCause.shouldBeInstanceOf<AttestationValueException>().reason shouldBe AttestationValueException.Reason.APP_UNEXPECTED`
+     * * System integrity: `platformSpecificCause.shouldBeInstanceOf<AttestationValueException>().reason shouldBe AttestationValueException.Reason.SYSTEM_INTEGRITY`
+     * * A mismatch in security level can either result in the [platformSpecificCause] being [Content] and reason being [AttestationValueException.Reason.SEC_LEVEL]
+     *   or a [Certificate.Trust] exception due to mismatching root certificates
+     *
+     * ### iOS Examples
+     * * Invalid bundle identifier / team id / stage: `platformSpecificCause.shouldBeInstanceOf<IosAttestationException>().reason shouldBe IosAttestationException.Reason.IDENTIFIER`
+     * * Challenge mismatch: `platformSpecificCause.shouldBeInstanceOf<IosAttestationException>().reason shouldBe IosAttestationException.Reason.CHALLENGE`
+     * * OS version too low: `platformSpecificCause.shouldBeInstanceOf<IosAttestationException>().reason shouldBe IosAttestationException.Reason.OS_VERSION`
+     * * Public Key mismatch: `platformSpecificCause.shouldBeInstanceOf<IosAttestationException>().reason shouldBe IosAttestationException.Reason.APP_UNEXPECTED`
+     * * System integrity mismatch won't result in a valid attestation object obtained on the client, so this can never reach the back-end, except as a bogus attestation proof
+     * that will fail the attestation check in various ways depending on how this fake proof was constructed.
+     *
+     *
      */
     open class Content private constructor(platform: Platform, message: String?, cause: Throwable) :
         AttestationException(platform, message = message, cause = cause) {
@@ -39,7 +78,7 @@ sealed class AttestationException(val platform: Platform, message: String? = nul
             fun Android(message: String? = null, cause: AttestationValueException) =
                 Content(Platform.ANDROID, message, cause)
 
-            fun iOS(message: String? = null, cause:  IosAttestationException) = Content(Platform.IOS, message, cause)
+            fun iOS(message: String? = null, cause: IosAttestationException) = Content(Platform.IOS, message, cause)
 
             fun Unknown(message: String? = null, cause: Throwable) = Content(Platform.UNKNOWN, message, cause)
         }
@@ -104,7 +143,8 @@ sealed class AttestationException(val platform: Platform, message: String? = nul
 }
 
 
-class IosAttestationException(msg: String? = null, cause: Throwable?=null, val reason: Reason) : Throwable(msg ?: cause?.message, cause) {
+class IosAttestationException(msg: String? = null, cause: Throwable? = null, val reason: Reason) :
+    Throwable(msg ?: cause?.message, cause) {
     enum class Reason {
         /**
          * Version number does not satisfy constraints (e.g. iOS version is too old)

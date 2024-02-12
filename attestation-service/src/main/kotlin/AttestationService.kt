@@ -651,7 +651,7 @@ class DefaultAttestationService(
                     cause = it,
                     reason = CertificateInvalidException.Reason.TRUST
                 )
-            )
+            ) else if (it is AttestationValueException) AttException.Content.Android(cause = it, message = it.message)
             else AttException.Content.Android(
                 cause = AttestationValueException(
                     message = it.message,
