@@ -3,6 +3,7 @@ package at.asitplus.attestation
 import at.asitplus.attestation.AttestationException
 import at.asitplus.attestation.IOSAttestationConfiguration.AppData
 import at.asitplus.attestation.android.*
+import at.asitplus.attestation.android.exceptions.AttestationValueException
 import at.asitplus.attestation.android.exceptions.CertificateInvalidException
 import ch.veehait.devicecheck.appattest.AppleAppAttest
 import ch.veehait.devicecheck.appattest.assertion.Assertion
@@ -28,7 +29,6 @@ import java.security.cert.CertPathValidatorException.BasicReason
 import java.security.cert.CertificateException
 import java.security.cert.X509Certificate
 import java.security.interfaces.ECPublicKey
-import java.util.*
 import kotlin.jvm.optionals.getOrNull
 import kotlin.time.Duration
 import kotlin.time.toJavaDuration
@@ -58,7 +58,7 @@ data class IOSAttestationConfiguration @JvmOverloads constructor(
 
     init {
         if (applications.isEmpty())
-            throw AttestationException.Configuration(Platform.IOS, "No apps configured")
+            throw AttestationException.Configuration(Platform.IOS, "No apps configured", IllegalArgumentException())
     }
 
     /**
@@ -92,6 +92,7 @@ data class IOSAttestationConfiguration @JvmOverloads constructor(
          * @param teamIdentifier nomen est omen
          * @param bundleIdentifier nomen est omen
          */
+        @Suppress("UNUSED")
         class Builder(private val teamIdentifier: String, private val bundleIdentifier: String) {
             private var sandbox = false
             private var iosVersionOverride: String? = null
@@ -165,7 +166,15 @@ abstract class AttestationService {
                         KeyAttestation(
                             null,
                             AttestationResult.Error(
-                                explanation = it, cause = AttException.Content(platform = Platform.ANDROID, it)
+                                explanation = it,
+                                cause = AttException.Content.Android(
+                                    it,
+                                    AttestationValueException(
+                                        it,
+                                        cause = null,
+                                        reason = AttestationValueException.Reason.APP_UNEXPECTED
+                                    )
+                                )
                             )
                         )
                     }
@@ -329,7 +338,7 @@ sealed class AttestationResult {
      * encoded attested public key.
      * The [DefaultAttestationService], returns [IOS.Verified], also setting [IOS.Verified.attestation].
      * The [NoopAttestationService] returns [IOS.NOOP] (which is useful to as it enables skipping any
-     * and all attestation checks for unit testing, when used with dependency injection, for example.
+     * and all attestation checks for unit testing, when used with dependency injection, for example).
      */
     @Suppress("MemberVisibilityCanBePrivate")
     abstract class IOS(val clientData: ByteArray?) : AttestationResult() {
@@ -348,13 +357,14 @@ sealed class AttestationResult {
             override val iosDetails = "NOOP"
         }
 
-        /**
-         * Represents an attestation verification failure. Always contains an  [explanation] about what went wrong.
-         */
     }
 
-    class Error(val explanation: String, val cause: AttException? = null) : AttestationResult() {
-        override val details = "Error($explanation" + cause?.let { ", Cause: ${cause::class.qualifiedName}" }
+
+    /**
+     * Represents an attestation verification failure. Always contains an  [explanation] about what went wrong and a [cause] to evaluate programmatically
+     */
+    class Error(val explanation: String, val cause: AttException) : AttestationResult() {
+        override val details = "Error($explanation)" + ", Cause: ${cause::class.qualifiedName}"
     }
 }
 
@@ -372,6 +382,7 @@ data class KeyAttestation<T : PublicKey> internal constructor(
 
     override fun toString() = "Key$details"
 
+    @Suppress("UNUSED")
     inline fun <R> fold(
         onError: (AttestationResult.Error) -> R,
         onSuccess: (T, AttestationResult) -> R
@@ -391,7 +402,6 @@ data class KeyAttestation<T : PublicKey> internal constructor(
 
 object NoopAttestationService : AttestationService() {
 
-    private val log = LoggerFactory.getLogger(this.javaClass)
     override fun verifyAttestation(
         attestationProof: List<ByteArray>,
         challenge: ByteArray,
@@ -429,7 +439,7 @@ object NoopAttestationService : AttestationService() {
  * @param iosAttestationConfiguration IOS AppAttest configuration.  See [IOSAttestationConfiguration] for details.
  * @param clock a clock to set the time of verification (used for certificate validity checks)
  * @param verificationTimeOffset allows for fine-grained clock drift compensation (this duration is added to the certificate
- * validity checks; can be negative.
+ * validity checks); can be negative.
  */
 class DefaultAttestationService(
     androidAttestationConfiguration: AndroidAttestationConfiguration,
@@ -444,7 +454,7 @@ class DefaultAttestationService(
      * @param androidAttestationConfigurationJ Configuration for Android key attestation. See [AndroidAttestationConfiguration]
      * @param iosAttestationConfigurationJ IOS AppAttest configuration.  See [IOSAttestationConfiguration] for details.
      * @param verificationTimeOffsetJ allows for fine-grained clock drift compensation (this duration is added to the certificate
-     *                                validity checks; can be negative.
+     * validity checks); can be negative.
      * @param javaClock a clock to set the time of verification (used for certificate validity checks)
      */
     @JvmOverloads
@@ -542,7 +552,10 @@ class DefaultAttestationService(
         clientData: ByteArray?
     ): AttestationResult {
         log.debug("attestation proof length: ${attestationProof.size}")
-        return if (attestationProof.isEmpty()) AttestationResult.Error("Attestation proof is empty")
+        return if (attestationProof.isEmpty()) AttestationResult.Error(
+            "Attestation proof is empty",
+            AttException.Content.Unknown(cause = IllegalArgumentException())
+        )
         else if (attestationProof.size > 2)
             verifyAttestationAndroid(attestationProof, challenge)
         else {
@@ -554,17 +567,19 @@ class DefaultAttestationService(
                     counter = 0L
                 )
 
-            }.getOrElse {
+            }.getOrElse { ex ->
                 //if attestationProof contains no assertion, but clientData is set, for example
                 log.warn("Could not verify attestation proof: {}", attestationProof.map { it.encodeBase64() })
-                return if (it is IndexOutOfBoundsException)
+                return if (ex is IndexOutOfBoundsException)
                     AttestationResult.Error(
-                        "Invalid length of attestation proof: ${it.message}. " +
-                                "Possible reason: passed 'clientData' but no assertion"
+                        "Invalid length of attestation proof: ${ex.message}. " +
+                                "Possible reason: passed 'clientData' but no assertion",
+                        AttException.Content.Unknown(cause = IllegalArgumentException())
                     )
                 else AttestationResult.Error(
                     "Could not verify client integrity due to internal error: " +
-                            "${it::class.simpleName}${it.message?.let { ". $it" }}"
+                            "${ex::class.simpleName}${ex.message?.let { ". $it" }}",
+                    AttException.Content.Unknown(cause = ex)
                 )
 
             }
@@ -574,7 +589,7 @@ class DefaultAttestationService(
     /**
      * Verifies [Android Key Attestation](https://developer.android.com/training/articles/security-key-attestation) based
      * the provided certificate chain (the leaf ist the attestation certificate, the root must be one of the
-     * [Google Hardware Attestation Root certificates](https://developer.android.com/training/articles/security-key-attestation#root_certificate).
+     * [Google Hardware Attestation Root certificates](https://developer.android.com/training/articles/security-key-attestation#root_certificate)).
      *
      * @param attestationCerts certificate chain from the attestation certificate up to a Google Hardware Attestation Root certificate
      * @param expectedChallenge the challenge to be verified against
@@ -586,10 +601,20 @@ class DefaultAttestationService(
         expectedChallenge: ByteArray
     ): AttestationResult = runCatching {
         log.debug("Verifying Android attestation")
-        if (attestationCerts.isEmpty()) return AttestationResult.Error("Attestation proof is empty")
+        if (attestationCerts.isEmpty()) return AttestationResult.Error(
+            "Attestation proof is empty",
+            AttException.Content.Unknown(cause = IllegalArgumentException())
+        )
         val certificates = attestationCerts.mapNotNull { it.parseToCertificate() }
         if (certificates.size != attestationCerts.size)
-            return AttestationResult.Error("Could not parse Android attestation certificate chain")
+            return "Could not parse Android attestation certificate chain".let { msg ->
+                AttestationResult.Error(
+                    msg,
+                    AttException.Certificate.Trust.Android(
+                        cause = AttestationValueException(msg, reason = AttestationValueException.Reason.APP_UNEXPECTED)
+                    )
+                )
+            }
 
         //throws exception on fail
         val results = androidAttestationCheckers.map {
@@ -616,15 +641,24 @@ class DefaultAttestationService(
     }.getOrElse {
         AttestationResult.Error(
             "Android Attestation Error: " + (it.message ?: it::class.simpleName),
-            if ((it is CertificateInvalidException) && (it.reason == CertificateInvalidException.Reason.TIME)) AttException.Certificate.Time(
-                Platform.ANDROID,
+            if ((it is CertificateInvalidException) && (it.reason == CertificateInvalidException.Reason.TIME)) AttException.Certificate.Time.Android(
                 cause = it
             )
-            else if (it is CertificateException || it is CertificateInvalidException) AttException.Certificate.Trust(
-                Platform.ANDROID,
-                cause = it
+            else if (it is CertificateInvalidException) AttException.Certificate.Trust.Android(cause = it)
+            else if (it is CertificateException) AttException.Certificate.Trust.Android(
+                cause = CertificateInvalidException(
+                    message = it.message ?: "",
+                    cause = it,
+                    reason = CertificateInvalidException.Reason.TRUST
+                )
+            ) else if (it is AttestationValueException) AttException.Content.Android(cause = it, message = it.message)
+            else AttException.Content.Android(
+                cause = AttestationValueException(
+                    message = it.message,
+                    cause = it,
+                    reason = AttestationValueException.Reason.APP_UNEXPECTED
+                )
             )
-            else AttException.Content(Platform.ANDROID, cause = it)
         )
     }
 
@@ -688,17 +722,27 @@ class DefaultAttestationService(
                 ?: iosAttestationConfiguration.iosVersion
         iosVersion?.let {
             val parsedVersion = SemVer.parse(
-                result.second.iOSVersion ?: return AttestationResult.Error(
-                    "Could not parse iOS version from AppAttest",
-                    AttException.Content(Platform.IOS)
-                )
+                result.second.iOSVersion ?: return "Could not parse iOS version from AppAttest".let { msg ->
+                    AttestationResult.Error(
+                        msg,
+                        AttException.Content.iOS(
+                            msg,
+                            cause = IosAttestationException(msg, reason = IosAttestationException.Reason.OS_VERSION)
+                        )
+                    )
+                }
             )
             val configuredVersion = SemVer.parse(it)
             if (parsedVersion < configuredVersion)
-                return AttestationResult.Error(
-                    "iOS version  $parsedVersion < $configuredVersion",
-                    AttException.Content(Platform.IOS)
-                )
+                return "iOS version  $parsedVersion < $configuredVersion".let { msg ->
+                    AttestationResult.Error(
+                        msg,
+                        AttException.Content.iOS(
+                            msg,
+                            cause = IosAttestationException(msg, reason = IosAttestationException.Reason.OS_VERSION)
+                        )
+                    )
+                }
         }
 
         return assertionData?.let { assertionData ->
@@ -717,10 +761,15 @@ class DefaultAttestationService(
                     counter,
                     expectedChallenge
                 )
-                return if (assertion.authenticatorData.signCount != 1L) AttestationResult.Error(
-                    "iOS Assertion counter is ${assertion.authenticatorData.signCount}, but should be 1",
-                    AttException.Content(Platform.IOS)
-                )
+                return if (assertion.authenticatorData.signCount != 1L) "iOS Assertion counter is ${assertion.authenticatorData.signCount}, but should be 1".let { msg ->
+                    AttestationResult.Error(
+                        msg,
+                        AttException.Content.iOS(
+                            msg,
+                            cause = IosAttestationException(msg, reason = IosAttestationException.Reason.SIG_CTR)
+                        )
+                    )
+                }
                 else AttestationResult.IOS.Verified(result.second, assertionData.clientData to assertion)
             }.getOrElse {
                 AttestationResult.Error(
@@ -739,33 +788,75 @@ class DefaultAttestationService(
     }
 
     private fun encapsulateIosAttestationException(it: Throwable): AttException {
-        return if (it is ch.veehait.devicecheck.appattest.attestation.AttestationException.InvalidCertificateChain || it is ReceiptException.InvalidCertificateChain) {
-            var ex = it.cause
-            while (ex !is CertPathValidatorException) {
-                if (ex == null) return AttException.Content(Platform.IOS, cause = it)
-                ex = ex.cause
+        return if (it is ch.veehait.devicecheck.appattest.attestation.AttestationException) {
+            when (it) {
+                is ch.veehait.devicecheck.appattest.attestation.AttestationException.InvalidAuthenticatorData -> {
+                    AttException.Content.iOS(
+                        cause = IosAttestationException(
+                            cause = it,
+                            reason = if (it.message?.startsWith("App ID does not match RP ID hash") == true ||
+                                it.message?.startsWith("AAGUID does match neither") == true
+                            ) IosAttestationException.Reason.IDENTIFIER else IosAttestationException.Reason.APP_UNEXPECTED
+                        )
+                    )
+                }
+
+                is ch.veehait.devicecheck.appattest.attestation.AttestationException.InvalidCertificateChain -> {
+                    var ex = it.cause
+                    while (ex !is CertPathValidatorException) {
+                        if (ex == null) return AttException.Certificate.Trust.iOS(cause = it)
+                        ex = ex.cause
+                    }
+                    if ((ex.reason == BasicReason.NOT_YET_VALID) || (ex.reason == BasicReason.EXPIRED))
+                        AttException.Certificate.Time.iOS(cause = ex)
+                    else AttException.Certificate.Trust.iOS(cause = ex)
+                }
+
+                is ch.veehait.devicecheck.appattest.attestation.AttestationException.InvalidFormatException,
+                is ch.veehait.devicecheck.appattest.attestation.AttestationException.InvalidPublicKey ->
+                    AttException.Content.iOS(
+                        cause = IosAttestationException(
+                            cause = it,
+                            reason = IosAttestationException.Reason.APP_UNEXPECTED
+                        )
+                    )
+
+                is ch.veehait.devicecheck.appattest.attestation.AttestationException.InvalidNonce ->
+                    AttException.Content.iOS(
+                        it.message,
+                        IosAttestationException(it.message, it, IosAttestationException.Reason.CHALLENGE)
+                    )
+
+                is ch.veehait.devicecheck.appattest.attestation.AttestationException.InvalidReceipt -> {
+                    var ex = it.cause
+                    while (ex !is ReceiptException.InvalidPayload) {
+                        if (ex == null) return AttException.Content.iOS(
+                            cause = IosAttestationException(
+                                cause = it,
+                                reason = IosAttestationException.Reason.APP_UNEXPECTED
+                            )
+                        )
+                        ex = ex.cause
+                    }
+                    if (ex.message?.startsWith("Receipt's creation time is after") == true)
+                        AttException.Certificate.Time.iOS(
+                            cause = ex
+                        )
+                    else AttException.Content.iOS(
+                        cause = IosAttestationException(
+                            cause = it,
+                            reason = IosAttestationException.Reason.APP_UNEXPECTED
+                        )
+                    )
+                }
             }
-            if ((ex.reason == BasicReason.NOT_YET_VALID) || (ex.reason == BasicReason.EXPIRED))
-                AttException.Certificate.Time(
-                    Platform.IOS,
-                    cause = ex
-                ) else AttException.Certificate.Trust(
-                Platform.IOS,
-                cause = ex
+        } else AttException.Content.iOS(
+            cause = IosAttestationException(
+                cause = it,
+                reason = IosAttestationException.Reason.APP_UNEXPECTED
             )
-        } else if (it is ch.veehait.devicecheck.appattest.attestation.AttestationException.InvalidReceipt) {
-            var ex = it.cause
-            while (ex !is ReceiptException.InvalidPayload) {
-                if (ex == null) return AttException.Content(Platform.IOS, cause = it)
-                ex = ex.cause
-            }
-            if (ex.message?.startsWith("Receipt's creation time is after") == true)
-                AttException.Certificate.Time(
-                    Platform.IOS,
-                    cause = ex
-                )
-            else AttException.Content(Platform.IOS, cause = it)
-        } else AttException.Content(Platform.IOS, cause = it)
+        )
     }
+
 
 }
