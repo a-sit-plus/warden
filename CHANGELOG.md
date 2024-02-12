@@ -95,3 +95,6 @@ attestation on Android, please re-read the readme!
 
 #### 1.4.5
 - make `fold` function of `KeyAttestation` inline
+
+### 1.5.0
+- better iOS-specific exception handling and enumerable error cases
