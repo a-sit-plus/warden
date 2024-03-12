@@ -233,13 +233,15 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                 recordedAttestation.attestationProof,
                                 recordedAttestation.challenge
                             ).shouldBeInstanceOf<AttestationResult.Error>().apply {
-                                cause.shouldBeInstanceOf<AttestationException.Content>()
-                                when (cause.platform) {
-                                    Platform.IOS -> cause.platformSpecificCause.shouldBeInstanceOf<IosAttestationException>().reason shouldBe IosAttestationException.Reason.IDENTIFIER
-                                    Platform.ANDROID -> cause.platformSpecificCause.shouldBeInstanceOf<AttestationValueException>().reason shouldBe AttestationValueException.Reason.PACKAGE_NAME
-                                    else -> {/*irrelevant*/
+                                cause.shouldBeInstanceOf<AttestationException.Content>().also {
+                                    when (it.platform) {
+                                        Platform.IOS -> it.platformSpecificCause.shouldBeInstanceOf<IosAttestationException>().reason shouldBe IosAttestationException.Reason.IDENTIFIER
+                                        Platform.ANDROID -> it.platformSpecificCause.shouldBeInstanceOf<AttestationValueException>().reason shouldBe AttestationValueException.Reason.PACKAGE_NAME
+                                        else -> {/*irrelevant*/
+                                        }
                                     }
                                 }
+
                             }
 
                         }
@@ -253,13 +255,15 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                 recordedAttestation.attestationProof,
                                 recordedAttestation.challenge.reversedArray()
                             ).shouldBeInstanceOf<AttestationResult.Error>().apply {
-                                cause.shouldBeInstanceOf<AttestationException.Content>()
-                                when (cause.platform) {
-                                    Platform.IOS -> cause.platformSpecificCause.shouldBeInstanceOf<IosAttestationException>().reason shouldBe IosAttestationException.Reason.CHALLENGE
-                                    Platform.ANDROID -> cause.platformSpecificCause.shouldBeInstanceOf<AttestationValueException>().reason shouldBe AttestationValueException.Reason.CHALLENGE
-                                    else -> {/*irrelevant*/
+                                cause.shouldBeInstanceOf<AttestationException.Content>().also {
+                                    when (it.platform) {
+                                        Platform.IOS -> it.platformSpecificCause.shouldBeInstanceOf<IosAttestationException>().reason shouldBe IosAttestationException.Reason.CHALLENGE
+                                        Platform.ANDROID -> it.platformSpecificCause.shouldBeInstanceOf<AttestationValueException>().reason shouldBe AttestationValueException.Reason.CHALLENGE
+                                        else -> {/*irrelevant*/
+                                        }
                                     }
                                 }
+
                             }
 
                         }
@@ -267,7 +271,10 @@ class DefaultAttestationServiceTest : FreeSpec() {
                         "OS Version" {
                             attestationService(
                                 androidVersion = 200000,
-                                iosVersion = "99.0",
+                                iosVersion = IOSAttestationConfiguration.OsVersions(
+                                    semVer = "99.0",
+                                    buildNumber = 0xFFFFFFFFu
+                                ),
                                 timeSource = FixedTimeClock(
                                     recordedAttestation.verificationDate.toInstant()
                                         .toKotlinInstant()
@@ -277,15 +284,15 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                 recordedAttestation.challenge
                             ).apply {
                                 shouldBeInstanceOf<AttestationResult.Error>().apply {
-                                    cause.shouldBeInstanceOf<AttestationException.Content>()
-                                    when (cause.platform) {
-                                        Platform.IOS -> cause.platformSpecificCause.shouldBeInstanceOf<IosAttestationException>().reason shouldBe IosAttestationException.Reason.OS_VERSION
-                                        Platform.ANDROID -> cause.platformSpecificCause.shouldBeInstanceOf<AttestationValueException>().reason shouldBe AttestationValueException.Reason.OS_VERSION
-                                        else -> {/*irrelevant*/
+                                    cause.shouldBeInstanceOf<AttestationException.Content>().also {
+                                        when (it.platform) {
+                                            Platform.IOS -> it.platformSpecificCause.shouldBeInstanceOf<IosAttestationException>().reason shouldBe IosAttestationException.Reason.OS_VERSION
+                                            Platform.ANDROID -> it.platformSpecificCause.shouldBeInstanceOf<AttestationValueException>().reason shouldBe AttestationValueException.Reason.OS_VERSION
+                                            else -> {/*irrelevant*/
+                                            }
                                         }
                                     }
                                 }
-
                             }
                         }
 
@@ -305,11 +312,12 @@ class DefaultAttestationServiceTest : FreeSpec() {
                             ).apply {
                                 isSuccess.shouldBeFalse()
                                 details.shouldBeInstanceOf<AttestationResult.Error>().also { println(it) }.apply {
-                                    cause.shouldBeInstanceOf<AttestationException.Content>()
-                                    when (cause.platform) {
-                                        Platform.IOS -> cause.platformSpecificCause.shouldBeInstanceOf<IosAttestationException>().reason shouldBe IosAttestationException.Reason.APP_UNEXPECTED
-                                        Platform.ANDROID -> cause.platformSpecificCause.shouldBeInstanceOf<AttestationValueException>().reason shouldBe AttestationValueException.Reason.APP_UNEXPECTED
-                                        else -> {/*irrelevant*/
+                                    cause.shouldBeInstanceOf<AttestationException.Content>().also {
+                                        when (it.platform) {
+                                            Platform.IOS -> it.platformSpecificCause.shouldBeInstanceOf<IosAttestationException>().reason shouldBe IosAttestationException.Reason.APP_UNEXPECTED
+                                            Platform.ANDROID -> it.platformSpecificCause.shouldBeInstanceOf<AttestationValueException>().reason shouldBe AttestationValueException.Reason.APP_UNEXPECTED
+                                            else -> {/*irrelevant*/
+                                            }
                                         }
                                     }
                                 }
@@ -320,12 +328,17 @@ class DefaultAttestationServiceTest : FreeSpec() {
             }
 
             "iOS Specific" - {
-                iosGood.forEach { recordedAttestation ->
+                listOf(*iosGood.toTypedArray(), ios17).forEach { recordedAttestation ->
                     recordedAttestation.name - {
                         "OK" - {
                             withData("14", "15.0.1", "16", "16.0.2", "16.2", "16.2.0") { version ->
                                 attestationService(
-                                    iosVersion = version,
+                                    iosVersion = IOSAttestationConfiguration.OsVersions(
+                                        semVer = version,
+                                        buildNumber = 0x21Au
+                                    ),
+                                    iosBundleIdentifier = recordedAttestation.packageOverride!!,
+                                    iosSandbox = !(recordedAttestation.isProductionOverride!!),
                                     timeSource = FixedTimeClock(
                                         recordedAttestation.verificationDate.toInstant()
                                             .toKotlinInstant()
@@ -856,8 +869,8 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                 data.attestationProof,
                                 data.challenge
                             ).shouldBeInstanceOf<AttestationResult.Android>().attestationRecord.apply {
-                                attestationSecurityLevel shouldBe ParsedAttestationRecord.SecurityLevel.SOFTWARE
-                                keymasterSecurityLevel shouldBe ParsedAttestationRecord.SecurityLevel.TRUSTED_ENVIRONMENT
+                                attestationSecurityLevel() shouldBe ParsedAttestationRecord.SecurityLevel.SOFTWARE
+                                keymasterSecurityLevel() shouldBe ParsedAttestationRecord.SecurityLevel.TRUSTED_ENVIRONMENT
                             }
 
                         }
@@ -883,8 +896,8 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                 data.attestationProof,
                                 data.challenge
                             ).shouldBeInstanceOf<AttestationResult.Android>().attestationRecord.apply {
-                                attestationSecurityLevel shouldBe ParsedAttestationRecord.SecurityLevel.SOFTWARE
-                                keymasterSecurityLevel shouldBe ParsedAttestationRecord.SecurityLevel.TRUSTED_ENVIRONMENT
+                                attestationSecurityLevel() shouldBe ParsedAttestationRecord.SecurityLevel.SOFTWARE
+                                keymasterSecurityLevel() shouldBe ParsedAttestationRecord.SecurityLevel.TRUSTED_ENVIRONMENT
                             }
 
                         }
@@ -910,8 +923,8 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                 data.attestationProof,
                                 data.challenge
                             ).shouldBeInstanceOf<AttestationResult.Android>().attestationRecord.apply {
-                                attestationSecurityLevel shouldBe ParsedAttestationRecord.SecurityLevel.SOFTWARE
-                                keymasterSecurityLevel shouldBe ParsedAttestationRecord.SecurityLevel.TRUSTED_ENVIRONMENT
+                                attestationSecurityLevel() shouldBe ParsedAttestationRecord.SecurityLevel.SOFTWARE
+                                keymasterSecurityLevel() shouldBe ParsedAttestationRecord.SecurityLevel.TRUSTED_ENVIRONMENT
                             }
 
                         }
@@ -938,8 +951,8 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                 data.attestationProof,
                                 data.challenge
                             ).shouldBeInstanceOf<AttestationResult.Android>().attestationRecord.apply {
-                                attestationSecurityLevel shouldBe ParsedAttestationRecord.SecurityLevel.SOFTWARE
-                                keymasterSecurityLevel shouldBe ParsedAttestationRecord.SecurityLevel.TRUSTED_ENVIRONMENT
+                                attestationSecurityLevel() shouldBe ParsedAttestationRecord.SecurityLevel.SOFTWARE
+                                keymasterSecurityLevel() shouldBe ParsedAttestationRecord.SecurityLevel.TRUSTED_ENVIRONMENT
                             }
 
                         }

@@ -18,7 +18,7 @@ class FeatureDemonstration : FreeSpec() {
 
         val service = DefaultAttestationService(
             androidAttestationConfiguration = AndroidAttestationConfiguration(
-               listOf(
+                listOf(
                     AndroidAttestationConfiguration.AppData(
                         packageName = "at.asitplus.attestation_client",
                         signatureDigests = listOf("NLl2LE1skNSEMZQMV73nMUJYsmQg7+Fqx/cnTw0zCtU=".decodeBase64ToArray()),
@@ -40,7 +40,10 @@ class FeatureDemonstration : FreeSpec() {
                         sandbox = false
                     )
                 ),
-                iosVersion = "16" //optional, use SemVer notation
+                iosVersion = IOSAttestationConfiguration.OsVersions(
+                    semVer = "16",
+                    buildNumber = 0x0u
+                ) //optional, use SemVer notation and large hex number to ignore build number
             ),
             clock = FixedTimeClock(Instant.parse("2023-04-13T00:00:00Z")), //optional
             verificationTimeOffset = Duration.ZERO //optional
@@ -54,8 +57,8 @@ class FeatureDemonstration : FreeSpec() {
                     .apply {
                         shouldBeInstanceOf<AttestationResult.Android>().apply {
                             attestationCertificate.encoded shouldBe nokiaX10KeyMasterGood.attestationProof.first()
-                            attestationRecord.attestationChallenge shouldBe nokiaX10KeyMasterGood.challenge
-                            attestationRecord.attestationSecurityLevel shouldBeIn listOf(
+                            attestationRecord.attestationChallenge().toByteArray() shouldBe nokiaX10KeyMasterGood.challenge
+                            attestationRecord.attestationSecurityLevel() shouldBeIn listOf(
                                 ParsedAttestationRecord.SecurityLevel.TRUSTED_ENVIRONMENT,
                                 ParsedAttestationRecord.SecurityLevel.STRONG_BOX
                             )
@@ -77,8 +80,8 @@ class FeatureDemonstration : FreeSpec() {
                             attestedPublicKey!!.encoded shouldBe nokiaX10KeyMasterGood.publicKey!!.encoded
                             details.shouldBeInstanceOf<AttestationResult.Android>().apply {
                                 attestationCertificate.encoded shouldBe nokiaX10KeyMasterGood.attestationProof.first()
-                                attestationRecord.attestationChallenge shouldBe nokiaX10KeyMasterGood.challenge
-                                attestationRecord.attestationSecurityLevel shouldBeIn listOf(
+                                attestationRecord.attestationChallenge().toByteArray() shouldBe nokiaX10KeyMasterGood.challenge
+                                attestationRecord.attestationSecurityLevel() shouldBeIn listOf(
                                     ParsedAttestationRecord.SecurityLevel.TRUSTED_ENVIRONMENT,
                                     ParsedAttestationRecord.SecurityLevel.STRONG_BOX
                                 )
@@ -97,8 +100,8 @@ class FeatureDemonstration : FreeSpec() {
                             attestedPublicKey!!.encoded shouldBe nokiaX10KeyMasterGood.publicKey!!.encoded
                             details.shouldBeInstanceOf<AttestationResult.Android>().apply {
                                 attestationCertificate.encoded shouldBe nokiaX10KeyMasterGood.attestationProof.first()
-                                attestationRecord.attestationChallenge shouldBe nokiaX10KeyMasterGood.challenge
-                                attestationRecord.attestationSecurityLevel shouldBeIn listOf(
+                                attestationRecord.attestationChallenge().toByteArray() shouldBe nokiaX10KeyMasterGood.challenge
+                                attestationRecord.attestationSecurityLevel() shouldBeIn listOf(
                                     ParsedAttestationRecord.SecurityLevel.TRUSTED_ENVIRONMENT,
                                     ParsedAttestationRecord.SecurityLevel.STRONG_BOX
                                 )
