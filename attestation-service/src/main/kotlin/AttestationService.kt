@@ -21,6 +21,10 @@ import com.google.android.attestation.AttestationApplicationId
 import com.google.android.attestation.ParsedAttestationRecord
 import kotlinx.datetime.Clock
 import net.swiftzer.semver.SemVer
+import org.bouncycastle.asn1.ASN1InputStream
+import org.bouncycastle.asn1.DEROctetString
+import org.bouncycastle.asn1.DLSequence
+import org.bouncycastle.asn1.DLTaggedObject
 import org.bouncycastle.cert.X509CertificateHolder
 import org.slf4j.LoggerFactory
 import java.security.MessageDigest
@@ -81,30 +85,44 @@ data class IOSAttestationConfiguration @JvmOverloads constructor(
         private val semVer: String,
 
         /**
-         * Hex-encoded iOS build number with peculiar semantics. Build numbers always start with three hex digits indicating the major version.
-         * These three digits are then followed by a variable number of digits indicating the minor version. Hence, the provided String is padded to eight hex digits with zeroes at the end.
-         * This padding is also applied to the build number parsed from the attestation statement, thus allowing for unsigned integer comparison of both values.
+         * String representation of an iOS build number. As per [TidBITS.com](https://tidbits.com/2020/07/08/how-to-decode-apple-version-and-build-numbers/):
+         *
+         * An Apple build number also has three parts:
+         *
+         * *  Major version: Within Apple, the major version is called the build train.
+         * *  Minor version: For iOS and its descendants, the minor version tracks with the minor release; for macOS, it tracks with patch releases.
+         * *  Daily build version: The daily build indicates how many times Apple has built the source code for the release since the previous public release.
+         *
+         * While this last bit about the daily build number is phrased somewhat fuzzy, it really is a strictly increasing decimal number.
          *
          * Note that only newer devices (e.g. iPhone 15) may encode build numbers into the attestation instead of SemVer version strings.
          * Build numbers are shown on [IPSW.me](https://ipsw.me/), for example.
-         *
-         * This parameter uses signed Ints, so it plays nicely with Java
          */
-        private val buildNum: Int,
+        private val buildNumber: String,
 
         ) : Comparable<Any> {
 
-        constructor(buildNumber: BuildNumber, semVer: String) : this(semVer, buildNumber.toInt())
-
         /**
-         * iOS build number with peculiar semantics. Build numbers always start with three hex digits indicating the major version.
-         * These three digits are then followed by a variable number of digits indicating the minor version. Hence, the provided String is padded to eight hex digits with zeroes at the end.
-         * This padding is also applied to the build number parsed from the attestation statement, thus allowing for unsigned integer comparison of both values.
+         * Parsed and normalised iOS build number. As per [TidBITS.com](https://tidbits.com/2020/07/08/how-to-decode-apple-version-and-build-numbers/):
+         *
+         * An Apple build number also has three parts:
+         *
+         * *  Major version: Within Apple, the major version is called the build train.
+         * *  Minor version: For iOS and its descendants, the minor version tracks with the minor release; for macOS, it tracks with patch releases.
+         * *  Daily build version: The daily build indicates how many times Apple has built the source code for the release since the previous public release.
+         *
+         * While this last bit about the daily build number is phrased somewhat fuzzy, it really is a strictly increasing decimal number.
          *
          * Note that only newer devices (e.g. iPhone 15) may encode build numbers into the attestation instead of SemVer version strings.
          * Build numbers are shown on [IPSW.me](https://ipsw.me/), for example.
          */
-        val buildNumber: BuildNumber = buildNum.toUInt()
+        val normalisedBuildNumber: BuildNumber = runCatching { BuildNumber(buildNumber) }.getOrElse { ex ->
+            throw AttestationException.Configuration(
+                Platform.IOS,
+                "Illegal iOS build number $buildNumber",
+                ex
+            )
+        }
 
         /**
          * [SemVer](https://semver.org/)-formatted iOS version number.
@@ -118,10 +136,21 @@ data class IOSAttestationConfiguration @JvmOverloads constructor(
                 )
             }
 
+        override fun toString(): String =
+            "iOS Versions (semVer=$semVerParsed, buildNumber: $normalisedBuildNumber)"
+
         override fun compareTo(other: Any): Int {
             return when (other) {
-                is BuildNumber -> buildNumber.compareTo(other)
+                is BuildNumber -> normalisedBuildNumber.compareTo(other)
                 is SemVer -> semVerParsed.compareTo(other)
+                is Pair<*, *> -> {
+                    if ((other.first is SemVer || other.first is SemVer?) && (other.second is BuildNumber || other.second is BuildNumber?)) {
+                        other.first?.let { return semVerParsed.compareTo(it as SemVer) }
+                            ?: other.second?.let { normalisedBuildNumber.compareTo(it as BuildNumber) }
+                            ?: throw UnsupportedOperationException("No Parsed iOS Version present.")
+                    } else throw UnsupportedOperationException("Cannot compare OsVersions to ${other::class.simpleName}")
+                }
+
                 else -> throw UnsupportedOperationException("Cannot compare OsVersions to ${other::class.simpleName}")
             }
         }
@@ -180,9 +209,57 @@ data class IOSAttestationConfiguration @JvmOverloads constructor(
 
 }
 
-typealias BuildNumber = UInt
+typealias ParsedVersions = Pair<SemVer?, BuildNumber?>
 
-private fun String.toBuildNumber(): BuildNumber = padEnd(8, '0').toUInt(16)
+/**
+ * iOS build number. As per [TidBITS.com](https://tidbits.com/2020/07/08/how-to-decode-apple-version-and-build-numbers/):
+ *
+ * An Apple build number also has three parts:
+ *
+ * *  Major version: Within Apple, the major version is called the build train.
+ * *  Minor version: For iOS and its descendants, the minor version tracks with the minor release; for macOS, it tracks with patch releases.
+ * *  Daily build version: The daily build indicates how many times Apple has built the source code for the release since the previous public release.
+ *
+ * While this last bit about the daily build number is phrased somewhat fuzzy, it really is a strictly increasing decimal number.
+ */
+class BuildNumber private constructor(val buildTrain: UInt, val minorVersion: String, val buildVer: UInt) :
+    Comparable<BuildNumber> {
+
+
+    constructor(buildNumber: String) : this(parseBuildNumber(buildNumber))
+
+    constructor(boxed: Triple<UInt, String, UInt>) : this(boxed.first, boxed.second, boxed.third)
+
+
+    /**
+     * Integer representation of the build number. Converts [buildTrain] into a hex number, concatenates it with [minorVersion] radix-36-parsed
+     * to a hex number and concatenates it with an end-padded hex-representation of [buildVer].
+     * This results in a [UInt] whose MSBs are always set for correct and straight-forward comparison of build numbers.
+     * The implementation is inefficient but comprehensible.
+     */
+    val intRepresentation = (
+            buildTrain.toString(16)
+                    + minorVersion.toUInt(36).toString(16)
+                    //there will never be more than 9999 days between first release of minorVer and patch
+                    + buildVer.toString(10).padEnd(4, '0').toUInt(10).toString(16)
+            ).padEnd(8, '0').toUInt(16)
+
+    override fun compareTo(other: BuildNumber): Int = intRepresentation.compareTo(other.intRepresentation)
+
+    override fun toString() = "$buildTrain$minorVersion$buildVer (${intRepresentation.toString(16)})".uppercase()
+
+    companion object {
+        private fun parseBuildNumber(stringRepresentation: String): Triple<UInt, String, UInt> {
+            val buildTrain = stringRepresentation.takeWhile { it.isDigit() }
+            val minorVersion = stringRepresentation.substring(buildTrain.length).takeWhile { it.isLetter() }.uppercase()
+            val buildVer = stringRepresentation.substring(buildTrain.length + minorVersion.length).toUInt(10)
+
+            return Triple(buildTrain.toUInt(10), minorVersion, buildVer)
+        }
+    }
+}
+
+private fun String.toBuildNumber(): BuildNumber = BuildNumber(this)
 
 abstract class AttestationService {
 
@@ -195,7 +272,7 @@ abstract class AttestationService {
 
 
     /**
-     * Verifies key attestation for both Android and Apple devices.     *
+     * Verifies key attestation for both Android and Apple devices.
      *
      * Succeeds if attestation data structures of the client (in [attestationProof]) can be verified and [expectedChallenge] matches
      * the attestation challenge. For Android clients, this function makes sure that [keyToBeAttested] matches the key contained in the attestation certificate.
@@ -419,11 +496,15 @@ sealed class AttestationResult {
         abstract val iosDetails: String
         override val details: String by lazy { "iOS::$iosDetails" }
 
-        class Verified(val attestation: ValidatedAttestation, assertedClientData: Pair<ByteArray, Assertion>?) :
+        class Verified(
+            val attestation: ValidatedAttestation,
+            val iosVersion: ParsedVersions,
+            val assertedClientData: Pair<ByteArray, Assertion>?
+        ) :
             IOS(assertedClientData?.first) {
             override val iosDetails =
                 "Verified(${attestation.certificate.publicKey.algorithm} public key: ${attestation.certificate.publicKey.encoded.encodeBase64()}, " +
-                        "iOS version: ${attestation.iOSVersion}, app: ${attestation.receipt.payload.appId}"
+                        "iOS version: (semVer=${iosVersion.first}, buildNumber=[${iosVersion.second}]), app: ${attestation.receipt.payload.appId}"
         }
 
         class NOOP(clientData: ByteArray?) : IOS(clientData) {
@@ -779,25 +860,34 @@ class DefaultAttestationService(
             iosApps.entries.firstOrNull { (_, appAttest) -> appAttest.app == result.first.app }?.key?.iosVersionOverride
                 ?: iosAttestationConfiguration.iosVersion
 
+        val parsedVersion = parseIosBuildOrVersionNumber(result.second.certificate)
         iosVersion?.let { configuredVersion ->
-            val parsedVersion: Comparable<*> = kotlin.runCatching {
-                result.second.iOSVersion?.let { SemVer.parse(it) }
-                    ?: throw IllegalArgumentException("No iOS version string found in attestation statement")
-            }.fold(onSuccess = { it }) {
-                kotlin.runCatching {
-                    result.second.iOSVersion?.let { it.toBuildNumber() }
-                        ?: throw IllegalArgumentException("No iOS version string found in attestation statement")
-                }.getOrThrow()
-            }
-
-            if (configuredVersion > parsedVersion) return "iOS version  $parsedVersion < $configuredVersion".let { msg ->
-                AttestationResult.Error(
-                    msg,
-                    AttException.Content.iOS(
+            kotlin.runCatching {
+                if (configuredVersion > parsedVersion) return "Parsed iOS versions (${parsedVersion.first}, ${
+                    parsedVersion.second
+                }) < $configuredVersion".let { msg ->
+                    return AttestationResult.Error(
                         msg,
-                        cause = IosAttestationException(msg, reason = IosAttestationException.Reason.OS_VERSION)
+                        AttException.Content.iOS(
+                            msg,
+                            cause = IosAttestationException(msg, reason = IosAttestationException.Reason.OS_VERSION)
+                        )
                     )
-                )
+                }
+            }.getOrElse {
+                (it.message ?: "Error comparing iOS Versions").let { msg ->
+                    return AttestationResult.Error(
+                        msg,
+                        AttException.Content.iOS(
+                            msg,
+                            cause = IosAttestationException(
+                                msg,
+                                cause = it,
+                                reason = IosAttestationException.Reason.OS_VERSION
+                            )
+                        )
+                    )
+                }
             }
         }
 
@@ -826,7 +916,7 @@ class DefaultAttestationService(
                         )
                     )
                 }
-                else AttestationResult.IOS.Verified(result.second, assertionData.clientData to assertion)
+                else AttestationResult.IOS.Verified(result.second, parsedVersion, assertionData.clientData to assertion)
             }.getOrElse {
                 AttestationResult.Error(
                     it.message ?: "iOS Assertion validation error due to ${it::class.simpleName}",
@@ -834,7 +924,7 @@ class DefaultAttestationService(
 
                 )
             }
-        } ?: AttestationResult.IOS.Verified(result.second, null)
+        } ?: AttestationResult.IOS.Verified(result.second, parsedVersion, null)
 
     }.getOrElse {
         AttestationResult.Error(
@@ -842,6 +932,32 @@ class DefaultAttestationService(
             encapsulateIosAttestationException(it)
         )
     }
+
+    //the following three functions are ripped and adapted from https://github.com/veehaitch/devicecheck-appattest
+    private inline fun <reified T : Any> ASN1InputStream.readObjectAs(): T = this.readObject() as T
+    private fun getTaggedOctetString(credCert: X509Certificate, oid: String, tagNo: Int): DEROctetString? {
+        val value = credCert.getExtensionValue(oid)
+        val envelope = ASN1InputStream(value).readObjectAs<DEROctetString>()
+        val sequence = ASN1InputStream(envelope.octetStream).readObjectAs<DLSequence>()
+        val taggedObject =
+            sequence.firstOrNull {
+                (it is DLTaggedObject) && it.tagNo == tagNo
+                        && (it.baseObject as DEROctetString).octets.isNotEmpty()
+            } as DLTaggedObject?
+        return taggedObject?.baseObject as DEROctetString?
+    }
+
+    private fun parseIosBuildOrVersionNumber(credCert: X509Certificate): ParsedVersions = runCatching {
+        getTaggedOctetString(
+            credCert = credCert,
+            oid = AttestationValidator.AppleCertificateExtensions.OS_VERSION_OID,
+            tagNo = AttestationValidator.AppleCertificateExtensions.OS_VERSION_TAG_NO,
+        )?.octets?.let(::String)?.let { SemVer.parse(it) }
+    }.getOrNull() to getTaggedOctetString(
+        credCert = credCert,
+        oid = AttestationValidator.AppleCertificateExtensions.OS_VERSION_OID,
+        tagNo = AttestationValidator.AppleCertificateExtensions.OS_VERSION_TAG_NO + 3,
+    )?.octets?.let(::String)?.let { it.toBuildNumber() }
 
     private fun encapsulateIosAttestationException(it: Throwable): AttException {
         return if (it is ch.veehait.devicecheck.appattest.attestation.AttestationException) {

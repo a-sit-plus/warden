@@ -68,7 +68,10 @@ fun Application.configureAttestation() {
                     log.info("iOS sandbox: $it")
                 }),
             iosVersion = runCatching {
-                environment.config.property("attestation.ios.min-version").getString()
+                IOSAttestationConfiguration.OsVersions(
+                    environment.config.property("attestation.ios.min-version").getString(),
+                    environment.config.property("attestation.ios.min-buildnum").getString()
+                )
             }.getOrNull().also {
                 log.info("iOS minimum OS version: ${it ?: "none"}")
             }

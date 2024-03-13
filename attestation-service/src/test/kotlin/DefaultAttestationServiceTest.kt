@@ -139,6 +139,8 @@ class DefaultAttestationServiceTest : FreeSpec() {
                             attestationService(
                                 androidVersion = null,
                                 iosVersion = null,
+                                iosBundleIdentifier = recordedAttestation.packageOverride?: DEFAULT_IOS_ATTESTATION_CFG.applications.first().bundleIdentifier,
+                                iosSandbox = !(recordedAttestation.isProductionOverride?: !DEFAULT_IOS_ATTESTATION_CFG.applications.first().sandbox),
                                 timeSource = FixedTimeClock(
                                     recordedAttestation.verificationDate.toInstant().toKotlinInstant()
                                 ),
@@ -174,6 +176,8 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                 } + ${it.toIsoString()}"
                             }, 3000.days, (-3000).days) { leeway ->
                                 attestationService(
+                                    iosBundleIdentifier = recordedAttestation.packageOverride?: DEFAULT_IOS_ATTESTATION_CFG.applications.first().bundleIdentifier,
+                                    iosSandbox = !(recordedAttestation.isProductionOverride?: !DEFAULT_IOS_ATTESTATION_CFG.applications.first().sandbox),
                                     androidPatchLevel = null,
                                     timeSource = FixedTimeClock(
                                         recordedAttestation.verificationDate.toInstant().toKotlinInstant() - leeway
@@ -194,6 +198,8 @@ class DefaultAttestationServiceTest : FreeSpec() {
                         "time of verification" - {
                             "too early" {
                                 attestationService(
+                                    iosBundleIdentifier = recordedAttestation.packageOverride?: DEFAULT_IOS_ATTESTATION_CFG.applications.first().bundleIdentifier,
+                                    iosSandbox = !(recordedAttestation.isProductionOverride?: !DEFAULT_IOS_ATTESTATION_CFG.applications.first().sandbox),
                                     unlockedBootloaderAllowed = false,
                                     timeSource = FixedTimeClock(
                                         recordedAttestation.verificationDate.toInstant()
@@ -208,6 +214,8 @@ class DefaultAttestationServiceTest : FreeSpec() {
 
                             "too late" {
                                 attestationService(
+                                    iosBundleIdentifier = recordedAttestation.packageOverride?: DEFAULT_IOS_ATTESTATION_CFG.applications.first().bundleIdentifier,
+                                    iosSandbox = !(recordedAttestation.isProductionOverride?: !DEFAULT_IOS_ATTESTATION_CFG.applications.first().sandbox),
                                     unlockedBootloaderAllowed = false,
                                     timeSource = FixedTimeClock(
                                         recordedAttestation.verificationDate.toInstant()
@@ -223,6 +231,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
 
                         "package name / bundle identifier" {
                             attestationService(
+                                iosSandbox = !(recordedAttestation.isProductionOverride?: !DEFAULT_IOS_ATTESTATION_CFG.applications.first().sandbox),
                                 androidPackageName = "org.wrong.package.name",
                                 iosBundleIdentifier = "org.wrong.bundle.identifier",
                                 timeSource = FixedTimeClock(
@@ -248,6 +257,8 @@ class DefaultAttestationServiceTest : FreeSpec() {
 
                         "challenge" {
                             attestationService(
+                                iosBundleIdentifier = recordedAttestation.packageOverride?: DEFAULT_IOS_ATTESTATION_CFG.applications.first().bundleIdentifier,
+                                iosSandbox = !(recordedAttestation.isProductionOverride?: !DEFAULT_IOS_ATTESTATION_CFG.applications.first().sandbox),
                                 timeSource = FixedTimeClock(
                                     recordedAttestation.verificationDate.toInstant().toKotlinInstant()
                                 ),
@@ -270,10 +281,12 @@ class DefaultAttestationServiceTest : FreeSpec() {
 
                         "OS Version" {
                             attestationService(
+                                iosBundleIdentifier = recordedAttestation.packageOverride?: DEFAULT_IOS_ATTESTATION_CFG.applications.first().bundleIdentifier,
+                                iosSandbox = !(recordedAttestation.isProductionOverride?: !DEFAULT_IOS_ATTESTATION_CFG.applications.first().sandbox),
                                 androidVersion = 200000,
                                 iosVersion = IOSAttestationConfiguration.OsVersions(
                                     semVer = "99.0",
-                                    buildNumber = 0xFFFFFFFFu
+                                    buildNumber = "999ZZ0"
                                 ),
                                 timeSource = FixedTimeClock(
                                     recordedAttestation.verificationDate.toInstant()
@@ -298,6 +311,8 @@ class DefaultAttestationServiceTest : FreeSpec() {
 
                         "Key Attestation PubKey Mismatch" {
                             attestationService(
+                                iosBundleIdentifier = recordedAttestation.packageOverride?: DEFAULT_IOS_ATTESTATION_CFG.applications.first().bundleIdentifier,
+                                iosSandbox = !(recordedAttestation.isProductionOverride?: !DEFAULT_IOS_ATTESTATION_CFG.applications.first().sandbox),
                                 timeSource = FixedTimeClock(
                                     recordedAttestation.verificationDate.toInstant()
                                         .toKotlinInstant()
@@ -328,17 +343,17 @@ class DefaultAttestationServiceTest : FreeSpec() {
             }
 
             "iOS Specific" - {
-                listOf(*iosGood.toTypedArray(), ios17).forEach { recordedAttestation ->
+                iosGood.forEach { recordedAttestation ->
                     recordedAttestation.name - {
                         "OK" - {
                             withData("14", "15.0.1", "16", "16.0.2", "16.2", "16.2.0") { version ->
                                 attestationService(
                                     iosVersion = IOSAttestationConfiguration.OsVersions(
                                         semVer = version,
-                                        buildNumber = 0x21Au
+                                        buildNumber = "21A36"
                                     ),
-                                    iosBundleIdentifier = recordedAttestation.packageOverride!!,
-                                    iosSandbox = !(recordedAttestation.isProductionOverride!!),
+                                    iosBundleIdentifier = recordedAttestation.packageOverride?: DEFAULT_IOS_ATTESTATION_CFG.applications.first().bundleIdentifier,
+                                    iosSandbox = !(recordedAttestation.isProductionOverride?: !DEFAULT_IOS_ATTESTATION_CFG.applications.first().sandbox),
                                     timeSource = FixedTimeClock(
                                         recordedAttestation.verificationDate.toInstant()
                                             .toKotlinInstant()
@@ -352,26 +367,25 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                 }
                             }
                         }
-                    }
 
+                        "Fail" - {
 
-                    "Fail" - {
-
-                        "borked team identifier" {
-                            attestationService(
-                                iosTeamIdentifier = "1234567890",
-                                timeSource = FixedTimeClock(
-                                    recordedAttestation.verificationDate.toInstant()
-                                        .toKotlinInstant()
-                                ),
-                            ).verifyAttestation(
-                                recordedAttestation.attestationProof,
-                                recordedAttestation.challenge
-                            ).apply {
-                                shouldBeInstanceOf<AttestationResult.Error>()
-                                    .cause.shouldBeInstanceOf<AttestationException.Content>()
-                                    .platformSpecificCause.shouldBeInstanceOf<IosAttestationException>()
-                                    .reason shouldBe IosAttestationException.Reason.IDENTIFIER
+                            "borked team identifier" {
+                                attestationService(
+                                    iosTeamIdentifier = "1234567890",
+                                    timeSource = FixedTimeClock(
+                                        recordedAttestation.verificationDate.toInstant()
+                                            .toKotlinInstant()
+                                    ),
+                                ).verifyAttestation(
+                                    recordedAttestation.attestationProof,
+                                    recordedAttestation.challenge
+                                ).apply {
+                                    shouldBeInstanceOf<AttestationResult.Error>()
+                                        .cause.shouldBeInstanceOf<AttestationException.Content>()
+                                        .platformSpecificCause.shouldBeInstanceOf<IosAttestationException>()
+                                        .reason shouldBe IosAttestationException.Reason.IDENTIFIER
+                                }
                             }
                         }
                     }

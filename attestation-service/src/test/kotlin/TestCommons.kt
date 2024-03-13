@@ -252,11 +252,12 @@ val ios17 = AttestationData(
         "omlzaWduYXR1cmVYRzBFAiEAsZZaWw6e/RmCwoPBm53CrGQJkwk4lXxXCRFUllPw7isCIAluAfkHLe4OBQGasHgbTzKrZzgUaZNv0s34cLySr2EPcWF1dGhlbnRpY2F0b3JEYXRhWCXntJLbK66ICiA+ytGYYcgdnzl1p5sqmOqr8x/5pxQfXkAAAAAB"
     ),
     isoDate = "2024-03-05T07:37:20Z",
-    pubKeyB64 = "AARK9tRHvqn6PCVeBkJYGSWnYHAP3puaVnbPoR6XrjP6ezfr2Bon1UoyTeIETr1WO8Jc4oQkUK0It5tb4dvDp0s5",
+    pubKeyB64 = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEIYCAo7rjNZhzrJ/ByrHqaNjpfwrOY+9igg3KhUr3TWMcJgdhyh8eZlNETyBtX7HWiz7AjVxky2JqzYV+wwpE9w==",
     isProductionOverride = false,
     packageOverride = "at.asitplus.attestation.Test"
 )
 val iosGood = listOf(
+    ios17,
     ios16
 )
 
@@ -291,7 +292,7 @@ fun attestationService(
     iosBundleIdentifier: String = "at.asitplus.attestation-client",
     iosVersion: IOSAttestationConfiguration.OsVersions? = IOSAttestationConfiguration.OsVersions(
         semVer = "14",
-        buildNumber = 0x18A373u
+        buildNumber = "18A373"
     ),
     iosSandbox: Boolean = false,
     timeSource: Clock,

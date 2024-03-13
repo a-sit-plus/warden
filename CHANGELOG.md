@@ -100,3 +100,13 @@ attestation on Android, please re-read the readme!
 - better iOS-specific exception handling and enumerable error cases
 - Kotlin 1.9.22
 - Various dependency updates including BC
+
+### 1.6.0
+**Breaking changes ahead!**
+
+- Parsing of iOS Build numbers in addition to OS Versions
+  - Requires changes to configuration format
+  - Introduces changes to IOS Attestation result
+- Update to latest android-attestation
+  - Changes types of ParsedAttestationRecord's properties
+  - Exposes Guava as API dependency

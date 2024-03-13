@@ -82,7 +82,7 @@ public class JavaInteropTest {
                                     "1234567890",
                                     "at.asitplus.attestation-example",
                                     false),
-                                     new IOSAttestationConfiguration.OsVersions("14.1",0x18A8395)),
+                                     new IOSAttestationConfiguration.OsVersions("14.1","18A8395")),
                             Duration.ZERO);
                 },
                 "No signature digests specified");
@@ -97,7 +97,7 @@ public class JavaInteropTest {
                         "1234567890",
                         "at.asitplus.attestation-example",
                         false),
-                        new IOSAttestationConfiguration.OsVersions("14.1",  0x18A8395)),
+                        new IOSAttestationConfiguration.OsVersions("14.1",  "18A8395")),
                 Duration.ZERO);
 
         KeyAttestation<ECPublicKey> keyAttestationResult = service.verifyKeyAttestation(Collections.emptyList(),

@@ -42,7 +42,7 @@ class FeatureDemonstration : FreeSpec() {
                 ),
                 iosVersion = IOSAttestationConfiguration.OsVersions(
                     semVer = "16",
-                    buildNumber = 0x0u
+                    buildNumber = "0A0"
                 ) //optional, use SemVer notation and large hex number to ignore build number
             ),
             clock = FixedTimeClock(Instant.parse("2023-04-13T00:00:00Z")), //optional
