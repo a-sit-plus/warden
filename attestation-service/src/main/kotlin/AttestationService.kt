@@ -72,8 +72,8 @@ data class IOSAttestationConfiguration @JvmOverloads constructor(
 
     /**
      * Container class for iOS versions. Necessary, iOS versions used to always be encoded into attestation statements using
-     * [SemVer](https://semver.org/) syntax. Newer iPHones, however, use a hex string representation of the build number instead.
-     * Since it makes rarely sense to only check for SemVer not for a hex-encoded build number (i.e only accept oder iPhones),
+     * [SemVer](https://semver.org/) syntax. Newer iPhones, however, use a hex string representation of the build number instead.
+     * Since it makes rarely sense to only check for SemVer not for a hex-encoded build number (i.e only accept older iPhones),
      * encapsulating both variants into a dedicated type ensures that either both or neither are set.
      */
     data class OsVersions(
@@ -86,17 +86,7 @@ data class IOSAttestationConfiguration @JvmOverloads constructor(
 
         /**
          * String representation of an iOS build number. As per [TidBITS.com](https://tidbits.com/2020/07/08/how-to-decode-apple-version-and-build-numbers/):
-         *
-         * An Apple build number also has three parts:
-         *
-         * *  Major version: Within Apple, the major version is called the build train.
-         * *  Minor version: For iOS and its descendants, the minor version tracks with the minor release; for macOS, it tracks with patch releases.
-         * *  Daily build version: The daily build indicates how many times Apple has built the source code for the release since the previous public release.
-         *
-         * While this last bit about the daily build number is phrased somewhat fuzzy, it really is a strictly increasing decimal number.
-         *
-         * Note that only newer devices (e.g. iPhone 15) may encode build numbers into the attestation instead of SemVer version strings.
-         * Build numbers are shown on [IPSW.me](https://ipsw.me/), for example.
+         * @see BuildNumber
          */
         private val buildNumber: String,
 
@@ -104,17 +94,7 @@ data class IOSAttestationConfiguration @JvmOverloads constructor(
 
         /**
          * Parsed and normalised iOS build number. As per [TidBITS.com](https://tidbits.com/2020/07/08/how-to-decode-apple-version-and-build-numbers/):
-         *
-         * An Apple build number also has three parts:
-         *
-         * *  Major version: Within Apple, the major version is called the build train.
-         * *  Minor version: For iOS and its descendants, the minor version tracks with the minor release; for macOS, it tracks with patch releases.
-         * *  Daily build version: The daily build indicates how many times Apple has built the source code for the release since the previous public release.
-         *
-         * While this last bit about the daily build number is phrased somewhat fuzzy, it really is a strictly increasing decimal number.
-         *
-         * Note that only newer devices (e.g. iPhone 15) may encode build numbers into the attestation instead of SemVer version strings.
-         * Build numbers are shown on [IPSW.me](https://ipsw.me/), for example.
+         * @see BuildNumber
          */
         val normalisedBuildNumber: BuildNumber = runCatching { BuildNumber(buildNumber) }.getOrElse { ex ->
             throw AttestationException.Configuration(
@@ -593,7 +573,7 @@ object NoopAttestationService : AttestationService() {
  * @param iosAttestationConfiguration IOS AppAttest configuration.  See [IOSAttestationConfiguration] for details.
  * @param clock a clock to set the time of verification (used for certificate validity checks)
  * @param verificationTimeOffset allows for fine-grained clock drift compensation (this duration is added to the certificate
- * validity checks; can be negative.
+ * validity checks); can be negative.
  */
 class DefaultAttestationService(
     androidAttestationConfiguration: AndroidAttestationConfiguration,
@@ -608,7 +588,7 @@ class DefaultAttestationService(
      * @param androidAttestationConfigurationJ Configuration for Android key attestation. See [AndroidAttestationConfiguration]
      * @param iosAttestationConfigurationJ IOS AppAttest configuration.  See [IOSAttestationConfiguration] for details.
      * @param verificationTimeOffsetJ allows for fine-grained clock drift compensation (this duration is added to the certificate
-     *                                validity checks; can be negative.
+     *                                validity checks); can be negative.
      * @param javaClock a clock to set the time of verification (used for certificate validity checks)
      */
     @JvmOverloads
@@ -738,7 +718,7 @@ class DefaultAttestationService(
     /**
      * Verifies [Android Key Attestation](https://developer.android.com/training/articles/security-key-attestation) based
      * the provided certificate chain (the leaf ist the attestation certificate, the root must be one of the
-     * [Google Hardware Attestation Root certificates](https://developer.android.com/training/articles/security-key-attestation#root_certificate).
+     * [Google Hardware Attestation Root certificates](https://developer.android.com/training/articles/security-key-attestation#root_certificate)).
      *
      * @param attestationCerts certificate chain from the attestation certificate up to a Google Hardware Attestation Root certificate
      * @param expectedChallenge the challenge to be verified against
@@ -863,14 +843,18 @@ class DefaultAttestationService(
         val parsedVersion = parseIosBuildOrVersionNumber(result.second.certificate)
         iosVersion?.let { configuredVersion ->
             kotlin.runCatching {
-                if (configuredVersion > parsedVersion) return "Parsed iOS versions (${parsedVersion.first}, ${
-                    parsedVersion.second
-                }) < $configuredVersion".let { msg ->
+                if (configuredVersion > parsedVersion) {
+                    val explanation =
+                        "Parsed iOS versions (${parsedVersion.first}, ${parsedVersion.second}) < $configuredVersion"
+
                     return AttestationResult.Error(
-                        msg,
+                        explanation,
                         AttException.Content.iOS(
-                            msg,
-                            cause = IosAttestationException(msg, reason = IosAttestationException.Reason.OS_VERSION)
+                            explanation,
+                            cause = IosAttestationException(
+                                explanation,
+                                reason = IosAttestationException.Reason.OS_VERSION
+                            )
                         )
                     )
                 }
@@ -956,6 +940,7 @@ class DefaultAttestationService(
     }.getOrNull() to getTaggedOctetString(
         credCert = credCert,
         oid = AttestationValidator.AppleCertificateExtensions.OS_VERSION_OID,
+        //the SemVer-encoded iOS version and the build number use distinct tags, which are three numbers apart
         tagNo = AttestationValidator.AppleCertificateExtensions.OS_VERSION_TAG_NO + 3,
     )?.octets?.let(::String)?.let { it.toBuildNumber() }
 

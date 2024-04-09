@@ -1,4 +1,7 @@
-import at.asitplus.attestation.*;
+import at.asitplus.attestation.AttestationService;
+import at.asitplus.attestation.DefaultAttestationService;
+import at.asitplus.attestation.IOSAttestationConfiguration;
+import at.asitplus.attestation.KeyAttestation;
 import at.asitplus.attestation.android.AndroidAttestationChecker;
 import at.asitplus.attestation.android.AndroidAttestationConfiguration;
 import at.asitplus.attestation.android.HardwareAttestationChecker;
@@ -8,7 +11,6 @@ import at.asitplus.attestation.android.exceptions.AttestationValueException;
 import at.asitplus.attestation.android.exceptions.CertificateInvalidException;
 import at.asitplus.attestation.android.exceptions.RevocationException;
 import com.google.android.attestation.ParsedAttestationRecord;
-import kotlin.UInt;
 import org.junit.jupiter.api.Assertions;
 
 import java.security.KeyPairGenerator;
@@ -82,7 +84,7 @@ public class JavaInteropTest {
                                     "1234567890",
                                     "at.asitplus.attestation-example",
                                     false),
-                                     new IOSAttestationConfiguration.OsVersions("14.1","18A8395")),
+                                    new IOSAttestationConfiguration.OsVersions("14.1", "18A8395")),
                             Duration.ZERO);
                 },
                 "No signature digests specified");
@@ -97,7 +99,7 @@ public class JavaInteropTest {
                         "1234567890",
                         "at.asitplus.attestation-example",
                         false),
-                        new IOSAttestationConfiguration.OsVersions("14.1",  "18A8395")),
+                        new IOSAttestationConfiguration.OsVersions("14.1", "18A8395")),
                 Duration.ZERO);
 
         KeyAttestation<ECPublicKey> keyAttestationResult = service.verifyKeyAttestation(Collections.emptyList(),

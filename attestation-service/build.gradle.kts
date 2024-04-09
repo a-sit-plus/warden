@@ -11,9 +11,9 @@ plugins {
 }
 
 group = "at.asitplus"
-val artifactVersion:String by extra
+val artifactVersion: String by extra
 val androidAttestationVersion: String by extra
-version =artifactVersion
+version = artifactVersion
 
 sourceSets.test {
     kotlin {
@@ -74,6 +74,7 @@ val sourcesJar by tasks.registering(Jar::class) {
 
 
 publishing {
+
     publications {
         register("mavenJava", MavenPublication::class) {
             from(components["java"])
