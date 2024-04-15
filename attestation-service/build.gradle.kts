@@ -11,7 +11,9 @@ plugins {
 }
 
 group = "at.asitplus"
-version = "1.5.0"
+val artifactVersion: String by extra
+val androidAttestationVersion: String by extra
+version = artifactVersion
 
 sourceSets.test {
     kotlin {
@@ -20,7 +22,7 @@ sourceSets.test {
 }
 
 dependencies {
-    api("at.asitplus:android-attestation:1.4.0")
+    api("at.asitplus:android-attestation:$androidAttestationVersion")
     api(datetime())
     implementation("ch.veehait.devicecheck:devicecheck-appattest:0.9.6")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.14.2")
@@ -72,6 +74,7 @@ val sourcesJar by tasks.registering(Jar::class) {
 
 
 publishing {
+
     publications {
         register("mavenJava", MavenPublication::class) {
             from(components["java"])

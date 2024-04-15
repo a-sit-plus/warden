@@ -1,4 +1,7 @@
-import at.asitplus.attestation.*;
+import at.asitplus.attestation.AttestationService;
+import at.asitplus.attestation.DefaultAttestationService;
+import at.asitplus.attestation.IOSAttestationConfiguration;
+import at.asitplus.attestation.KeyAttestation;
 import at.asitplus.attestation.android.AndroidAttestationChecker;
 import at.asitplus.attestation.android.AndroidAttestationConfiguration;
 import at.asitplus.attestation.android.HardwareAttestationChecker;
@@ -81,7 +84,7 @@ public class JavaInteropTest {
                                     "1234567890",
                                     "at.asitplus.attestation-example",
                                     false),
-                                    "14.1"),
+                                    new IOSAttestationConfiguration.OsVersions("14.1", "18A8395")),
                             Duration.ZERO);
                 },
                 "No signature digests specified");
@@ -96,7 +99,7 @@ public class JavaInteropTest {
                         "1234567890",
                         "at.asitplus.attestation-example",
                         false),
-                        "14.1"),
+                        new IOSAttestationConfiguration.OsVersions("14.1", "18A8395")),
                 Duration.ZERO);
 
         KeyAttestation<ECPublicKey> keyAttestationResult = service.verifyKeyAttestation(Collections.emptyList(),

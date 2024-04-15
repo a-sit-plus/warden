@@ -14,9 +14,10 @@ pluginManagement {
 
 include("attestation-service")
 
-
-includeBuild("android-attestation-root"){
-    dependencySubstitution {
-        substitute(module("at.asitplus:android-attestation")).using(project(":android-attestation"))
+//do not depend on included build for publishing
+if (gradle.startParameter.taskNames.find { it.contains("publish") } == null)
+    includeBuild("android-attestation-root") {
+        dependencySubstitution {
+            substitute(module("at.asitplus:android-attestation")).using(project(":android-attestation"))
+        }
     }
-}

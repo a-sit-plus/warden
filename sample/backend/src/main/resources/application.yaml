@@ -14,4 +14,5 @@ attestation:
     ios:
         team-identifier: "9CYHJNG644"
         bundle-identifier: "at.asitplus.attestation-client"
+        sandbox: true
     drift-minutes: 5

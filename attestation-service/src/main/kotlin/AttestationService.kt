@@ -17,9 +17,14 @@ import ch.veehait.devicecheck.appattest.receipt.ReceiptValidator
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import com.google.android.attestation.AttestationApplicationId
 import com.google.android.attestation.ParsedAttestationRecord
 import kotlinx.datetime.Clock
 import net.swiftzer.semver.SemVer
+import org.bouncycastle.asn1.ASN1InputStream
+import org.bouncycastle.asn1.DEROctetString
+import org.bouncycastle.asn1.DLSequence
+import org.bouncycastle.asn1.DLTaggedObject
 import org.bouncycastle.cert.X509CertificateHolder
 import org.slf4j.LoggerFactory
 import java.security.MessageDigest
@@ -29,6 +34,7 @@ import java.security.cert.CertPathValidatorException.BasicReason
 import java.security.cert.CertificateException
 import java.security.cert.X509Certificate
 import java.security.interfaces.ECPublicKey
+import java.util.*
 import kotlin.jvm.optionals.getOrNull
 import kotlin.time.Duration
 import kotlin.time.toJavaDuration
@@ -44,22 +50,92 @@ data class IOSAttestationConfiguration @JvmOverloads constructor(
      * List of applications that can be attested
      */
     val applications: List<AppData>,
+
     /**
      * Optional parameter. If present the iOS version of the attested app must be greater or equal to this parameter
      * Uses [SemVer](https://semver.org/) syntax. Can be overridden vor individual apps.
+     *
      * @see AppData.iosVersionOverride
      */
-    val iosVersion: String? = null,
+    val iosVersion: OsVersions? = null,
 
     ) {
 
+
     @JvmOverloads
-    constructor(singleApp: AppData, iosVersion: String? = null) : this(listOf(singleApp), iosVersion)
+    constructor(singleApp: AppData, iosVersion: OsVersions? = null) : this(listOf(singleApp), iosVersion)
 
     init {
         if (applications.isEmpty())
             throw AttestationException.Configuration(Platform.IOS, "No apps configured", IllegalArgumentException())
     }
+
+    /**
+     * Container class for iOS versions. Necessary, iOS versions used to always be encoded into attestation statements using
+     * [SemVer](https://semver.org/) syntax. Newer iPhones, however, use a hex string representation of the build number instead.
+     * Since it makes rarely sense to only check for SemVer not for a hex-encoded build number (i.e only accept older iPhones),
+     * encapsulating both variants into a dedicated type ensures that either both or neither are set.
+     */
+    data class OsVersions(
+        /**
+         * [SemVer](https://semver.org/)-formatted iOS version number.
+         * This property is a simple string, because it plays nicely when externalising configuration to files, since
+         * it doesn't require a custom deserializer/decoder.
+         */
+        private val semVer: String,
+
+        /**
+         * String representation of an iOS build number. As per [TidBITS.com](https://tidbits.com/2020/07/08/how-to-decode-apple-version-and-build-numbers/):
+         * @see BuildNumber
+         */
+        private val buildNumber: String,
+
+        ) : Comparable<Any> {
+
+        /**
+         * Parsed and normalised iOS build number. As per [TidBITS.com](https://tidbits.com/2020/07/08/how-to-decode-apple-version-and-build-numbers/):
+         * @see BuildNumber
+         */
+        val normalisedBuildNumber: BuildNumber = runCatching { BuildNumber(buildNumber) }.getOrElse { ex ->
+            throw AttestationException.Configuration(
+                Platform.IOS,
+                "Illegal iOS build number $buildNumber",
+                ex
+            )
+        }
+
+        /**
+         * [SemVer](https://semver.org/)-formatted iOS version number.
+         */
+        val semVerParsed: SemVer =
+            runCatching { SemVer.parse(semVer) }.getOrElse { ex ->
+                throw AttestationException.Configuration(
+                    Platform.IOS,
+                    "Illegal iOS version number $semVer",
+                    ex
+                )
+            }
+
+        override fun toString(): String =
+            "iOS Versions (semVer=$semVerParsed, buildNumber: $normalisedBuildNumber)"
+
+        override fun compareTo(other: Any): Int {
+            return when (other) {
+                is BuildNumber -> normalisedBuildNumber.compareTo(other)
+                is SemVer -> semVerParsed.compareTo(other)
+                is Pair<*, *> -> {
+                    if ((other.first is SemVer || other.first is SemVer?) && (other.second is BuildNumber || other.second is BuildNumber?)) {
+                        other.first?.let { return semVerParsed.compareTo(it as SemVer) }
+                            ?: other.second?.let { normalisedBuildNumber.compareTo(it as BuildNumber) }
+                            ?: throw UnsupportedOperationException("No Parsed iOS Version present.")
+                    } else throw UnsupportedOperationException("Cannot compare OsVersions to ${other::class.simpleName}")
+                }
+
+                else -> throw UnsupportedOperationException("Cannot compare OsVersions to ${other::class.simpleName}")
+            }
+        }
+    }
+
 
     /**
      * Specifies a to-be attested app
@@ -82,11 +158,11 @@ data class IOSAttestationConfiguration @JvmOverloads constructor(
 
         /**
          * Optional parameter. If present, overrides the globally configured iOS version for this app.
-         * Must be greater or equal to this parameter
-         * Uses [SemVer](https://semver.org/) syntax
          */
-        val iosVersionOverride: String? = null,
-    ) {
+        val iosVersionOverride: OsVersions? = null,
+
+        ) {
+
         /**
          * Builder for more Java-friendliness
          * @param teamIdentifier nomen est omen
@@ -95,7 +171,7 @@ data class IOSAttestationConfiguration @JvmOverloads constructor(
         @Suppress("UNUSED")
         class Builder(private val teamIdentifier: String, private val bundleIdentifier: String) {
             private var sandbox = false
-            private var iosVersionOverride: String? = null
+            private var iosVersionOverride: OsVersions? = null
 
             /**
              * @see AppData.sandbox
@@ -105,13 +181,65 @@ data class IOSAttestationConfiguration @JvmOverloads constructor(
             /**
              * @see AppData.iosVersionOverride
              */
-            fun overrideIosVersion(version: String) = apply { iosVersionOverride = version }
+            fun overrideIosVersion(version: OsVersions) = apply { iosVersionOverride = version }
 
             fun build() = AppData(teamIdentifier, bundleIdentifier, sandbox, iosVersionOverride)
         }
     }
 
 }
+
+typealias ParsedVersions = Pair<SemVer?, BuildNumber?>
+
+/**
+ * iOS build number. As per [TidBITS.com](https://tidbits.com/2020/07/08/how-to-decode-apple-version-and-build-numbers/):
+ *
+ * An Apple build number also has three parts:
+ *
+ * *  Major version: Within Apple, the major version is called the build train.
+ * *  Minor version: For iOS and its descendants, the minor version tracks with the minor release; for macOS, it tracks with patch releases.
+ * *  Daily build version: The daily build indicates how many times Apple has built the source code for the release since the previous public release.
+ *
+ * While this last bit about the daily build number is phrased somewhat fuzzy, it really is a strictly increasing decimal number.
+ */
+class BuildNumber private constructor(val buildTrain: UInt, val minorVersion: String, val buildVer: UInt) :
+    Comparable<BuildNumber> {
+
+
+    constructor(buildNumber: String) : this(parseBuildNumber(buildNumber))
+
+    constructor(boxed: Triple<UInt, String, UInt>) : this(boxed.first, boxed.second, boxed.third)
+
+
+    /**
+     * Integer representation of the build number. Converts [buildTrain] into a hex number, concatenates it with [minorVersion] radix-36-parsed
+     * to a hex number and concatenates it with an end-padded hex-representation of [buildVer].
+     * This results in a [UInt] whose MSBs are always set for correct and straight-forward comparison of build numbers.
+     * The implementation is inefficient but comprehensible.
+     */
+    val intRepresentation = (
+            buildTrain.toString(16)
+                    + minorVersion.toUInt(36).toString(16)
+                    //there will never be more than 9999 days between first release of minorVer and patch
+                    + buildVer.toString(10).padEnd(4, '0').toUInt(10).toString(16)
+            ).padEnd(8, '0').toUInt(16)
+
+    override fun compareTo(other: BuildNumber): Int = intRepresentation.compareTo(other.intRepresentation)
+
+    override fun toString() = "$buildTrain$minorVersion$buildVer (${intRepresentation.toString(16)})".uppercase()
+
+    companion object {
+        private fun parseBuildNumber(stringRepresentation: String): Triple<UInt, String, UInt> {
+            val buildTrain = stringRepresentation.takeWhile { it.isDigit() }
+            val minorVersion = stringRepresentation.substring(buildTrain.length).takeWhile { it.isLetter() }.uppercase()
+            val buildVer = stringRepresentation.substring(buildTrain.length + minorVersion.length).toUInt(10)
+
+            return Triple(buildTrain.toUInt(10), minorVersion, buildVer)
+        }
+    }
+}
+
+private fun String.toBuildNumber(): BuildNumber = BuildNumber(this)
 
 abstract class AttestationService {
 
@@ -124,7 +252,7 @@ abstract class AttestationService {
 
 
     /**
-     * Verifies key attestation for both Android and Apple devices.     *
+     * Verifies key attestation for both Android and Apple devices.
      *
      * Succeeds if attestation data structures of the client (in [attestationProof]) can be verified and [expectedChallenge] matches
      * the attestation challenge. For Android clients, this function makes sure that [keyToBeAttested] matches the key contained in the attestation certificate.
@@ -318,15 +446,17 @@ sealed class AttestationResult {
                     attestationCertificateChain
                 )
             override val androidDetails =
-                "Verified(keyMaster security level: ${attestationRecord.keymasterSecurityLevel.name}, " +
-                        "attestation security level: ${attestationRecord.attestationSecurityLevel.name}, " +
-                        "${attestationRecord.attestedKey.algorithm} public key: ${attestationRecord.attestedKey.encoded.encodeBase64()}" + attestationRecord.softwareEnforced.attestationApplicationId.getOrNull()
+                "Verified(keyMaster security level: ${attestationRecord.keymasterSecurityLevel().name}, " +
+                        "attestation security level: ${attestationRecord.attestationSecurityLevel().name}, " +
+                        "${attestationRecord.attestedKey().algorithm} public key: ${attestationRecord.attestedKey().encoded.encodeBase64()}" + attestationRecord.softwareEnforced()
+                    .attestationApplicationId()
+                    .getOrNull()
                     ?.let { app ->
                         ", packageInfos: ${
-                            app.packageInfos.joinToString(
+                            app.packageInfos().joinToString(
                                 prefix = "[",
                                 postfix = "]"
-                            ) { info -> "${info.packageName}:${info.version}" }
+                            ) { info: AttestationApplicationId.AttestationPackageInfo -> "${info.packageName()}:${info.version()}" }
                         }"
                     }
         }
@@ -346,25 +476,28 @@ sealed class AttestationResult {
         abstract val iosDetails: String
         override val details: String by lazy { "iOS::$iosDetails" }
 
-        class Verified(val attestation: ValidatedAttestation, assertedClientData: Pair<ByteArray, Assertion>?) :
+        class Verified(
+            val attestation: ValidatedAttestation,
+            val iosVersion: ParsedVersions,
+            val assertedClientData: Pair<ByteArray, Assertion>?
+        ) :
             IOS(assertedClientData?.first) {
             override val iosDetails =
                 "Verified(${attestation.certificate.publicKey.algorithm} public key: ${attestation.certificate.publicKey.encoded.encodeBase64()}, " +
-                        "iOS version: ${attestation.iOSVersion}, app: ${attestation.receipt.payload.appId}"
+                        "iOS version: (semVer=${iosVersion.first}, buildNumber=[${iosVersion.second}]), app: ${attestation.receipt.payload.appId}"
         }
 
         class NOOP(clientData: ByteArray?) : IOS(clientData) {
             override val iosDetails = "NOOP"
         }
 
+        /**
+         * Represents an attestation verification failure. Always contains an  [explanation] about what went wrong.
+         */
     }
 
-
-    /**
-     * Represents an attestation verification failure. Always contains an  [explanation] about what went wrong and a [cause] to evaluate programmatically
-     */
-    class Error(val explanation: String, val cause: AttException) : AttestationResult() {
-        override val details = "Error($explanation)" + ", Cause: ${cause::class.qualifiedName}"
+    class Error(val explanation: String, val cause: AttException? = null) : AttestationResult() {
+        override val details = "Error($explanation" + cause?.let { ", Cause: ${cause::class.qualifiedName}" }
     }
 }
 
@@ -402,6 +535,7 @@ data class KeyAttestation<T : PublicKey> internal constructor(
 
 object NoopAttestationService : AttestationService() {
 
+    private val log = LoggerFactory.getLogger(this.javaClass)
     override fun verifyAttestation(
         attestationProof: List<ByteArray>,
         challenge: ByteArray,
@@ -454,7 +588,7 @@ class DefaultAttestationService(
      * @param androidAttestationConfigurationJ Configuration for Android key attestation. See [AndroidAttestationConfiguration]
      * @param iosAttestationConfigurationJ IOS AppAttest configuration.  See [IOSAttestationConfiguration] for details.
      * @param verificationTimeOffsetJ allows for fine-grained clock drift compensation (this duration is added to the certificate
-     * validity checks); can be negative.
+     *                                validity checks); can be negative.
      * @param javaClock a clock to set the time of verification (used for certificate validity checks)
      */
     @JvmOverloads
@@ -552,10 +686,7 @@ class DefaultAttestationService(
         clientData: ByteArray?
     ): AttestationResult {
         log.debug("attestation proof length: ${attestationProof.size}")
-        return if (attestationProof.isEmpty()) AttestationResult.Error(
-            "Attestation proof is empty",
-            AttException.Content.Unknown(cause = IllegalArgumentException())
-        )
+        return if (attestationProof.isEmpty()) AttestationResult.Error("Attestation proof is empty")
         else if (attestationProof.size > 2)
             verifyAttestationAndroid(attestationProof, challenge)
         else {
@@ -567,19 +698,17 @@ class DefaultAttestationService(
                     counter = 0L
                 )
 
-            }.getOrElse { ex ->
+            }.getOrElse {
                 //if attestationProof contains no assertion, but clientData is set, for example
                 log.warn("Could not verify attestation proof: {}", attestationProof.map { it.encodeBase64() })
-                return if (ex is IndexOutOfBoundsException)
+                return if (it is IndexOutOfBoundsException)
                     AttestationResult.Error(
-                        "Invalid length of attestation proof: ${ex.message}. " +
-                                "Possible reason: passed 'clientData' but no assertion",
-                        AttException.Content.Unknown(cause = IllegalArgumentException())
+                        "Invalid length of attestation proof: ${it.message}. " +
+                                "Possible reason: passed 'clientData' but no assertion"
                     )
                 else AttestationResult.Error(
                     "Could not verify client integrity due to internal error: " +
-                            "${ex::class.simpleName}${ex.message?.let { ". $it" }}",
-                    AttException.Content.Unknown(cause = ex)
+                            "${it::class.simpleName}${it.message?.let { ". $it" }}"
                 )
 
             }
@@ -601,20 +730,10 @@ class DefaultAttestationService(
         expectedChallenge: ByteArray
     ): AttestationResult = runCatching {
         log.debug("Verifying Android attestation")
-        if (attestationCerts.isEmpty()) return AttestationResult.Error(
-            "Attestation proof is empty",
-            AttException.Content.Unknown(cause = IllegalArgumentException())
-        )
+        if (attestationCerts.isEmpty()) return AttestationResult.Error("Attestation proof is empty")
         val certificates = attestationCerts.mapNotNull { it.parseToCertificate() }
         if (certificates.size != attestationCerts.size)
-            return "Could not parse Android attestation certificate chain".let { msg ->
-                AttestationResult.Error(
-                    msg,
-                    AttException.Certificate.Trust.Android(
-                        cause = AttestationValueException(msg, reason = AttestationValueException.Reason.APP_UNEXPECTED)
-                    )
-                )
-            }
+            return AttestationResult.Error("Could not parse Android attestation certificate chain")
 
         //throws exception on fail
         val results = androidAttestationCheckers.map {
@@ -720,29 +839,40 @@ class DefaultAttestationService(
         val iosVersion =
             iosApps.entries.firstOrNull { (_, appAttest) -> appAttest.app == result.first.app }?.key?.iosVersionOverride
                 ?: iosAttestationConfiguration.iosVersion
-        iosVersion?.let {
-            val parsedVersion = SemVer.parse(
-                result.second.iOSVersion ?: return "Could not parse iOS version from AppAttest".let { msg ->
-                    AttestationResult.Error(
-                        msg,
+
+        val parsedVersion = parseIosBuildOrVersionNumber(result.second.certificate)
+        iosVersion?.let { configuredVersion ->
+            kotlin.runCatching {
+                if (configuredVersion > parsedVersion) {
+                    val explanation =
+                        "Parsed iOS versions (${parsedVersion.first}, ${parsedVersion.second}) < $configuredVersion"
+
+                    return AttestationResult.Error(
+                        explanation,
                         AttException.Content.iOS(
-                            msg,
-                            cause = IosAttestationException(msg, reason = IosAttestationException.Reason.OS_VERSION)
+                            explanation,
+                            cause = IosAttestationException(
+                                explanation,
+                                reason = IosAttestationException.Reason.OS_VERSION
+                            )
                         )
                     )
                 }
-            )
-            val configuredVersion = SemVer.parse(it)
-            if (parsedVersion < configuredVersion)
-                return "iOS version  $parsedVersion < $configuredVersion".let { msg ->
-                    AttestationResult.Error(
+            }.getOrElse {
+                (it.message ?: "Error comparing iOS Versions").let { msg ->
+                    return AttestationResult.Error(
                         msg,
                         AttException.Content.iOS(
                             msg,
-                            cause = IosAttestationException(msg, reason = IosAttestationException.Reason.OS_VERSION)
+                            cause = IosAttestationException(
+                                msg,
+                                cause = it,
+                                reason = IosAttestationException.Reason.OS_VERSION
+                            )
                         )
                     )
                 }
+            }
         }
 
         return assertionData?.let { assertionData ->
@@ -770,7 +900,7 @@ class DefaultAttestationService(
                         )
                     )
                 }
-                else AttestationResult.IOS.Verified(result.second, assertionData.clientData to assertion)
+                else AttestationResult.IOS.Verified(result.second, parsedVersion, assertionData.clientData to assertion)
             }.getOrElse {
                 AttestationResult.Error(
                     it.message ?: "iOS Assertion validation error due to ${it::class.simpleName}",
@@ -778,7 +908,7 @@ class DefaultAttestationService(
 
                 )
             }
-        } ?: AttestationResult.IOS.Verified(result.second, null)
+        } ?: AttestationResult.IOS.Verified(result.second, parsedVersion, null)
 
     }.getOrElse {
         AttestationResult.Error(
@@ -786,6 +916,33 @@ class DefaultAttestationService(
             encapsulateIosAttestationException(it)
         )
     }
+
+    //the following three functions are ripped and adapted from https://github.com/veehaitch/devicecheck-appattest
+    private inline fun <reified T : Any> ASN1InputStream.readObjectAs(): T = this.readObject() as T
+    private fun getTaggedOctetString(credCert: X509Certificate, oid: String, tagNo: Int): DEROctetString? {
+        val value = credCert.getExtensionValue(oid)
+        val envelope = ASN1InputStream(value).readObjectAs<DEROctetString>()
+        val sequence = ASN1InputStream(envelope.octetStream).readObjectAs<DLSequence>()
+        val taggedObject =
+            sequence.firstOrNull {
+                (it is DLTaggedObject) && it.tagNo == tagNo
+                        && (it.baseObject as DEROctetString).octets.isNotEmpty()
+            } as DLTaggedObject?
+        return taggedObject?.baseObject as DEROctetString?
+    }
+
+    private fun parseIosBuildOrVersionNumber(credCert: X509Certificate): ParsedVersions = runCatching {
+        getTaggedOctetString(
+            credCert = credCert,
+            oid = AttestationValidator.AppleCertificateExtensions.OS_VERSION_OID,
+            tagNo = AttestationValidator.AppleCertificateExtensions.OS_VERSION_TAG_NO,
+        )?.octets?.let(::String)?.let { SemVer.parse(it) }
+    }.getOrNull() to getTaggedOctetString(
+        credCert = credCert,
+        oid = AttestationValidator.AppleCertificateExtensions.OS_VERSION_OID,
+        //the SemVer-encoded iOS version and the build number use distinct tags, which are three numbers apart
+        tagNo = AttestationValidator.AppleCertificateExtensions.OS_VERSION_TAG_NO + 3,
+    )?.octets?.let(::String)?.let { it.toBuildNumber() }
 
     private fun encapsulateIosAttestationException(it: Throwable): AttException {
         return if (it is ch.veehait.devicecheck.appattest.attestation.AttestationException) {
@@ -857,6 +1014,4 @@ class DefaultAttestationService(
             )
         )
     }
-
-
 }
