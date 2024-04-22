@@ -76,8 +76,8 @@ val sourcesJar by tasks.registering(Jar::class) {
 publishing {
 
     publications {
-        register("mavenJava", MavenPublication::class) {
-            from(components["java"])
+        withType<MavenPublication> {
+            // from(components["java"])
             artifact(sourcesJar.get())
             artifact(javadocJar.get())
             pom {
@@ -113,10 +113,11 @@ publishing {
 }
 
 
+
 signing {
     val signingKeyId: String? by project
     val signingKey: String? by project
     val signingPassword: String? by project
     useInMemoryPgpKeys(signingKeyId, signingKey, signingPassword)
-    sign(publishing.publications["mavenJava"])
+    sign(publishing.publications)
 }
