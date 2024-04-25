@@ -1,3 +1,7 @@
+## 2.0.1
+ - Fix publishing
+ - Gradle 8.7
+
 ## 2.0.0
 **Breaking changes ahead!**
 
