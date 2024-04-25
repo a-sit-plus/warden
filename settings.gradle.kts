@@ -1,6 +1,4 @@
 rootProject.name = "attestation-root"
-
-
 pluginManagement {
     repositories {
         maven {

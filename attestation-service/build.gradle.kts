@@ -76,8 +76,8 @@ val sourcesJar by tasks.registering(Jar::class) {
 publishing {
 
     publications {
-        withType<MavenPublication> {
-            // from(components["java"])
+        register("mavenJava", MavenPublication::class) {
+            from(components["java"])
             artifact(sourcesJar.get())
             artifact(javadocJar.get())
             pom {
@@ -108,6 +108,11 @@ publishing {
                     url.set("https://github.com/a-sit-plus/attestation-service")
                 }
             }
+        }
+    }
+    repositories {
+        mavenLocal {
+            signing.isRequired = false
         }
     }
 }
