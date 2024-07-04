@@ -1,0 +1,3 @@
+[versions]
+serialization = "1.7.1"
+kmmresult = "1.6.1"

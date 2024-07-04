@@ -1,3 +1,20 @@
+## 2.0.2
+- Dependency Updates:
+  -  Android-Attestation 1.5.2 with HTTP Proxy support for fetching revocation info
+  -  Java 17
+  -  Kotlin 2.0.0
+  -  bouncycastle:  1.78.1!!
+  -  coroutines:    1.8.1
+  -  datetime:      0.6.0
+  -  kmmresult:     1.6.1
+  -  kotest:        5.9.1!!
+  -  kotlin:        2.0.0
+  -  ksp:           1.0.22
+  -  ktor:          2.3.11
+  -  napier:        2.7.1
+  -  nexus:         1.3.0
+  -  serialization: 1.7.1
+
 ## 2.0.1
  - Fix publishing
  - Gradle 8.7
