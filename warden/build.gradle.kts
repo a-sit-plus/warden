@@ -17,12 +17,12 @@ version = artifactVersion
 
 sourceSets.test {
     kotlin {
-        srcDir("../android-attestation-root/android-attestation/src/test/kotlin/data")
+        srcDir("../warden-roboto/warden-roboto/src/test/kotlin/data")
     }
 }
 
 dependencies {
-    api("at.asitplus:android-attestation:$androidAttestationVersion")
+    api("at.asitplus:warden-roboto:$androidAttestationVersion")
     api(datetime())
     implementation("ch.veehait.devicecheck:devicecheck-appattest:0.9.6")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.14.2")
@@ -41,10 +41,9 @@ tasks.dokkaHtml {
 
     val moduleDesc = File("$rootDir/dokka-tmp.md").also { it.createNewFile() }
     val readme =
-        File("${rootDir}/README.md").readText().replaceFirst("# ", "")
-    val moduleTitle = readme.lines().first()
-    moduleDesc.writeText("# Module $readme")
-    moduleName.set(moduleTitle)
+        File("${rootDir}/README.md").readText()
+    moduleDesc.writeText("# Module ${project.name}\n\n$readme")
+    moduleName.set(project.name)
 
     dokkaSourceSets {
         named("main") {
@@ -78,12 +77,12 @@ publishing {
     publications {
         register("mavenJava", MavenPublication::class) {
             from(components["java"])
-            artifact(sourcesJar.get())
-            artifact(javadocJar.get())
+            if (this.name != "relocation") artifact(sourcesJar.get())
+            if (this.name != "relocation") artifact(javadocJar.get())
             pom {
-                name.set("Attestation Service")
-                description.set("Server-Side Android+iOS attestation library")
-                url.set("https://github.com/a-sit-plus/attestation-service")
+                name.set("WARDEN")
+                description.set("Server-Side Android+iOS Attestation Library")
+                url.set("https://github.com/a-sit-plus/warden")
                 licenses {
                     license {
                         name.set("The Apache License, Version 2.0")
@@ -103,9 +102,26 @@ publishing {
                     }
                 }
                 scm {
-                    connection.set("scm:git:git@github.com:a-sit-plus/attestation-service.git")
-                    developerConnection.set("scm:git:git@github.com:a-sit-plus/attestation-service.git")
-                    url.set("https://github.com/a-sit-plus/attestation-service")
+                    connection.set("scm:git:git@github.com:a-sit-plus/warden.git")
+                    developerConnection.set("scm:git:git@github.com:a-sit-plus/warden.git")
+                    url.set("https://github.com/a-sit-plus/warden")
+                }
+            }
+        }
+        //REMOVE ME AFTER REBRANDED ARTIFACT HAS BEEN PUBLISHED
+        create<MavenPublication>("relocation") {
+            pom {
+                // Old artifact coordinates
+                artifactId = "attestation-service"
+                version = artifactVersion
+
+                distributionManagement {
+                    relocation {
+                        // New artifact coordinates
+                        artifactId = "warden"
+                        version = artifactVersion
+                        message = "artifactId has been changed"
+                    }
                 }
             }
         }

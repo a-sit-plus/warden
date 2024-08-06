@@ -301,7 +301,7 @@ fun attestationService(
     androidSW: Boolean = false,
     androidN: Boolean = false,
 ) =
-    DefaultAttestationService(
+    Warden(
         AndroidAttestationConfiguration(
             listOf(
                 AndroidAttestationConfiguration.AppData(

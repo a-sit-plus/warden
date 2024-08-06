@@ -7,7 +7,7 @@ import at.asitplus.AttestationResponse
 import at.asitplus.Challenge
 import at.asitplus.Platform
 import at.asitplus.attestation.AttestationResult
-import at.asitplus.attestation.DefaultAttestationService
+import at.asitplus.attestation.Warden
 import at.asitplus.attestation.IOSAttestationConfiguration
 import at.asitplus.attestation.android.AndroidAttestationConfiguration
 import at.asitplus.pki.KeySigner
@@ -43,7 +43,7 @@ fun Application.configureAttestation() {
 
     log.info("Setting up attestation as follows:")
 
-    val attestationService = DefaultAttestationService(
+    val attestationService = Warden(
         androidAttestationConfiguration = AndroidAttestationConfiguration(AndroidAttestationConfiguration.AppData(
             packageName = environment.config.property("attestation.android.package-name").getString().also {
                 log.info("Android package name: $it")

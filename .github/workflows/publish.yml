@@ -27,9 +27,9 @@ jobs:
       - name: Upload jar
         uses: actions/upload-artifact@v3
         with:
-          name: attestation-service
+          name: warden
           path: |
-            attestation-service/build/libs/*jar
+            warden/build/libs/*jar
   deploy-docs:
     needs: build
     environment:

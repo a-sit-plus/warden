@@ -1,19 +1,26 @@
+<div align="center">
+
+![WARDEN](warden.png)
+
 # Server-Side Mobile Client Attestation Library
 
+[![A-SIT Plus Official](https://img.shields.io/badge/A--SIT_Plus-official-005b79?logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNDMuNzYyODYgMTg0LjgxOTk5Ij48ZGVmcz48Y2xpcFBhdGggaWQ9ImEiIGNsaXBQYXRoVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNMCA1OTUuMjhoODQxLjg5VjBIMFoiLz48L2NsaXBQYXRoPjwvZGVmcz48ZyBjbGlwLXBhdGg9InVybCgjYSkiIHRyYW5zZm9ybT0ibWF0cml4KDEuMzMzMzMzMyAwIDAgLTEuMzMzMzMzMyAtNDgyLjI1IDUxNy41MykiPjxwYXRoIGZpbGw9IiMwMDViNzkiIGQ9Ik00MTUuNjcgMjQ5LjUzYy03LjE1LjA4LTEzLjk0IDEtMjAuMTcgMi43NWE1Mi4zMyA1Mi4zMyAwIDAgMC0xNy40OCA4LjQ2IDQwLjQzIDQwLjQzIDAgMCAwLTExLjk2IDE0LjU2Yy0yLjY4IDUuNDEtNC4xNCAxMS44NC00LjM1IDE5LjA5bC0uMDIgNi4xMnYyLjE3YS43MS43MSAwIDAgMCAuNy43M2gxNi41MmMuMzkgMCAuNy0uMzIuNzEtLjdsLjAxLTIuMmMwLTIuNi4wMi01LjgyLjAzLTYuMDcuMi00LjYgMS4yNC04LjY2IDMuMDgtMTIuMDZhMjguNTIgMjguNTIgMCAwIDEgOC4yMy05LjU4IDM1LjI1IDM1LjI1IDAgMCAxIDExLjk2LTUuNTggNTUuMzggNTUuMzggMCAwIDEgMTIuNTgtMS43NmM0LjMyLjEgOC42LjcgMTIuNzQgMS44YTM1LjA3IDM1LjA3IDAgMCAxIDExLjk2IDUuNTcgMjguNTQgMjguNTQgMCAwIDEgOC4yNCA5LjU3YzEuOTYgMy42NCAzIDguMDIgMy4xMiAxMy4wMnYyNC4wOUgzNjIuNGEuNy43IDAgMCAwLS43MS43VjMzNWMwIDguNDMuMDEgOC4wNS4wMSA4LjE0LjIgNy4zIDEuNjcgMTMuNzcgNC4zNiAxOS4yMmE0MC40MyA0MC40MyAwIDAgMCAxMS45NiAxNC41N2M1IDMuNzYgMTAuODcgNi42MSAxNy40OCA4LjQ2YTc3LjUgNzcuNSAwIDAgMCAyMC4wMiAyLjc3YzcuMTUtLjA3IDEzLjk0LTEgMjAuMTctMi43NGE1Mi4zIDUyLjMgMCAwIDAgMTcuNDgtOC40NiA0MC40IDQwLjQgMCAwIDAgMTEuOTUtMTQuNTdjMS42Mi0zLjI2IDMuNzctMTAuMDQgMy43Ny0xNC42OCAwLS4zOC0uMTctLjc0LS41NC0uODJsLTE2Ljg5LS40Yy0uMi0uMDQtLjM0LjM0LS4zNC41NCAwIC4yNy0uMDMuNC0uMDYuNi0uNSAyLjgyLTEuMzggNS40LTIuNjEgNy42OWEyOC41MyAyOC41MyAwIDAgMS04LjI0IDkuNTggMzUuMDEgMzUuMDEgMCAwIDEtMTEuOTYgNS41NyA1NS4yNSA1NS4yNSAwIDAgMS0xMi41NyAxLjc3Yy00LjMyLS4xLTguNjEtLjcxLTEyLjc1LTEuOGEzNS4wNSAzNS4wNSAwIDAgMS0xMS45Ni01LjU3IDI4LjUyIDI4LjUyIDAgMCAxLTguMjMtOS41OGMtMS44Ni0zLjQ0LTIuOS03LjU1LTMuMDktMTIuMmwtLjAxLTcuNDdoODkuMTZhLjcuNyAwIDAgMCAuNy0uNzJ2LTM5LjVjLS4xLTcuNjUtMS41OC0xNC40LTQuMzgtMjAuMDZhNDAuNCA0MC40IDAgMCAwLTExLjk1LTE0LjU2IDUyLjM3IDUyLjM3IDAgMCAwLTE3LjQ4LTguNDcgNzcuNTYgNzcuNTYgMCAwIDAtMjAuMDEtMi43N1oiLz48cGF0aCBmaWxsPSIjY2U0OTJlIiBkPSJNNDE5LjM4IDI4MC42M2gtNy41N2EuNy43IDAgMCAwLS43MS43MXYxNS40MmE4LjE3IDguMTcgMCAwIDAtMy43OCA2LjkgOC4yOCA4LjI4IDAgMCAwIDE2LjU0IDAgOC4yOSA4LjI5IDAgMCAwLTMuNzYtNi45di0xNS40MmEuNy43IDAgMCAwLS43Mi0uNzEiLz48L2c%2BPC9zdmc%2B&logoColor=white&labelColor=white)](https://a-sit-plus.github.io)
 [![GitHub license](https://img.shields.io/badge/license-Apache%20License%202.0-brightgreen.svg?style=flat)](http://www.apache.org/licenses/LICENSE-2.0) 
 [![Kotlin](https://img.shields.io/badge/kotlin-2.0.0-blue.svg?logo=kotlin)](http://kotlinlang.org)
 ![Java](https://img.shields.io/badge/java-17-blue.svg?logo=OPENJDK)
-![Build artifacts](https://github.com/a-sit-plus/attestation-service/actions/workflows/gradle.yml/badge.svg)
-[![Maven Central](https://img.shields.io/maven-central/v/at.asitplus/attestation-service)](https://mvnrepository.com/artifact/at.asitplus/attestation-service/)
+![Build artifacts](https://github.com/a-sit-plus/warden/actions/workflows/gradle.yml/badge.svg)
+[![Maven Central](https://img.shields.io/maven-central/v/at.asitplus/warden)](https://mvnrepository.com/artifact/at.asitplus/warden/)
+
+</div>
 
 Server-side library providing a unified interface for key attestation compatible with Android and iOS (yes, even iOS!).
 It also provides App attestation on both platforms (see [our 2019 Paper](https://graz.elsevierpure.com/en/publications/fides-unleashing-the-full-potential-of-remote-attestation) 
 on how to remotely establish trust in Android applications for more Android-specifics on this matter).
 
-Under the hood, this library depends on the [Android Key Attestation Library](https://github.com/a-sit-plus/android-attestation) and
-[Vincent Haupert's](https://github.com/veehaitch)  excellent [DeviceCheck/AppAttest Library](https://github.com/veehaitch/devicecheck-appattest).
+Under the hood, this library depends on the [Android Key Attestation Library](https://github.com/a-sit-plus/warden-roboto) and
+[Vincent Haupert's](https://github.com/veehaitch) excellent [DeviceCheck/AppAttest Library](https://github.com/veehaitch/devicecheck-appattest).
 
-Full API docs are available [here](https://a-sit-plus.github.io/attestation-service/).
+Full API docs are available [here](https://a-sit-plus.github.io/warden/).
 
 ## Demonstration / Usage Example
 This library is intended for integration into back-end services which need to remotely establish trust in mobile clients
@@ -25,11 +32,16 @@ Once a binding has been obtained, mobile clients can subsequently authenticate t
 resource). However, far more flexible scenarios can be implemented. Hence, Figure&nbsp;1 depicts an abstract version of
 establishing trust in mobile clients.
 
-See the provided [sample service](https://github.com/a-sit-plus/attestation-service/tree/main/sample/backend) and its accompanying mobile clients for an MWE that integrates this library.
+See the provided [sample service](https://github.com/a-sit-plus/warden/tree/main/sample/backend) and its accompanying mobile clients for an MWE that integrates this library.
 (The sample also contains the Android and iOS clients.)
 
+<div align="center">
+
 ![flow.png](flow.png)
-<div style="text-align: center;">Figure 1: Abstract example usage: remotely establishing trust in mobile clients</div>
+
+Figure 1: Abstract example usage: remotely establishing trust in mobile clients
+
+</div>
 
 ## Background
 Apple and Google pursue different strategies wrt. establishing trust in mobile clients.
@@ -57,8 +69,13 @@ a well-documented extension of the leaf certificate to establish trust in an And
 This is one core feature of this library -- make establishing trust in client apps just as simple and straight-forward.
 The other one is providing a unified API to provide a inified API to achieve the same for iOS clients.
 
+<div align="center">
+
 ![android.png](android.png)
-<div style="text-align: center;">Figure 2: High-level structure of an Android key attestation result</div>
+
+Figure 2: High-level structure of an Android key attestation result
+
+</div>
 
 ### iOS
 iOS's attestation, is a rather different beast compared to Android.
@@ -91,7 +108,7 @@ Written in Kotlin, plays nicely with Java (cf. `@JvmOverloads`), published at ma
 Add the dependency:
 ```kotlin
  dependencies {
-     implementation("at.asitplus:attestation-service:$version")
+     implementation("at.asitplus:warden:$version")
  }
 ```
 ### Configuration
@@ -101,7 +118,7 @@ Android and iOS attestation require different configuration parameters. Hence, d
 The following snippet lists all configuration values:
 
 ```kotlin
-val service = DefaultAttestationService(
+val warden = Warden(
     androidAttestationConfiguration = AndroidAttestationConfiguration(
        applications= listOf(   //REQUIRED: add applications to be attested
            AndroidAttestationConfiguration.AppData(
@@ -152,7 +169,7 @@ More details on the configuration can be found in the API documentation
 
 #### A Note on Android Attestation
 This library allows for using combining different flavours of Android attestation, ranging from full hardware attestation
-to (rather useless in practice) software-only attestation (see [Android Attestation](https://github.com/a-sit-plus/android-attestation) for details).
+to (rather useless in practice) software-only attestation (see [WARDEN-roboto](https://github.com/a-sit-plus/warden-roboto) for details).
 Hardware attestation is enabled by default, while hybrid and software-only attestation need to be explicitly enabled
 through `enableNougatAttestation` and `enableSoftwareAttestation`, respectively. Doing so, will chain the corresponding
 `AndroidAttestationChecker`s initially from strictest (hardware) to most useless (software-only).
@@ -161,7 +178,7 @@ no real use case for such a configuration.
 Note that not all flavours use different the same root of trust by default.
 
 ### Example Usage
-While still not complete, the test suite in this repository should provide a nice overview. [FeatureDemonstration](https://github.com/a-sit-plus/attestation-service/blob/main/attestation-service/src/test/kotlin/FeatureDemonstration.kt),
+While still not complete, the test suite in this repository should provide a nice overview. [FeatureDemonstration](https://github.com/a-sit-plus/warden/blob/main/warden/src/test/kotlin/FeatureDemonstration.kt),
 in particular, was designed to demonstrate this library's API.
 <br>
 See the provided [sample service](https://github.com/a-sit-plus/attestation-service/tree/main/sample/backend) and its mobile clients for an MWE that integrates this library.
@@ -181,8 +198,8 @@ The sample also contains Android and iOS clients.
    whether the key is indeed stored in HW (and whether the app can be trusted). This call requires the challenge from step 1.
 
 Various advanced, platform-specific variants of this `verifyKeyAttestation()` call exist, to cater towards features specific to Android and iOS
-(do see [FeatureDemonstration](https://github.com/a-sit-plus/attestation-service/blob/main/attestation-service/src/test/kotlin/FeatureDemonstration.kt) for details).
-However, only `verifyKeyAttestation()` works for both Android and iOS and returns a [KeyAttestation](https://github.com/a-sit-plus/attestation-service/blob/main/attestation-service/src/main/kotlin/AttestationService.kt#L293) object:
+(do see [FeatureDemonstration](https://github.com/a-sit-plus/warden/blob/main/warden/src/test/kotlin/FeatureDemonstration.kt) for details).
+However, only `verifyKeyAttestation()` works for both Android and iOS and returns a [KeyAttestation](https://github.com/a-sit-plus/warden/blob/main/warden/src/main/kotlin/AttestationService.kt#L293) object:
 
 ```kotlin
  fun <T : PublicKey> verifyKeyAttestation(
@@ -223,4 +240,10 @@ programme under grant agreement No 959072.
 </p>
 <p align="center">
 <img src="eu.svg" alt="EU flag">
+</p>
+
+
+<p align="center">
+The Apache License does not apply to the logos, (including the A-SIT logo) and the project/module name(s), as these are the sole property of
+A-SIT/A-SIT Plus GmbH and may not be used in derivative works without explicit permission!
 </p>

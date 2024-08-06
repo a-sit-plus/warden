@@ -1,3 +1,8 @@
+## 2.1.0
+- Rebrand to _WARDEN_
+- Dependency Updates
+  - Update android-attestation 1.5.2 to WARDEN-roboto 1.6.0
+
 ## 2.0.2
 - Dependency Updates:
   -  Android-Attestation 1.5.2 with HTTP Proxy support for fetching revocation info

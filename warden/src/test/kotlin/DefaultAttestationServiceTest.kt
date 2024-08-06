@@ -21,7 +21,7 @@ import kotlin.time.Duration.Companion.days
 
 
 @OptIn(ExperimentalStdlibApi::class)
-class DefaultAttestationServiceTest : FreeSpec() {
+class WardenTest : FreeSpec() {
 
     private val theGood = androidGood + iosGood
 
@@ -110,7 +110,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                 pubKeyB64 = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEFT1XwEeF8NftY84GfnqTFBoxHNkdG7wZHcOkLKwT4W6333Jqmga1XkKySq/ApnslBPNZE1Os363SAv8X85ZIrQ=="
             )
 
-            DefaultAttestationService(
+            Warden(
                 AndroidAttestationConfiguration.Builder(
                     AndroidAttestationConfiguration.AppData(
                         "foo",
@@ -457,7 +457,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                             val clock =
                                 FixedTimeClock(recordedAttestation.verificationDate.toInstant().toKotlinInstant())
                             "Software-Only" {
-                                DefaultAttestationService(
+                                Warden(
                                     androidAttestationConfiguration = AndroidAttestationConfiguration(
                                         listOf(
                                             AndroidAttestationConfiguration.AppData(
@@ -481,7 +481,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                             }
 
                             "Nougat attestation" {
-                                DefaultAttestationService(
+                                Warden(
                                     androidAttestationConfiguration = AndroidAttestationConfiguration(
                                         listOf(
                                             AndroidAttestationConfiguration.AppData(
@@ -504,7 +504,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                                 }
                             }
                             "Software + Nougat attestation" {
-                                DefaultAttestationService(
+                                Warden(
                                     androidAttestationConfiguration = AndroidAttestationConfiguration(
                                         listOf(
                                             AndroidAttestationConfiguration.AppData(
@@ -737,7 +737,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                     }
 
                     "Nougat Hybrid attestation should fail" {
-                        DefaultAttestationService(
+                        Warden(
                             androidAttestationConfiguration = AndroidAttestationConfiguration(
                                 listOf(
                                     AndroidAttestationConfiguration.AppData(
@@ -761,7 +761,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                     }
 
                     "HW Attestation and Nougat Hybrid attestation combined should fail" {
-                        DefaultAttestationService(
+                        Warden(
                             androidAttestationConfiguration = AndroidAttestationConfiguration(
                                 listOf(
                                     AndroidAttestationConfiguration.AppData(
@@ -786,7 +786,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                     "Software attestation should work" - {
 
                         "stand-alone" {
-                            DefaultAttestationService(
+                            Warden(
                                 androidAttestationConfiguration = AndroidAttestationConfiguration(
                                     listOf(
                                         AndroidAttestationConfiguration.AppData(
@@ -810,7 +810,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                         }
 
                         "with Nougat attestation" {
-                            DefaultAttestationService(
+                            Warden(
                                 androidAttestationConfiguration = AndroidAttestationConfiguration(
                                     listOf(
                                         AndroidAttestationConfiguration.AppData(
@@ -835,7 +835,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                         }
 
                         "with Nougat and HW attestation" {
-                            DefaultAttestationService(
+                            Warden(
                                 androidAttestationConfiguration = AndroidAttestationConfiguration(
                                     listOf(
                                         AndroidAttestationConfiguration.AppData(
@@ -881,7 +881,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
 
                 "Nougat Hybrid attestation should work" - {
                     "stand-alone" {
-                        DefaultAttestationService(
+                        Warden(
                             androidAttestationConfiguration = AndroidAttestationConfiguration(
                                 listOf(
                                     AndroidAttestationConfiguration.AppData(
@@ -909,7 +909,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
 
 
                     "with Hardware attestation" {
-                        DefaultAttestationService(
+                        Warden(
                             androidAttestationConfiguration = AndroidAttestationConfiguration(
                                 listOf(
                                     AndroidAttestationConfiguration.AppData(
@@ -935,7 +935,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                     }
 
                     "with Hardware + Sowftware Attestation " {
-                        DefaultAttestationService(
+                        Warden(
                             androidAttestationConfiguration = AndroidAttestationConfiguration(
                                 listOf(
                                     AndroidAttestationConfiguration.AppData(
@@ -962,7 +962,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                     }
 
                     "with Software Attestation" {
-                        DefaultAttestationService(
+                        Warden(
                             androidAttestationConfiguration = AndroidAttestationConfiguration(
                                 listOf(
                                     AndroidAttestationConfiguration.AppData(
@@ -991,7 +991,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                 }
 
                 "Hardware attestation should fail" {
-                    DefaultAttestationService(
+                    Warden(
                         androidAttestationConfiguration = AndroidAttestationConfiguration(
                             listOf(
                                 AndroidAttestationConfiguration.AppData(
@@ -1013,7 +1013,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                 }
 
                 "Hardware + SW attestation should fail" {
-                    DefaultAttestationService(
+                    Warden(
                         androidAttestationConfiguration = AndroidAttestationConfiguration(
                             listOf(
                                 AndroidAttestationConfiguration.AppData(
@@ -1036,7 +1036,7 @@ class DefaultAttestationServiceTest : FreeSpec() {
                 }
 
                 "SW attestation should fail" {
-                    DefaultAttestationService(
+                    Warden(
                         androidAttestationConfiguration = AndroidAttestationConfiguration(
                             listOf(
                                 AndroidAttestationConfiguration.AppData(
