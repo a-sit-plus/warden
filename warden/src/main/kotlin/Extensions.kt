@@ -1,5 +1,7 @@
 package at.asitplus.attestation
 
+import at.asitplus.signum.indispensable.CryptoPublicKey
+import at.asitplus.signum.indispensable.getJcaPublicKey
 import kotlinx.datetime.Clock
 import kotlinx.datetime.toJavaInstant
 import kotlinx.datetime.toKotlinInstant
@@ -58,25 +60,11 @@ internal fun Clock.toJavaClock(): java.time.Clock =
 
 internal fun kotlinx.datetime.Instant.toJavaDate() = Date.from(toJavaInstant())
 
-fun ECPublicKey.toAnsi() = let {
-    val xFromBc = it.w.affineX.toByteArray().ensureSize(32)
-    val yFromBc = it.w.affineY.toByteArray().ensureSize(32)
-    byteArrayOf(0x04) + xFromBc + yFromBc
-}
-
 fun ByteArray.parseToPublicKey(): PublicKey =
     try {
-        (if (size < 1024) ecKeyFactory else rsaKeyFactory).generatePublic(X509EncodedKeySpec(this))
+       CryptoPublicKey.decodeFromDer(this).getJcaPublicKey().getOrThrow()
     } catch (e: Throwable) {
-        if (first() != 0x04.toByte()) throw InvalidKeySpecException("Encoded public key does not start with 0x04")
-
-        val parameterSpec = ECNamedCurveTable.getParameterSpec("P-256")
-        val ecPoint = parameterSpec.curve.createPoint(
-            BigInteger(1, sliceArray(1..<33)),
-            BigInteger(1, takeLast(32).toByteArray())
-        )
-        val ecPublicKeySpec = org.bouncycastle.jce.spec.ECPublicKeySpec(ecPoint, parameterSpec)
-        JCEECPublicKey("EC", ecPublicKeySpec)
+       CryptoPublicKey.fromIosEncoded(this).getJcaPublicKey().getOrThrow()
     }
 
 /**

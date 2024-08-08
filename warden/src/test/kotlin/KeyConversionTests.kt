@@ -1,6 +1,7 @@
 import at.asitplus.attestation.decodeBase64ToArray
 import at.asitplus.attestation.parseToPublicKey
-import at.asitplus.attestation.toAnsi
+import at.asitplus.signum.indispensable.CryptoPublicKey
+import at.asitplus.signum.indispensable.fromJcaPublicKey
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.shouldBe
 import java.security.interfaces.ECPublicKey
@@ -12,9 +13,9 @@ class KeyConversionTests : FreeSpec({
         "it should be parsable" - {
             val parsedKey = x509Key.parseToPublicKey()
             "and encodable to ANSI X9.62" - {
-                val ansBytes = (parsedKey as ECPublicKey).toAnsi()
+                val ansiBytes = CryptoPublicKey.EC.fromJcaPublicKey(parsedKey as ECPublicKey).getOrThrow().iosEncoded
                 "and decodable" - {
-                    val decoded = ansBytes.parseToPublicKey()
+                    val decoded = ansiBytes.parseToPublicKey()
                     "to match the original X5095-encoded key" {
                         decoded.encoded shouldBe x509Key
                     }

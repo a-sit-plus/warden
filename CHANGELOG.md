@@ -1,3 +1,10 @@
+## 2.1.1
+- Rely on [Signum](https://github.com/a-sit-plus/signum) to transcode public keys
+- Add working `hashCode` and `equals` to `AttestationResult` and `KeyAttestation`
+- Rework key attestation key comparison
+  - Try all encodings for public keys
+  - Throw exception with *very* detailed message when key attestation runs into a logical error
+
 ## 2.1.0
 - Rebrand to _WARDEN_
 - Dependency Updates
