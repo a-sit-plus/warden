@@ -1,13 +1,13 @@
 # Dead-Simple Key Attestation Demo Service
 
-This dead-simple key attestation demo service showcases [our Attestation Library](https://github.com/a-sit-plus/attestation-service) in action.
+This dead-simple key attestation demo service showcases [our Attestation Library](https://github.com/a-sit-plus/warden) in action.
 Apps for [Android](../client-android) and [iOS](../client-ios) demonstrate the respective client parts.
 For in-depth documentation regarding the Attestation library, please refer to the [official documentation](../../README.md).
 
 ## Overview
 
 This service is based on [ktor](https://ktor.io) and establishes trust in mobile clients based on
-[our Attestation Library](https://github.com/a-sit-plus/attestaton-service). This concrete incarnation utilises the attestation library's unified
+[our Attestation Library](https://github.com/a-sit-plus/warden). This concrete incarnation utilises the attestation library's unified
 interface to provide key attestation on both Android and iOS.
 
 The process to attest a mobile client works a follows:

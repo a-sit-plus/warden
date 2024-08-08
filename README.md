@@ -181,7 +181,7 @@ Note that not all flavours use different the same root of trust by default.
 While still not complete, the test suite in this repository should provide a nice overview. [FeatureDemonstration](https://github.com/a-sit-plus/warden/blob/main/warden/src/test/kotlin/FeatureDemonstration.kt),
 in particular, was designed to demonstrate this library's API.
 <br>
-See the provided [sample service](https://github.com/a-sit-plus/attestation-service/tree/main/sample/backend) and its mobile clients for an MWE that integrates this library.
+See the provided [sample service](https://github.com/a-sit-plus/warden/tree/main/sample/backend) and its mobile clients for an MWE that integrates this library.
 The sample also contains Android and iOS clients.
 
 #### Obtaining a Key Attestation Result
