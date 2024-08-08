@@ -17,8 +17,8 @@ Server-side library providing a unified interface for key attestation compatible
 It also provides App attestation on both platforms (see [our 2019 Paper](https://graz.elsevierpure.com/en/publications/fides-unleashing-the-full-potential-of-remote-attestation) 
 on how to remotely establish trust in Android applications for more Android-specifics on this matter).
 
-Under the hood, this library depends on the [Android Key Attestation Library](https://github.com/a-sit-plus/warden-roboto) and
-[Vincent Haupert's](https://github.com/veehaitch) excellent [DeviceCheck/AppAttest Library](https://github.com/veehaitch/devicecheck-appattest).
+Under the hood, this library depends on the [WARDEN-roboto](https://github.com/a-sit-plus/warden-roboto) Android attestation library and
+[Vincent Haupert's](https://github.com/veehaitch) excellent [DeviceCheck/AppAttest](https://github.com/veehaitch/devicecheck-appattest) library.
 
 Full API docs are available [here](https://a-sit-plus.github.io/warden/).
 
