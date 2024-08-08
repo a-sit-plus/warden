@@ -124,10 +124,13 @@ class WardenTest : FreeSpec() {
                         sandbox = true
                     )
                 ), FixedTimeClock(2023u, 9u, 11u)
-            ).verifyKeyAttestation(
-                iosIDA.attestationProof, iosIDA.challenge, iosIDA.publicKey!!
             ).apply {
-                isSuccess.shouldBeTrue()
+                verifyKeyAttestation(
+                    iosIDA.attestationProof, iosIDA.challenge, iosIDA.publicKey!!
+                ).apply {
+                    isSuccess.shouldBeTrue()
+                    verifyKeyAttestation( iosIDA.attestationProof, iosIDA.challenge, iosIDA.pubKeyB64!!.decodeBase64ToArray()) shouldBe this
+                }
             }
         }
 
@@ -157,15 +160,20 @@ class WardenTest : FreeSpec() {
                                     }
                                 }
                                 "Key Attestation" {
-                                    verifyKeyAttestation(
+                                    (verifyKeyAttestation(
                                         recordedAttestation.attestationProof,
                                         recordedAttestation.challenge,
                                         recordedAttestation.publicKey!!
-                                    ).apply {
-                                        also { println(it) }
-                                        isSuccess.shouldBeTrue()
-                                        attestedPublicKey.shouldNotBeNull()
-                                        attestedPublicKey!!.encoded shouldBe recordedAttestation.publicKey?.encoded
+                                    ) to verifyKeyAttestation(
+                                        recordedAttestation.attestationProof,
+                                        recordedAttestation.challenge,
+                                        recordedAttestation.pubKeyB64!!.decodeBase64ToArray()
+                                    )).apply {
+                                        also { println(it.first) }
+                                        first.isSuccess.shouldBeTrue()
+                                        first.attestedPublicKey.shouldNotBeNull()
+                                        first.attestedPublicKey!!.encoded shouldBe recordedAttestation.publicKey?.encoded
+                                        first shouldBe second
                                     }
                                 }
                             }

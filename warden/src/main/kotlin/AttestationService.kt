@@ -4,15 +4,17 @@ import at.asitplus.attestation.AttestationException
 import at.asitplus.attestation.IOSAttestationConfiguration.AppData
 import at.asitplus.attestation.android.*
 import at.asitplus.attestation.android.exceptions.AttestationValueException
+import at.asitplus.signum.indispensable.CryptoPublicKey
+import at.asitplus.signum.indispensable.fromJcaPublicKey
 import ch.veehait.devicecheck.appattest.assertion.Assertion
 import ch.veehait.devicecheck.appattest.attestation.ValidatedAttestation
 import com.google.android.attestation.AttestationApplicationId
 import com.google.android.attestation.ParsedAttestationRecord
+import kotlinx.datetime.Clock
 import net.swiftzer.semver.SemVer
 import org.slf4j.LoggerFactory
 import java.security.PublicKey
 import java.security.cert.X509Certificate
-import java.security.interfaces.ECPublicKey
 import java.util.*
 import kotlin.jvm.optionals.getOrNull
 import at.asitplus.attestation.AttestationException as AttException
@@ -256,13 +258,18 @@ abstract class AttestationService {
         attestationProof: List<ByteArray>,
         expectedChallenge: ByteArray,
         keyToBeAttested: T
-    ): KeyAttestation<T> =
-        when (val firstTry = verifyAttestation(attestationProof, expectedChallenge, keyToBeAttested.encoded)) {
+    ): KeyAttestation<T> {
+        when (val firstTry = verifyAttestation(
+            attestationProof,
+            expectedChallenge,
+            keyToBeAttested.encoded
+        )) {
             is AttestationResult.Android -> {
-                if (keyToBeAttested.encoded contentEquals firstTry.attestationCertificate.publicKey.encoded) KeyAttestation(
-                    keyToBeAttested,
-                    firstTry
+                return if (CryptoPublicKey.fromJcaPublicKey(keyToBeAttested) == CryptoPublicKey.fromJcaPublicKey(
+                        firstTry.attestationCertificate.publicKey
+                    )
                 )
+                    KeyAttestation(keyToBeAttested, firstTry)
                 else {
                     ("Android attestation failed: keyToBeAttested (${keyToBeAttested.encoded.encodeBase64()}) does not match " +
                             "key from attestation certificate: ${firstTry.attestationCertificate.publicKey.encoded.encodeBase64()}").let {
@@ -284,17 +291,38 @@ abstract class AttestationService {
                 }
             }
 
-            is AttestationResult.Error -> when (val secondTry =
-                kotlin.runCatching {
-                    verifyAttestation(attestationProof, expectedChallenge, (keyToBeAttested as ECPublicKey).toAnsi())
-                }.getOrElse { return KeyAttestation(null, firstTry) }) {
-                is AttestationResult.Android -> throw RuntimeException("WTF?")
-                is AttestationResult.Error -> KeyAttestation(null, firstTry)
-                is AttestationResult.IOS -> KeyAttestation(keyToBeAttested, secondTry)
+            is AttestationResult.Error -> {
+                //try different encodings
+                val publicKeyEncodings = CryptoPublicKey.fromJcaPublicKey(keyToBeAttested).getOrThrow().let {
+                    listOf(
+                        it.iosEncoded,
+                        (it as CryptoPublicKey.EC).copy(
+                            it.publicPoint,
+                            preferCompressedRepresentation = !it.preferCompressedRepresentation
+                        ).iosEncoded,
+                        it.encodeToDer()
+                    )
+                }
+
+                // not the most efficient way, but doing it like this won't involve any guesswork at all
+                publicKeyEncodings.forEach {
+                    when (val secondTry =
+                        kotlin.runCatching { verifyAttestation(attestationProof, expectedChallenge, it) }
+                            .getOrElse { return KeyAttestation(null, firstTry) }) {
+                        is AttestationResult.Android -> throw RuntimeException("Logical Error attesting key ${keyToBeAttested.encoded.encodeBase64()} for attestation proof ${attestationProof.joinToString { it.encodeBase64() }} with challenge ${expectedChallenge.encodeBase64()} at ${Clock.System.now()}")
+                        is AttestationResult.Error -> {/*try again*/
+                        }
+                        //if this works, perfect!
+                        is AttestationResult.IOS -> return KeyAttestation(keyToBeAttested, secondTry)
+                    }
+                }
+                //if no encoding works, then it should just fail
+                return KeyAttestation(null, firstTry)
             }
 
-            is AttestationResult.IOS -> KeyAttestation(keyToBeAttested, firstTry)
+            is AttestationResult.IOS -> return KeyAttestation(keyToBeAttested, firstTry)
         }
+    }
 
     /** Same as [verifyKeyAttestation], but taking an encoded (either ANSI X9.63 or DER) publix key as a byte array
      * @see verifyKeyAttestation
@@ -435,6 +463,22 @@ sealed class AttestationResult {
                         }"
                     }
         }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is Android) return false
+
+            if (attestationCertificateChain.map { it.encoded.encodeBase64() } != other.attestationCertificateChain.map { it.encoded.encodeBase64() }) return false
+            if (androidDetails != other.androidDetails) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = attestationCertificateChain.map { it.encoded.contentHashCode() }.hashCode()
+            result = 31 * result + androidDetails.hashCode()
+            return result
+        }
     }
 
 
@@ -464,6 +508,25 @@ sealed class AttestationResult {
 
         class NOOP(clientData: ByteArray?) : IOS(clientData) {
             override val iosDetails = "NOOP"
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is IOS) return false
+
+            if (clientData != null) {
+                if (other.clientData == null) return false
+                if (!clientData.contentEquals(other.clientData)) return false
+            } else if (other.clientData != null) return false
+            if (iosDetails != other.iosDetails) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = clientData?.contentHashCode() ?: 0
+            result = 31 * result + iosDetails.hashCode()
+            return result
         }
 
         /**
@@ -499,6 +562,24 @@ data class KeyAttestation<T : PublicKey> internal constructor(
         else {
             onError(details as AttestationResult.Error)
         }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is KeyAttestation<*>) return false
+
+        if (!attestedPublicKey?.encoded.contentEquals(other.attestedPublicKey?.encoded)) return false
+        if (details != other.details) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = attestedPublicKey?.encoded?.contentHashCode() ?: 0
+        result = 31 * result + details.hashCode()
+        return result
+    }
+
+
 }
 
 /**

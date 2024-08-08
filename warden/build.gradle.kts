@@ -24,10 +24,10 @@ sourceSets.test {
 dependencies {
     api("at.asitplus:warden-roboto:$androidAttestationVersion")
     api(datetime())
+    implementation("at.asitplus.signum:indispensable:3.6.0")
     implementation("ch.veehait.devicecheck:devicecheck-appattest:0.9.6")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.14.2")
     implementation("net.swiftzer.semver:semver:1.2.0")
-    implementation(bouncycastle("bcpkix", "jdk18on"))
     implementation("org.slf4j:slf4j-api:1.7.36")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.14.2")
 
