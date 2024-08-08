@@ -1,4 +1,4 @@
-rootProject.name = "attestation-root"
+rootProject.name = "WARDEN-root"
 pluginManagement {
     repositories {
         maven {
@@ -10,12 +10,12 @@ pluginManagement {
     }
 }
 
-include("attestation-service")
+include("warden")
 
 //do not depend on included build for publishing
 if (gradle.startParameter.taskNames.find { it.contains("publish") } == null)
-    includeBuild("android-attestation-root") {
+    includeBuild("warden-roboto") {
         dependencySubstitution {
-            substitute(module("at.asitplus:android-attestation")).using(project(":android-attestation"))
+            substitute(module("at.asitplus:warden-roboto")).using(project(":warden-roboto"))
         }
     }

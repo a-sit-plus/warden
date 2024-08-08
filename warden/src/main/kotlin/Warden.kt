@@ -1,0 +1,494 @@
+package at.asitplus.attestation
+
+import at.asitplus.attestation.android.*
+import at.asitplus.attestation.android.exceptions.AttestationValueException
+import at.asitplus.attestation.android.exceptions.CertificateInvalidException
+import ch.veehait.devicecheck.appattest.AppleAppAttest
+import ch.veehait.devicecheck.appattest.assertion.Assertion
+import ch.veehait.devicecheck.appattest.assertion.AssertionChallengeValidator
+import ch.veehait.devicecheck.appattest.attestation.AttestationValidator
+import ch.veehait.devicecheck.appattest.attestation.ValidatedAttestation
+import ch.veehait.devicecheck.appattest.common.App
+import ch.veehait.devicecheck.appattest.common.AppleAppAttestEnvironment
+import ch.veehait.devicecheck.appattest.receipt.ReceiptException
+import ch.veehait.devicecheck.appattest.receipt.ReceiptValidator
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.dataformat.cbor.CBORFactory
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import kotlinx.datetime.Clock
+import net.swiftzer.semver.SemVer
+import org.bouncycastle.asn1.ASN1InputStream
+import org.bouncycastle.asn1.DEROctetString
+import org.bouncycastle.asn1.DLSequence
+import org.bouncycastle.asn1.DLTaggedObject
+import org.bouncycastle.cert.X509CertificateHolder
+import org.slf4j.LoggerFactory
+import java.security.MessageDigest
+import java.security.PublicKey
+import java.security.cert.CertPathValidatorException
+import java.security.cert.CertificateException
+import java.security.cert.X509Certificate
+import java.security.interfaces.ECPublicKey
+import kotlin.time.Duration
+import kotlin.time.toJavaDuration
+import kotlin.time.toKotlinDuration
+
+/**
+ * Default, functional Android Key Attestation and Apple App Attestation in all its glory.
+ *
+ * Once configured, this class provides a streamlined interface for mobile client attestation
+ *
+ * @param androidAttestationConfiguration Configuration for Android key attestation.
+ * See [AndroidAttestationConfiguration](https://a-sit-plus.github.io/android-attestation/-android%20%20-attestation%20-library/at.asitplus.attestation.android/-android-attestation-configuration/index.html)
+ * for details.
+ * @param iosAttestationConfiguration IOS AppAttest configuration.  See [IOSAttestationConfiguration] for details.
+ * @param clock a clock to set the time of verification (used for certificate validity checks)
+ * @param verificationTimeOffset allows for fine-grained clock drift compensation (this duration is added to the certificate
+ * validity checks); can be negative.
+ */
+class Warden(
+    androidAttestationConfiguration: AndroidAttestationConfiguration,
+    private val iosAttestationConfiguration: IOSAttestationConfiguration,
+    private val clock: Clock = Clock.System,
+    private val verificationTimeOffset: Duration = Duration.ZERO
+) : AttestationService() {
+
+    /**
+     * Java-friendly constructor with `java.time` types
+     *
+     * @param androidAttestationConfigurationJ Configuration for Android key attestation. See [AndroidAttestationConfiguration]
+     * @param iosAttestationConfigurationJ IOS AppAttest configuration.  See [IOSAttestationConfiguration] for details.
+     * @param verificationTimeOffsetJ allows for fine-grained clock drift compensation (this duration is added to the certificate
+     *                                validity checks); can be negative.
+     * @param javaClock a clock to set the time of verification (used for certificate validity checks)
+     */
+    @JvmOverloads
+    constructor(
+        androidAttestationConfigurationJ: AndroidAttestationConfiguration,
+        iosAttestationConfigurationJ: IOSAttestationConfiguration,
+        verificationTimeOffsetJ: java.time.Duration = java.time.Duration.ZERO,
+        javaClock: java.time.Clock = java.time.Clock.systemUTC()
+    ) : this(
+        androidAttestationConfigurationJ,
+        iosAttestationConfigurationJ,
+        javaClock.toKotlinClock(),
+        verificationTimeOffsetJ.toKotlinDuration()
+    )
+
+    private val log = LoggerFactory.getLogger(this.javaClass)
+
+    private val androidAttestationCheckers = mutableListOf<AndroidAttestationChecker>().apply {
+        if (!androidAttestationConfiguration.disableHardwareAttestation) add(
+            HardwareAttestationChecker(
+                androidAttestationConfiguration
+            ) { expected, actual -> expected contentEquals actual })
+        if (androidAttestationConfiguration.enableNougatAttestation) add(
+            NougatHybridAttestationChecker(
+                androidAttestationConfiguration
+            ) { expected, actual -> expected contentEquals actual })
+        if (androidAttestationConfiguration.enableSoftwareAttestation) add(
+            SoftwareAttestationChecker(
+                androidAttestationConfiguration
+            ) { expected, actual -> expected contentEquals actual })
+    }
+
+
+    private val iosApps =
+        iosAttestationConfiguration.applications.associateWith { appData ->
+            AppleAppAttest(
+                app = App(appData.teamIdentifier, appData.bundleIdentifier),
+                appleAppAttestEnvironment = if (appData.sandbox) AppleAppAttestEnvironment.DEVELOPMENT else AppleAppAttestEnvironment.PRODUCTION,
+            )
+        }
+
+
+    private val appAttestReader = ObjectMapper(CBORFactory())
+        .registerKotlinModule()
+        .readerFor(AttestationObject::class.java)
+
+    private val appAttestClock = java.time.Clock.offset(
+        clock.toJavaClock(),
+        verificationTimeOffset.toJavaDuration()
+    )
+    private val attestationValidators: Map<AppleAppAttest, AttestationValidator> =
+        iosApps.values.associateWith { app ->
+            app.createAttestationValidator(
+                clock = appAttestClock,
+                receiptValidator = app.createReceiptValidator(
+                    clock = appAttestClock,
+                    maxAge = (verificationTimeOffset.absoluteValue * 2).toJavaDuration()
+                        .plus(ReceiptValidator.APPLE_RECOMMENDED_MAX_AGE)
+                )
+            )
+        }
+
+    override val ios = object : IOS {
+        override fun verifyAppAttestation(attestationObject: ByteArray, challenge: ByteArray) =
+            verifyAttestationApple(attestationObject, challenge, assertionData = null, counter = 0L)
+
+        override fun verifyAssertion(
+            attestationObject: ByteArray,
+            assertionFromDevice: ByteArray,
+            referenceClientData: ByteArray,
+            challenge: ByteArray,
+            counter: Long
+        ) = verifyAttestationApple(
+            attestationObject,
+            challenge,
+            assertionData = AssertionData(assertionFromDevice, referenceClientData),
+            counter
+        )
+    }
+
+    override val android = object : Android {
+        override fun verifyKeyAttestation(
+            attestationCerts: List<X509Certificate>,
+            expectedChallenge: ByteArray
+        ) = verifyKeyAttestation<PublicKey>(
+            attestationCerts.map { it.encoded },
+            expectedChallenge,
+            attestationCerts.first().publicKey
+        )
+    }
+
+    override fun verifyAttestation(
+        attestationProof: List<ByteArray>,
+        challenge: ByteArray,
+        clientData: ByteArray?
+    ): AttestationResult {
+        log.debug("attestation proof length: ${attestationProof.size}")
+        return if (attestationProof.isEmpty()) AttestationResult.Error("Attestation proof is empty")
+        else if (attestationProof.size > 2)
+            verifyAttestationAndroid(attestationProof, challenge)
+        else {
+            kotlin.runCatching {
+                verifyAttestationApple(
+                    attestationProof.first(),
+                    challenge,
+                    clientData?.let { AssertionData(attestationProof[1], it) },
+                    counter = 0L
+                )
+
+            }.getOrElse {
+                //if attestationProof contains no assertion, but clientData is set, for example
+                log.warn("Could not verify attestation proof: {}", attestationProof.map { it.encodeBase64() })
+                return if (it is IndexOutOfBoundsException)
+                    AttestationResult.Error(
+                        "Invalid length of attestation proof: ${it.message}. " +
+                                "Possible reason: passed 'clientData' but no assertion"
+                    )
+                else AttestationResult.Error(
+                    "Could not verify client integrity due to internal error: " +
+                            "${it::class.simpleName}${it.message?.let { ". $it" }}"
+                )
+
+            }
+        }
+    }
+
+    /**
+     * Verifies [Android Key Attestation](https://developer.android.com/training/articles/security-key-attestation) based
+     * the provided certificate chain (the leaf ist the attestation certificate, the root must be one of the
+     * [Google Hardware Attestation Root certificates](https://developer.android.com/training/articles/security-key-attestation#root_certificate)).
+     *
+     * @param attestationCerts certificate chain from the attestation certificate up to a Google Hardware Attestation Root certificate
+     * @param expectedChallenge the challenge to be verified against
+     *
+     * @return [AttestationResult.Android] on success [AttestationResult.Error] in case attestation failed
+     */
+    private fun verifyAttestationAndroid(
+        attestationCerts: List<ByteArray>,
+        expectedChallenge: ByteArray
+    ): AttestationResult = runCatching {
+        log.debug("Verifying Android attestation")
+        if (attestationCerts.isEmpty()) return AttestationResult.Error("Attestation proof is empty")
+        val certificates = attestationCerts.mapNotNull { it.parseToCertificate() }
+        if (certificates.size != attestationCerts.size)
+            return AttestationResult.Error("Could not parse Android attestation certificate chain")
+
+        //throws exception on fail
+        val results = androidAttestationCheckers.map {
+            runCatching {
+                it.verifyAttestation(
+                    certificates,
+                    (clock.now() + verificationTimeOffset).toJavaDate(),
+                    expectedChallenge
+                )
+            }
+        }
+        if (results.filter { it.isFailure }.size == androidAttestationCheckers.size) {
+            //if time is off, then we need to treat is separately
+            results.firstOrNull {
+                it.exceptionOrNull() is CertificateInvalidException &&
+                        (it.exceptionOrNull() as CertificateInvalidException).reason == CertificateInvalidException.Reason.TIME
+            }?.exceptionOrNull()?.let { throw it }
+
+            throw results.last() //this way we are most lenient
+                .exceptionOrNull()!!
+        }
+
+        AttestationResult.Android.Verified(certificates)
+    }.getOrElse {
+        AttestationResult.Error(
+            "Android Attestation Error: " + (it.message ?: it::class.simpleName),
+            if ((it is CertificateInvalidException) && (it.reason == CertificateInvalidException.Reason.TIME)) AttestationException.Certificate.Time.Android(
+                cause = it
+            )
+            else if (it is CertificateInvalidException) AttestationException.Certificate.Trust.Android(cause = it)
+            else if (it is CertificateException) AttestationException.Certificate.Trust.Android(
+                cause = CertificateInvalidException(
+                    message = it.message ?: "",
+                    cause = it,
+                    reason = CertificateInvalidException.Reason.TRUST
+                )
+            ) else if (it is AttestationValueException) AttestationException.Content.Android(
+                cause = it,
+                message = it.message
+            )
+            else AttestationException.Content.Android(
+                cause = AttestationValueException(
+                    message = it.message,
+                    cause = it,
+                    reason = AttestationValueException.Reason.APP_UNEXPECTED
+                )
+            )
+        )
+    }
+
+    /**
+     * Verifies an Apple [AppAttest attestation statement](https://developer.apple.com/documentation/devicecheck/validating_apps_that_connect_to_your_server#3576643)
+     * It is optionally possible to pass an [assertionData] pair, mapping an
+     * [assertion](https://developer.apple.com/documentation/devicecheck/validating_apps_that_connect_to_your_server#3576644)
+     * to a `clientData` [ByteArray].
+     * The signature counter in the attestation must be `0` and the signature counter in the assertion must be `1`,
+     * meaning that a fresh attestation statement must have been created. If [assertionData] is present, this freshly
+     * attested key must have been used exactly once to sign the `clientData` object contained within [assertionData]
+     *
+     * Passing a public key created in the same app on the iDevice's secure hardware as `clientData` effectively
+     * emulates Android's key attestation: Attesting such a secondary key through an assertion, proves that
+     * it was also created within the same app, on the same device, resulting in an attested key, which can then be used
+     * for general-purpose crypto. **BEWARE if you pass the public key on iOS to be signed as is. iOS uses the ANSI X9.63
+     * format represent public keys, so conversion is needed**
+     *
+     * @param attestationObject the AppAttest Attestation object. Must be freshly created (i.e. signature counter must be zero)
+     * @param expectedChallenge the challenge to be verified against
+     * @param assertionData optional assertion data containing `clientData` and an [assertion](https://developer.apple.com/documentation/devicecheck/validating_apps_that_connect_to_your_server#3576644)
+     * @param counter highest expected value of the signature counter before the assertion was created (if present). Defaults to 0
+     *
+     * @return [AttestationResult.IOS.Verified] on success when using the [Warden] ([AttestationResult.IOS]
+     * when using [NoopAttestationService]) and [AttestationResult.Error] when attestation fails.
+     *
+     */
+    private fun verifyAttestationApple(
+        attestationObject: ByteArray,
+        expectedChallenge: ByteArray,
+        assertionData: AssertionData?,
+        counter: Long
+    ): AttestationResult = runCatching {
+        log.debug("Verifying iOS attestation")
+
+        val parsedAttestationCert =
+            X509CertificateHolder(appAttestReader.readValue<AttestationObject>(attestationObject).attStmt.x5c.first())
+
+
+        val results = attestationValidators.map { (app, attestationValidator) ->
+            app to runCatching {
+                attestationValidator.validate(
+                    attestationObject = attestationObject,
+                    keyIdBase64 = MessageDigest.getInstance("SHA-256")
+                        .digest(parsedAttestationCert.subjectPublicKeyInfo.publicKeyData.bytes)
+                        .encodeBase64(),
+                    serverChallenge = expectedChallenge,
+                )
+            }
+        }
+
+        if (results.filter { (_, result) -> result.isFailure }.size == results.size)
+            throw results.first().second.exceptionOrNull()!!
+
+        val result: Pair<AppleAppAttest, ValidatedAttestation> =
+            results.first { (_, result) -> result.isSuccess }.let { (app, res) -> app to res.getOrNull()!! }
+
+
+        val iosVersion =
+            iosApps.entries.firstOrNull { (_, appAttest) -> appAttest.app == result.first.app }?.key?.iosVersionOverride
+                ?: iosAttestationConfiguration.iosVersion
+
+        val parsedVersion = parseIosBuildOrVersionNumber(result.second.certificate)
+        iosVersion?.let { configuredVersion ->
+            kotlin.runCatching {
+                if (configuredVersion > parsedVersion) {
+                    val explanation =
+                        "Parsed iOS versions (${parsedVersion.first}, ${parsedVersion.second}) < $configuredVersion"
+
+                    return AttestationResult.Error(
+                        explanation,
+                        AttestationException.Content.iOS(
+                            explanation,
+                            cause = IosAttestationException(
+                                explanation,
+                                reason = IosAttestationException.Reason.OS_VERSION
+                            )
+                        )
+                    )
+                }
+            }.getOrElse {
+                (it.message ?: "Error comparing iOS Versions").let { msg ->
+                    return AttestationResult.Error(
+                        msg,
+                        AttestationException.Content.iOS(
+                            msg,
+                            cause = IosAttestationException(
+                                msg,
+                                cause = it,
+                                reason = IosAttestationException.Reason.OS_VERSION
+                            )
+                        )
+                    )
+                }
+            }
+        }
+
+        return assertionData?.let { assertionData ->
+            runCatching {
+                val assertion = result.first.createAssertionValidator(object : AssertionChallengeValidator {
+                    override fun validate(
+                        assertionObj: Assertion,
+                        clientData: ByteArray,
+                        attestationPublicKey: ECPublicKey,
+                        challenge: ByteArray,
+                    ) = challenge contentEquals expectedChallenge
+                }).validate(
+                    assertionData.assertion,
+                    assertionData.clientData,
+                    result.second.certificate.publicKey as ECPublicKey,
+                    counter,
+                    expectedChallenge
+                )
+                return if (assertion.authenticatorData.signCount != 1L) "iOS Assertion counter is ${assertion.authenticatorData.signCount}, but should be 1".let { msg ->
+                    AttestationResult.Error(
+                        msg,
+                        AttestationException.Content.iOS(
+                            msg,
+                            cause = IosAttestationException(msg, reason = IosAttestationException.Reason.SIG_CTR)
+                        )
+                    )
+                }
+                else AttestationResult.IOS.Verified(result.second, parsedVersion, assertionData.clientData to assertion)
+            }.getOrElse {
+                AttestationResult.Error(
+                    it.message ?: "iOS Assertion validation error due to ${it::class.simpleName}",
+                    encapsulateIosAttestationException(it)
+
+                )
+            }
+        } ?: AttestationResult.IOS.Verified(result.second, parsedVersion, null)
+
+    }.getOrElse {
+        AttestationResult.Error(
+            it.message ?: "iOS Attestation failed due to ${it::class.simpleName}",
+            encapsulateIosAttestationException(it)
+        )
+    }
+
+    //the following three functions are ripped and adapted from https://github.com/veehaitch/devicecheck-appattest
+    private inline fun <reified T : Any> ASN1InputStream.readObjectAs(): T = this.readObject() as T
+    private fun getTaggedOctetString(credCert: X509Certificate, oid: String, tagNo: Int): DEROctetString? {
+        val value = credCert.getExtensionValue(oid)
+        val envelope = ASN1InputStream(value).readObjectAs<DEROctetString>()
+        val sequence = ASN1InputStream(envelope.octetStream).readObjectAs<DLSequence>()
+        val taggedObject =
+            sequence.firstOrNull {
+                (it is DLTaggedObject) && it.tagNo == tagNo
+                        && (it.baseObject as DEROctetString).octets.isNotEmpty()
+            } as DLTaggedObject?
+        return taggedObject?.baseObject as DEROctetString?
+    }
+
+    private fun parseIosBuildOrVersionNumber(credCert: X509Certificate): ParsedVersions = runCatching {
+        getTaggedOctetString(
+            credCert = credCert,
+            oid = AttestationValidator.AppleCertificateExtensions.OS_VERSION_OID,
+            tagNo = AttestationValidator.AppleCertificateExtensions.OS_VERSION_TAG_NO,
+        )?.octets?.let(::String)?.let { SemVer.parse(it) }
+    }.getOrNull() to getTaggedOctetString(
+        credCert = credCert,
+        oid = AttestationValidator.AppleCertificateExtensions.OS_VERSION_OID,
+        //the SemVer-encoded iOS version and the build number use distinct tags, which are three numbers apart
+        tagNo = AttestationValidator.AppleCertificateExtensions.OS_VERSION_TAG_NO + 3,
+    )?.octets?.let(::String)?.let { it.toBuildNumber() }
+
+    private fun encapsulateIosAttestationException(it: Throwable): AttestationException {
+        return if (it is ch.veehait.devicecheck.appattest.attestation.AttestationException) {
+            when (it) {
+                is ch.veehait.devicecheck.appattest.attestation.AttestationException.InvalidAuthenticatorData -> {
+                    AttestationException.Content.iOS(
+                        cause = IosAttestationException(
+                            cause = it,
+                            reason = if (it.message?.startsWith("App ID does not match RP ID hash") == true ||
+                                it.message?.startsWith("AAGUID does match neither") == true
+                            ) IosAttestationException.Reason.IDENTIFIER else IosAttestationException.Reason.APP_UNEXPECTED
+                        )
+                    )
+                }
+
+                is ch.veehait.devicecheck.appattest.attestation.AttestationException.InvalidCertificateChain -> {
+                    var ex = it.cause
+                    while (ex !is CertPathValidatorException) {
+                        if (ex == null) return AttestationException.Certificate.Trust.iOS(cause = it)
+                        ex = ex.cause
+                    }
+                    if ((ex.reason == CertPathValidatorException.BasicReason.NOT_YET_VALID) || (ex.reason == CertPathValidatorException.BasicReason.EXPIRED))
+                        AttestationException.Certificate.Time.iOS(cause = ex)
+                    else AttestationException.Certificate.Trust.iOS(cause = ex)
+                }
+
+                is ch.veehait.devicecheck.appattest.attestation.AttestationException.InvalidFormatException,
+                is ch.veehait.devicecheck.appattest.attestation.AttestationException.InvalidPublicKey ->
+                    AttestationException.Content.iOS(
+                        cause = IosAttestationException(
+                            cause = it,
+                            reason = IosAttestationException.Reason.APP_UNEXPECTED
+                        )
+                    )
+
+                is ch.veehait.devicecheck.appattest.attestation.AttestationException.InvalidNonce ->
+                    AttestationException.Content.iOS(
+                        it.message,
+                        IosAttestationException(it.message, it, IosAttestationException.Reason.CHALLENGE)
+                    )
+
+                is ch.veehait.devicecheck.appattest.attestation.AttestationException.InvalidReceipt -> {
+                    var ex = it.cause
+                    while (ex !is ReceiptException.InvalidPayload) {
+                        if (ex == null) return AttestationException.Content.iOS(
+                            cause = IosAttestationException(
+                                cause = it,
+                                reason = IosAttestationException.Reason.APP_UNEXPECTED
+                            )
+                        )
+                        ex = ex.cause
+                    }
+                    if (ex.message?.startsWith("Receipt's creation time is after") == true)
+                        AttestationException.Certificate.Time.iOS(
+                            cause = ex
+                        )
+                    else AttestationException.Content.iOS(
+                        cause = IosAttestationException(
+                            cause = it,
+                            reason = IosAttestationException.Reason.APP_UNEXPECTED
+                        )
+                    )
+                }
+            }
+        } else AttestationException.Content.iOS(
+            cause = IosAttestationException(
+                cause = it,
+                reason = IosAttestationException.Reason.APP_UNEXPECTED
+            )
+        )
+    }
+}
+
+
+private fun String.toBuildNumber(): BuildNumber = BuildNumber(this)

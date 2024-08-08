@@ -13,26 +13,26 @@ Properties().apply {
 
 
 plugins {
-    kotlin("jvm") version "1.9.10"
+    kotlin("jvm") version "2.0.0"
     id("idea")
-    id("io.ktor.plugin") version "2.3.4"
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.10"
+    id("io.ktor.plugin") version "2.3.12"
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.0.0"
 }
 
 
 idea {
     project {
-        jdkName = "11"
+        jdkName = "17"
     }
 }
 
 kotlin {
     jvmToolchain {
-        (this as JavaToolchainSpec).languageVersion.set(JavaLanguageVersion.of(11))
+        languageVersion.set(JavaLanguageVersion.of(17))
     }
 }
 group = "at.asitplus"
-version = "0.0.3"
+version = "0.0.4"
 application {
     mainClass.set("io.ktor.server.cio.EngineMain")
 
@@ -60,9 +60,9 @@ dependencies {
     implementation("com.nimbusds:nimbus-jose-jwt:9.31")
 
     /*This does the magic*/
-    implementation("at.asitplus:attestation-service:$attestation_version")
+    implementation("at.asitplus:warden:$attestation_version")
 
-    implementation("org.bouncycastle:bcpkix-jdk18on:1.76")
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.78.1")
     implementation("io.ktor:ktor-server-call-logging-jvm:$ktor_version")
 
     testImplementation("io.ktor:ktor-server-tests-jvm:$ktor_version")

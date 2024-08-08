@@ -25,7 +25,7 @@ class GeneratedAttestationTests : FreeSpec(
             androidVersion
         )
 
-        val attestationService = DefaultAttestationService(
+        val attestationService = Warden(
             androidAttestationConfiguration = AndroidAttestationConfiguration(
                 applications = listOf(
                     AndroidAttestationConfiguration.AppData(

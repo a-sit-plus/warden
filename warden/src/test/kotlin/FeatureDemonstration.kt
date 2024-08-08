@@ -16,7 +16,7 @@ import kotlin.time.Duration
 class FeatureDemonstration : FreeSpec() {
     init {
 
-        val service = DefaultAttestationService(
+        val service = Warden(
             androidAttestationConfiguration = AndroidAttestationConfiguration(
                 listOf(
                     AndroidAttestationConfiguration.AppData(

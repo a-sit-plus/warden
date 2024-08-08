@@ -19,11 +19,11 @@ jobs:
         if: success() || failure()
         with:
           name: All Tests
-          path: attestation-service/build/test-results/**/TEST*.xml
+          path: warden/build/test-results/**/TEST*.xml
           reporter: java-junit
       - name: Upload jar
         uses: actions/upload-artifact@v3
         with:
-          name: attestation-service
+          name: warden
           path: |
             build/libs/*jar
