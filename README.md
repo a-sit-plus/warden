@@ -233,6 +233,11 @@ The key can be passed in either encoding to the secure enclave when creating an 
 
 <br>
 
+## Contributing
+External contributions are greatly appreciated!
+Just be sure to observe the contribution guidelines (see [CONTRIBUTING.md](CONTRIBUTING.md)).
+
+
 ---
 <p align="center">
 This project has received funding from the European Union’s Horizon 2020 research and innovation
