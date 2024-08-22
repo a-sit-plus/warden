@@ -10,7 +10,6 @@ import ch.veehait.devicecheck.appattest.assertion.Assertion
 import ch.veehait.devicecheck.appattest.attestation.ValidatedAttestation
 import com.google.android.attestation.AttestationApplicationId
 import com.google.android.attestation.ParsedAttestationRecord
-import kotlinx.datetime.Clock
 import net.swiftzer.semver.SemVer
 import org.slf4j.LoggerFactory
 import java.security.PublicKey
@@ -264,54 +263,22 @@ abstract class AttestationService {
             expectedChallenge,
             keyToBeAttested.encoded
         )) {
-            is AttestationResult.Android -> {
-                return if (CryptoPublicKey.fromJcaPublicKey(keyToBeAttested) == CryptoPublicKey.fromJcaPublicKey(
-                        firstTry.attestationCertificate.publicKey
-                    )
-                )
-                    KeyAttestation(keyToBeAttested, firstTry)
-                else {
-                    ("Android attestation failed: keyToBeAttested (${keyToBeAttested.encoded.encodeBase64()}) does not match " +
-                            "key from attestation certificate: ${firstTry.attestationCertificate.publicKey.encoded.encodeBase64()}").let {
-                        KeyAttestation(
-                            null,
-                            AttestationResult.Error(
-                                explanation = it,
-                                cause = AttException.Content.Android(
-                                    it,
-                                    AttestationValueException(
-                                        it,
-                                        cause = null,
-                                        reason = AttestationValueException.Reason.APP_UNEXPECTED
-                                    )
-                                )
-                            )
-                        )
-                    }
-                }
-            }
+            is AttestationResult.Android -> return processAndroidAttestationResult(keyToBeAttested, firstTry)
 
             is AttestationResult.Error -> {
-                //try different encodings
-                val publicKeyEncodings = CryptoPublicKey.fromJcaPublicKey(keyToBeAttested).getOrThrow().let {
-                    listOf(
-                        it.iosEncoded,
-                        (it as CryptoPublicKey.EC).copy(
-                            it.publicPoint,
-                            preferCompressedRepresentation = !it.preferCompressedRepresentation
-                        ).iosEncoded,
-                        it.encodeToDer()
-                    )
-                }
 
+                // try all different key encodings
                 // not the most efficient way, but doing it like this won't involve any guesswork at all
-                publicKeyEncodings.forEach {
+                keyToBeAttested.transcodeToAllFormats().forEach {
                     when (val secondTry =
                         kotlin.runCatching { verifyAttestation(attestationProof, expectedChallenge, it) }
                             .getOrElse { return KeyAttestation(null, firstTry) }) {
-                        is AttestationResult.Android -> throw RuntimeException("Logical Error attesting key ${keyToBeAttested.encoded.encodeBase64()} for attestation proof ${attestationProof.joinToString { it.encodeBase64() }} with challenge ${expectedChallenge.encodeBase64()} at ${Clock.System.now()}")
-                        is AttestationResult.Error -> {/*try again*/
-                        }
+
+                        is AttestationResult.Android ->
+                            throw logicalError(keyToBeAttested, attestationProof, expectedChallenge)
+
+                        is AttestationResult.Error -> {} //try again, IOS could have encoded it differently
+
                         //if this works, perfect!
                         is AttestationResult.IOS -> return KeyAttestation(keyToBeAttested, secondTry)
                     }
@@ -323,6 +290,35 @@ abstract class AttestationService {
             is AttestationResult.IOS -> return KeyAttestation(keyToBeAttested, firstTry)
         }
     }
+
+    private fun <T : PublicKey> processAndroidAttestationResult(
+        keyToBeAttested: T,
+        firstTry: AttestationResult.Android
+    ): KeyAttestation<T> =
+        if (CryptoPublicKey.fromJcaPublicKey(keyToBeAttested) == CryptoPublicKey.fromJcaPublicKey(
+                firstTry.attestationCertificate.publicKey
+            )
+        ) KeyAttestation(keyToBeAttested, firstTry)
+        else {
+            ("Android attestation failed: keyToBeAttested (${keyToBeAttested.encoded.encodeBase64()}) does not match " +
+                    "key from attestation certificate: ${firstTry.attestationCertificate.publicKey.encoded.encodeBase64()}").let {
+                KeyAttestation(
+                    null,
+                    AttestationResult.Error(
+                        explanation = it,
+                        cause = AttException.Content.Android(
+                            it,
+                            AttestationValueException(
+                                it,
+                                cause = null,
+                                reason = AttestationValueException.Reason.APP_UNEXPECTED
+                            )
+                        )
+                    )
+                )
+            }
+        }
+
 
     /** Same as [verifyKeyAttestation], but taking an encoded (either ANSI X9.63 or DER) publix key as a byte array
      * @see verifyKeyAttestation
