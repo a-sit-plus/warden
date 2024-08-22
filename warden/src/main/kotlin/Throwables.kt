@@ -4,6 +4,8 @@ import at.asitplus.attestation.AttestationException.Certificate
 import at.asitplus.attestation.AttestationException.Content
 import at.asitplus.attestation.android.exceptions.AndroidAttestationException
 import at.asitplus.attestation.android.exceptions.AttestationValueException
+import kotlinx.datetime.Clock
+import java.security.PublicKey
 
 
 /**
@@ -174,6 +176,15 @@ class IosAttestationException(msg: String? = null, cause: Throwable? = null, val
          */
         APP_UNEXPECTED,
 
-
     }
 }
+
+internal fun <T : PublicKey> logicalError(
+    keyToBeAttested: T,
+    attestationProof: List<ByteArray>,
+    expectedChallenge: ByteArray
+) = RuntimeException("Logical Error attesting key ${
+    keyToBeAttested.encoded.encodeBase64()
+} for attestation proof ${
+    attestationProof.joinToString { it.encodeBase64() }
+} with challenge ${expectedChallenge.encodeBase64()} at ${Clock.System.now()}")
