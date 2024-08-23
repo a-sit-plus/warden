@@ -1,7 +1,5 @@
 ## 2.1.2
-- Rework key encoding for attestation checks
 
-## 2.1.1
 - Rely on [Signum](https://github.com/a-sit-plus/signum) to transcode public keys
 - Add working `hashCode` and `equals` to `AttestationResult` and `KeyAttestation`
 - Rework key attestation key comparison
