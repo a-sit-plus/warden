@@ -1,5 +1,6 @@
 package at.asitplus.attestation
 
+import at.asitplus.KmmResult
 import at.asitplus.attestation.AttestationException
 import at.asitplus.attestation.IOSAttestationConfiguration.AppData
 import at.asitplus.attestation.android.*
@@ -295,29 +296,23 @@ abstract class AttestationService {
         keyToBeAttested: T,
         firstTry: AttestationResult.Android
     ): KeyAttestation<T> =
-        if (CryptoPublicKey.fromJcaPublicKey(keyToBeAttested) == CryptoPublicKey.fromJcaPublicKey(
-                firstTry.attestationCertificate.publicKey
-            )
-        ) KeyAttestation(keyToBeAttested, firstTry)
-        else {
-            ("Android attestation failed: keyToBeAttested (${keyToBeAttested.encoded.encodeBase64()}) does not match " +
-                    "key from attestation certificate: ${firstTry.attestationCertificate.publicKey.encoded.encodeBase64()}").let {
-                KeyAttestation(
-                    null,
-                    AttestationResult.Error(
-                        explanation = it,
-                        cause = AttException.Content.Android(
-                            it,
-                            AttestationValueException(
-                                it,
-                                cause = null,
-                                reason = AttestationValueException.Reason.APP_UNEXPECTED
-                            )
-                        )
-                    )
-                )
-            }
+        if (keyToBeAttested.toCryptoPublicKey() == firstTry.attestationCertificate.publicKey.toCryptoPublicKey()) {
+            KeyAttestation(keyToBeAttested, firstTry)
+        } else {
+            val reason = "Android attestation failed: keyToBeAttested (${keyToBeAttested.toLogString()}) does not " +
+                    "match key from attestation certificate: ${firstTry.attestationCertificate.publicKey.toLogString()}"
+            AttException.Content.Android(
+                reason, AttestationValueException(reason, null, AttestationValueException.Reason.APP_UNEXPECTED)
+            ).toAttestationError(reason)
         }
+
+    private fun <T : PublicKey> T.toLogString(): String? = encoded.encodeBase64()
+
+    private fun <T : PublicKey> AttestationException.Content.toAttestationError(it: String): KeyAttestation<T> =
+        KeyAttestation(null, AttestationResult.Error(it, this))
+
+    private fun <T : PublicKey> T.toCryptoPublicKey(): KmmResult<CryptoPublicKey> =
+        CryptoPublicKey.fromJcaPublicKey(this)
 
 
     /** Same as [verifyKeyAttestation], but taking an encoded (either ANSI X9.63 or DER) publix key as a byte array
