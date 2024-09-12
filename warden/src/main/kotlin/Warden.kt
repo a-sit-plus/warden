@@ -314,8 +314,9 @@ class Warden(
             iosApps.entries.firstOrNull { (_, appAttest) -> appAttest.app == result.first.app }?.key?.iosVersionOverride
                 ?: iosAttestationConfiguration.iosVersion
 
-        val parsedVersion = parseIosBuildOrVersionNumber(result.second.certificate)
+        var parsedVersion: ParsedVersions = null to null
         iosVersion?.let { configuredVersion ->
+            parsedVersion = parseIosBuildOrVersionNumber(result.second.certificate)
             kotlin.runCatching {
                 if (configuredVersion > parsedVersion) {
                     val explanation =

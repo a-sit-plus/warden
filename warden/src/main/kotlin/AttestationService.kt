@@ -177,16 +177,26 @@ typealias ParsedVersions = Pair<SemVer?, BuildNumber?>
  * *  Major version: Within Apple, the major version is called the build train.
  * *  Minor version: For iOS and its descendants, the minor version tracks with the minor release; for macOS, it tracks with patch releases.
  * *  Daily build version: The daily build indicates how many times Apple has built the source code for the release since the previous public release.
+ * *  Optional mastering counter; only relevant for internal builds an betas
  *
  * While this last bit about the daily build number is phrased somewhat fuzzy, it really is a strictly increasing decimal number.
  */
-class BuildNumber private constructor(val buildTrain: UInt, val minorVersion: String, val buildVer: UInt) :
-    Comparable<BuildNumber> {
+class BuildNumber private constructor(
+    val buildTrain: UInt,
+    val minorVersion: String,
+    val buildVer: UInt,
+    val masteringCounter: String? = null
+) : Comparable<BuildNumber> {
 
 
     constructor(buildNumber: String) : this(parseBuildNumber(buildNumber))
 
-    constructor(boxed: Triple<UInt, String, UInt>) : this(boxed.first, boxed.second, boxed.third)
+    private constructor(boxed: Pair<Triple<UInt, String, UInt>, String?>) : this(
+        boxed.first.first,
+        boxed.first.second,
+        boxed.first.third,
+        boxed.second
+    )
 
 
     /**
@@ -195,24 +205,33 @@ class BuildNumber private constructor(val buildTrain: UInt, val minorVersion: St
      * This results in a [UInt] whose MSBs are always set for correct and straight-forward comparison of build numbers.
      * The implementation is inefficient but comprehensible.
      */
-    val intRepresentation = (
-            buildTrain.toString(16)
-                    + minorVersion.toUInt(36).toString(16)
-                    //there will never be more than 9999 days between first release of minorVer and patch
-                    + buildVer.toString(10).padEnd(4, '0').toUInt(10).toString(16)
-            ).padEnd(8, '0').toUInt(16)
+    val semVerRepresentation: SemVer = SemVer(
+        buildTrain.toInt(),
+        minor = minorVersion.toInt(36),
+        patch = buildVer.toInt(),
+        preRelease = masteringCounter
+    )
 
-    override fun compareTo(other: BuildNumber): Int = intRepresentation.compareTo(other.intRepresentation)
+    override fun compareTo(other: BuildNumber): Int = semVerRepresentation.compareTo(other.semVerRepresentation)
 
-    override fun toString() = "$buildTrain$minorVersion$buildVer (${intRepresentation.toString(16)})".uppercase()
+    override fun toString() = "$buildTrain$minorVersion$buildVer ($semVerRepresentation)"
 
     companion object {
-        private fun parseBuildNumber(stringRepresentation: String): Triple<UInt, String, UInt> {
+        private fun parseBuildNumber(stringRepresentation: String): Pair<Triple<UInt, String, UInt>, String?> {
             val buildTrain = stringRepresentation.takeWhile { it.isDigit() }
-            val minorVersion = stringRepresentation.substring(buildTrain.length).takeWhile { it.isLetter() }.uppercase()
-            val buildVer = stringRepresentation.substring(buildTrain.length + minorVersion.length).toUInt(10)
 
-            return Triple(buildTrain.toUInt(10), minorVersion, buildVer)
+            val minorVersion = stringRepresentation.substring(buildTrain.length).takeWhile { it.isLetter() }
+            val masteringCounter = stringRepresentation.takeLastWhile { it.isLetter() }
+            val buildVer = stringRepresentation.substring(
+                buildTrain.length + minorVersion.length,
+                stringRepresentation.length - masteringCounter.length
+            ).toUInt(10)
+
+            return Triple(
+                buildTrain.toUInt(10),
+                minorVersion,
+                buildVer
+            ) to masteringCounter.let { if (it.isEmpty()) null else it }
         }
     }
 }
