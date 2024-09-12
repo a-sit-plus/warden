@@ -1,3 +1,9 @@
+## 2.1.3
+- Fix Parsing of iOS Build Numbers
+- Dependency Updates:
+  - Kotlin 2.0.20
+  - Serialization 1.7.2
+
 ## 2.1.2
 
 - Rely on [Signum](https://github.com/a-sit-plus/signum) to transcode public keys

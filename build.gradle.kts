@@ -1,3 +1,3 @@
-plugins {  id("at.asitplus.gradle.conventions") version "2.0.0+20240619" }
+plugins {  id("at.asitplus.gradle.conventions") version "2.0.20+20240904" }
 
 group = "at.asitplus"
