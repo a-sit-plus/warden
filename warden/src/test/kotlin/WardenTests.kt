@@ -4,8 +4,10 @@ import at.asitplus.attestation.android.AndroidAttestationConfiguration
 import at.asitplus.attestation.android.PatchLevel
 import at.asitplus.attestation.android.exceptions.AttestationValueException
 import at.asitplus.attestation.data.AttestationData
+import at.asitplus.signum.indispensable.Attestation
 import com.google.android.attestation.ParsedAttestationRecord
 import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.datatest.withData
 import io.kotest.matchers.booleans.shouldBeFalse
@@ -15,6 +17,8 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import io.kotest.matchers.types.shouldNotBeInstanceOf
 import kotlinx.datetime.toKotlinInstant
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.decodeFromStream
 import java.security.KeyPairGenerator
 import java.security.spec.ECGenParameterSpec
 import kotlin.time.Duration.Companion.days
@@ -1072,8 +1076,125 @@ class WardenTest : FreeSpec() {
             //TODO jailbroken iphone
         }
 
-        "And the Samsung" {
-            //TODO eternal leaves for samsung devices
+        "And the Fabulous" - {
+            val ios = "D4BD9EFC2A1AB1E2351143A4E67BB91F" to
+                    Json.decodeFromStream<Attestation>(WardenTest::class.java.classLoader.getResourceAsStream("ios-appattest.json"))
+            val android = "CAC4307080875C418BEB668E825649DC" to
+                    Json.decodeFromStream<Attestation>(this::class.java.classLoader.getResourceAsStream("aksattest.json"))
+
+            withData(ios, android) {
+                Warden(
+                    AndroidAttestationConfiguration.Builder(
+                        AndroidAttestationConfiguration.AppData(
+                            "at.asitplus.cryptotest.androidApp",
+                            listOf(
+                                "941A4513A3027563D3A6EA48EEE85BA45EB9F69CEEA19EF0EBB17F100BFC8878".hexToByteArray(
+                                    HexFormat.UpperCase
+                                )
+                            )
+                        )
+                    ).build(),
+                    IOSAttestationConfiguration(
+                        IOSAttestationConfiguration.AppData(
+                            "9CYHJNG644",
+                            "at.asitplus.signumtest.iosApp",
+                            sandbox = true
+                        )
+                    ), FixedTimeClock(2024u, 10u, 1u)
+                ).apply {
+                    withClue("should pass") {
+                        verifyKeyAttestation(it.second, it.first.hexToByteArray(HexFormat.UpperCase)).apply {
+                            isSuccess.shouldBeTrue()
+                        }
+                    }
+
+                    withClue("challenge fail pass") {
+                        verifyKeyAttestation(it.second, it.first.reversed().hexToByteArray(HexFormat.UpperCase)).apply {
+                            isSuccess.shouldBeFalse()
+                        }
+                    }
+                }
+
+                withClue("Invalid App ID") {
+                    Warden(
+                        AndroidAttestationConfiguration.Builder(
+                            AndroidAttestationConfiguration.AppData(
+                                "borked",
+                                listOf(
+                                    "941A4513A3027563D3A6EA48EEE85BA45EB9F69CEEA19EF0EBB17F100BFC8878".hexToByteArray(
+                                        HexFormat.UpperCase
+                                    )
+                                )
+                            )
+                        ).build(),
+                        IOSAttestationConfiguration(
+                            IOSAttestationConfiguration.AppData(
+                                "9CYHJNG644",
+                                "borked",
+                                sandbox = true
+                            )
+                        ), FixedTimeClock(2024u, 10u, 1u)
+                    ).apply {
+
+                        verifyKeyAttestation(it.second, it.first.hexToByteArray(HexFormat.UpperCase)).apply {
+                            isSuccess.shouldBeFalse()
+                        }
+                    }
+                }
+
+                withClue("Invalid Signature / Team ID") {
+                    Warden(
+                        AndroidAttestationConfiguration.Builder(
+                            AndroidAttestationConfiguration.AppData(
+                                "at.asitplus.cryptotest.androidApp",
+                                listOf(
+                                    "491A4513A3027563D3A6EA48EEE85BA45EB9F69CEEA19EF0EBB17F100BFC8878".hexToByteArray(
+                                        HexFormat.UpperCase
+                                    )
+                                )
+                            )
+                        ).build(),
+                        IOSAttestationConfiguration(
+                            IOSAttestationConfiguration.AppData(
+                                "borked1337",
+                                "at.asitplus.signumtest.iosApp",
+                                sandbox = true
+                            )
+                        ), FixedTimeClock(2024u, 10u, 1u)
+                    ).apply {
+
+                        verifyKeyAttestation(it.second, it.first.hexToByteArray(HexFormat.UpperCase)).apply {
+                            isSuccess.shouldBeFalse()
+                        }
+                    }
+                }
+
+                withClue("Timewarp") {
+                    Warden(
+                        AndroidAttestationConfiguration.Builder(
+                            AndroidAttestationConfiguration.AppData(
+                                "at.asitplus.cryptotest.androidApp",
+                                listOf(
+                                    "941A4513A3027563D3A6EA48EEE85BA45EB9F69CEEA19EF0EBB17F100BFC8878".hexToByteArray(
+                                        HexFormat.UpperCase
+                                    )
+                                )
+                            )
+                        ).build(),
+                        IOSAttestationConfiguration(
+                            IOSAttestationConfiguration.AppData(
+                                "9CYHJNG644",
+                                "at.asitplus.signumtest.iosApp",
+                                sandbox = true
+                            )
+                        ), FixedTimeClock(1954u, 10u, 1u)
+                    ).apply {
+                        verifyKeyAttestation(it.second, it.first.hexToByteArray(HexFormat.UpperCase)).apply {
+                            isSuccess.shouldBeFalse()
+                        }
+                    }
+                }
+            }
         }
     }
 }

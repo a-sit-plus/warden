@@ -5,8 +5,7 @@ import at.asitplus.attestation.AttestationException
 import at.asitplus.attestation.IOSAttestationConfiguration.AppData
 import at.asitplus.attestation.android.*
 import at.asitplus.attestation.android.exceptions.AttestationValueException
-import at.asitplus.signum.indispensable.CryptoPublicKey
-import at.asitplus.signum.indispensable.fromJcaPublicKey
+import at.asitplus.signum.indispensable.*
 import ch.veehait.devicecheck.appattest.assertion.Assertion
 import ch.veehait.devicecheck.appattest.attestation.ValidatedAttestation
 import com.google.android.attestation.AttestationApplicationId
@@ -247,6 +246,8 @@ abstract class AttestationService {
     ): AttestationResult
 
 
+    abstract fun verifyKeyAttestation(attestationProof: Attestation, challenge: ByteArray): KeyAttestation<PublicKey>
+
     /**
      * Verifies key attestation for both Android and Apple devices.
      *
@@ -273,6 +274,11 @@ abstract class AttestationService {
      *
      * @return [KeyAttestation] containing the attested public key on success or null in case of failure (see [KeyAttestation])
      */
+    @Deprecated(
+        "This uses the legacy attestation format, which is not future-proof, makes too few guarantees wrt. encoding, " +
+                "guesses the platform based on the number of elements in the attestation proof, etc.",
+        ReplaceWith("AttestationService.verifyAttestation(attestationProof, challenge)")
+    )
     fun <T : PublicKey> verifyKeyAttestation(
         attestationProof: List<ByteArray>,
         expectedChallenge: ByteArray,
@@ -609,6 +615,21 @@ object NoopAttestationService : AttestationService() {
     ): AttestationResult =
         if (attestationProof.size > 2) AttestationResult.Android.NOOP(attestationProof)
         else AttestationResult.IOS.NOOP(clientData)
+
+    override fun verifyKeyAttestation(attestationProof: Attestation, challenge: ByteArray): KeyAttestation<PublicKey> =
+        when (attestationProof) {
+            is IosHomebrewAttestation -> KeyAttestation(
+                attestationProof.parsedClientData.publicKey.getJcaPublicKey().getOrThrow(),
+                AttestationResult.IOS.NOOP(attestationProof.parsedClientData.publicKey.encodeToDer())
+            )
+
+            is AndroidKeystoreAttestation -> KeyAttestation(
+                attestationProof.certificateChain.first().publicKey.getJcaPublicKey().getOrThrow(),
+                AttestationResult.Android.NOOP(attestationProof.certificateChain.map { it.encodeToDer() })
+            )
+
+            else -> KeyAttestation(null, AttestationResult.Error("Unsupported attestation proof type"))
+        }
 
     override val ios: IOS
         get() = object : IOS {

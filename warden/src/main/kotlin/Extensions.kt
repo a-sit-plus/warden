@@ -45,10 +45,7 @@ data class AttestationObject(
 internal fun PublicKey.transcodeToAllFormats() = CryptoPublicKey.fromJcaPublicKey(this).getOrThrow().let {
     listOf(
         it.iosEncoded,
-        (it as CryptoPublicKey.EC).copy(
-            it.publicPoint,
-            preferCompressedRepresentation = !it.preferCompressedRepresentation
-        ).iosEncoded,
+        (it as CryptoPublicKey.EC).toAnsiX963Encoded(useCompressed = !it.preferCompressedRepresentation),
         it.encodeToDer()
     )
 }
