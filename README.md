@@ -100,15 +100,15 @@ By that logic, computing an assertion over the public key of a freshly generated
 authentic, uncompromised app on a non-jailbroken device was used to generate this key pair as intended by the app developer.
 
 #### Supreme Attestation Format (Supported Since Version 2.2.0)
-Following Apple's attestation format makes is clear, that no data, but only hashes are ever encoded and signed.
+Following Apple's attestation format makes it clear that no data, but only hashes are ever encoded and signed.
 Hence, it allows for a lot of flexibility when it comes to the data to be hashed.
 The new supreme attestation format exploits this and does not only pass the hash over a challenge to the AppAttest
 service, but instead constructs a structured (JSON) client data object, inspired by WebAuthn and passes tha hash of this
 data to `DCAppAttest`.
-As such, clients need to create a Secure-Enclave-protected key pair before callinf `DCAppattest` and construct the structured
+As such, clients need to create a Secure-Enclave-protected key pair before calling `DCAppattest` and construct the structured
 client data, containing the public part of this key pair and the server challenge.
-This structured data format is defined in the _Signum's
-[Indispensable](https://a-sit-plus.github.io/signum/dokka/indispensable/at.asitplus.signum.indispensable/-ios-homebrew-attestation/index.html)_
+The client data format is defined in the _Signum's
+[Indispensable](https://a-sit-plus.github.io/signum/dokka/indispensable/at.asitplus.signum.indispensable/-ios-homebrew-attestation/-client-data/index.html)_
 module.
 
 This library abstracts away all the nitty-gritty details of this verification process and provides a unified API
