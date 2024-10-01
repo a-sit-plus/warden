@@ -92,11 +92,24 @@ attestations (and related assertions; see below).
 
 This begs the question: How to enable key attestation on iOS?
 After all, many applications exist, which require some proof that a key used for critical operations resides in hardware.
-<br>
-Here, the ability to obtain a so-called *assertion* comes to the rescue: iOS allows generating an *assertion* for some
+
+#### Legacy Attestation Format (Deprecated, but still Supported since Version 2.2.0)
+To emulate key attestation, the ability to obtain a so-called *assertion* comes to the rescue: iOS allows generating an *assertion* for some
 data by signing it using the same key backing a previously obtained attestation.
 By that logic, computing an assertion over the public key of a freshly generated public/private key pair proves that an
 authentic, uncompromised app on a non-jailbroken device was used to generate this key pair as intended by the app developer.
+
+#### Supreme Attestation Format (Supported Since Version 2.2.0)
+Following Apple's attestation format makes is clear, that no data, but only hashes are ever encoded and signed.
+Hence, it allows for a lot of flexibility when it comes to the data to be hashed.
+The new supreme attestation format exploits this and does not only pass the hash over a challenge to the AppAttest
+service, but instead constructs a structured (JSON) client data object, inspired by WebAuthn and passes tha hash of this
+data to `DCAppAttest`.
+As such, clients need to create a Secure-Enclave-protected key pair before callinf `DCAppattest` and construct the structured
+client data, containing the public part of this key pair and the server challenge.
+This structured data format is defined in the _Signum's
+[Indispensable](https://a-sit-plus.github.io/signum/dokka/indispensable/at.asitplus.signum.indispensable/-ios-homebrew-attestation/index.html)_
+module.
 
 This library abstracts away all the nitty-gritty details of this verification process and provides a unified API
 which works with both Android and iOS.
@@ -188,12 +201,18 @@ The sample also contains Android and iOS clients.
 * The general workflow this library caters to assumes a back-end service, sending an attestation challenge to the mobile app. This challenge needs to be kept for future reference
 * The app is assumed to generate a key pair with attestation (passing the received challenge to the platform's respective crypto APIs)
 * The app responds with a platform-dependent attestation proof, the public key just created, and the challenge.
+
+**DEPRECETED, but still supported**
   * On Android, this proof is simply the certificate chain associated with the newly created key pair, which obtainable through the Android KeyStore API.
     * The certificate chain needs to be encoded into a list of byte arrays.
     * The first (index `0`) certificate is assumed to be the leaf, while tha last is assumed to be a certificate signed by the Google hardware attestation root key.
   * On iOS, the list of byte arrays must contain exactly two entries:
     * Index `0` contains an attestation object
     * Index `1` contains an assertion over the to-be-attested public key (either ANSI X9.63 encoded or DER encoded)
+
+**END DEPRECATION. The structure of the platform-specific proofs can be found [here](https://a-sit-plus.github.io/signum/dokka/indispensable/at.asitplus.signum.indispensable/-ios-homebrew-attestation/index.html).**
+
+
 * On the back-end, a single call to `verifyKeyAttestation()`  is sufficient to remotely verify
    whether the key is indeed stored in HW (and whether the app can be trusted). This call requires the challenge from step 1.
 
@@ -202,11 +221,10 @@ Various advanced, platform-specific variants of this `verifyKeyAttestation()` ca
 However, only `verifyKeyAttestation()` works for both Android and iOS and returns a [KeyAttestation](https://github.com/a-sit-plus/warden/blob/main/warden/src/main/kotlin/AttestationService.kt#L293) object:
 
 ```kotlin
- fun <T : PublicKey> verifyKeyAttestation(
-        attestationProof: List<ByteArray>,
-        expectedChallenge: ByteArray,
-        keyToBeAttested: T
-    ): KeyAttestation<T>
+fun verifyKeyAttestation(
+  attestationProof: Attestation,
+  challenge: ByteArray)
+: KeyAttestation<PublicKey>
 ```
 The returned `KeyAttestation` object contains the attested key on success, or an error on failure.
 
@@ -220,8 +238,8 @@ On Android, this is simply the certificate chain from the attestation certificat
 [Google hardware attestation root certificates](https://developer.android.com/training/articles/security-key-attestation#root_certificate).
 on iOS this must contain the [AppAttest attestation statement](https://developer.apple.com/documentation/devicecheck/validating_apps_that_connect_to_your_server#3576643)
 at index `0` and an [assertion](https://developer.apple.com/documentation/devicecheck/validating_apps_that_connect_to_your_server#3576644)
-at index `1`, which, is verified for integrity and to match `keyToBeAttested`.
-The signature counter in the attestation must be `0` and the signature counter in the assertion must be `1`.
+at index `1`, which, is verified for integrity and to match `keyToBeAttested` **if the deprecated ios Attestation is used**.
+The signature counter in the attestation must be `0` (and the signature counter in the assertion must be `1` **if the deprecated ios Attestation is used**).
 
 Passing a public key created in the same app on an iDevice's secure hardware as `clientData` to create an assertion effectively
 emulates Android's key attestation: Attesting such a secondary key through an assertion proves that
@@ -236,7 +254,6 @@ The key can be passed in either encoding to the secure enclave when creating an 
 ## Contributing
 External contributions are greatly appreciated!
 Just be sure to observe the contribution guidelines (see [CONTRIBUTING.md](CONTRIBUTING.md)).
-
 
 ---
 <p align="center">
