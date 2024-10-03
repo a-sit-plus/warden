@@ -192,11 +192,6 @@ class Warden(
         challenge: ByteArray
     ): KeyAttestation<PublicKey> =
         when (attestationProof) {
-            is SelfAttestation, is IosLegacyHomebrewAttestation -> KeyAttestation<PublicKey>(
-                null,
-                AttestationResult.Error("${attestationProof::class.simpleName} is unsupported")
-            )
-
             is IosHomebrewAttestation -> {
                 if (IosHomebrewAttestation.ClientData(
                         attestationProof.parsedClientData.publicKey,
@@ -238,6 +233,12 @@ class Warden(
                     is AttestationResult.IOS -> KeyAttestation(null, AttestationResult.Error("This must never happen!"))
                 }
             }
+
+            //Signum will remove IosLegacyHomebrewAttestation in new version
+            else -> KeyAttestation(
+                null,
+                AttestationResult.Error("${attestationProof::class.simpleName} is unsupported")
+            )
 
         }
 
