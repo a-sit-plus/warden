@@ -1,3 +1,6 @@
+## 2.2.0
+- Introduce new attestation format
+
 ## 2.1.3
 - Fix Parsing of iOS Build Numbers
 - Dependency Updates:
