@@ -1,14 +1,19 @@
 # Dead-Simple Key Attestation Demo Service
 
-This dead-simple key attestation demo service showcases [our Attestation Library](https://github.com/a-sit-plus/warden) in action.
+This dead-simple key attestation demo service showcases [WARDEN](https://github.com/a-sit-plus/warden) in action.
 Apps for [Android](../client-android) and [iOS](../client-ios) demonstrate the respective client parts.
 For in-depth documentation regarding the Attestation library, please refer to the [official documentation](../../README.md).
+
+**NOTE: This still uses the legacy key attestation emulation for iOS. See the [official documentation](../../README.md) for notes about
+deprecation.**  
+A new, integrated attestation suite based on WARDEN is in the works, with full KMP/CMP support, meaning you'll
+never have to worry about the wire format and how client and server should act.
 
 ## Overview
 
 This service is based on [ktor](https://ktor.io) and establishes trust in mobile clients based on
-[our Attestation Library](https://github.com/a-sit-plus/warden). This concrete incarnation utilises the attestation library's unified
-interface to provide key attestation on both Android and iOS.
+[WARDEN](https://github.com/a-sit-plus/warden). This concrete incarnation utilises the attestation library's unified
+legacy interface to provide key attestation on both Android and iOS.
 
 The process to attest a mobile client works a follows:
 
@@ -112,7 +117,7 @@ This message is for your eyes only.
 ```
 
 ## Development
-Minimum JDK Version required: 11.
+Minimum JDK Version required: 17.
 
 To produce a runnable jar, run `/.gradlew buildFatJar`
 
