@@ -102,17 +102,27 @@ authentic, uncompromised app on a non-jailbroken device was used to generate thi
 #### Supreme Attestation Format (Supported Since Version 2.2.0)
 Following Apple's attestation format makes it clear that no data, but only hashes are ever encoded and signed.
 Hence, it allows for a lot of flexibility when it comes to the data to be hashed.
-The new supreme attestation format exploits this and does not only pass the hash over a challenge to the AppAttest
-service, but instead constructs a structured (JSON) client data object, inspired by WebAuthn and passes tha hash of this
-data to `DCAppAttest`.
-As such, clients need to create a Secure-Enclave-protected key pair before calling `DCAppattest` and construct the structured
+The new _Supreme_ attestation format exploits this and does not only pass the hash over a challenge to the AppAttest
+service, but instead constructs a structured (JSON) client data object, inspired by WebAuthn and passes tha hash of this data to DCAppAttest. This means that:
+
+1. A `ClientData` object is created based on the challenge and the public key to attest.
+2. The ClientData is serialized to JSON, and the `ByteArray`-representation of this JSON string are hashed using SHA-256:
+   * `val clientDataJSON = Json.encodeToString(clientData).encodeToByteArray()`
+   * `val clientDataHash = Digest.SHA256.digest(clientDataJSON).toNSData()`
+3. This hash is then passed to DCAppAttest.  
+   If your mobile clients are using the Supreme KMP crypto provider, this is procedure already implemented, and you don't have to worry about it.
+4. The `IosHomebrewAttestation` provided by Signum's _Indispensable_ module lets you access both the raw bytes of this client data
+   as well as the original `ClientData` object, so you can easily verify both the hash of this data and its contents.
+
+For this whole routine to work, clients need to create a Secure-Enclave-protected key pair before calling `DCAppattest` and construct the structured
 client data, containing the public part of this key pair and the server challenge.
 The client data format is defined in the _Signum's
 [Indispensable](https://a-sit-plus.github.io/signum/dokka/indispensable/at.asitplus.signum.indispensable/-ios-homebrew-attestation/-client-data/index.html)_
-module.
+module, as is the [IosHomebrewAttestation](https://a-sit-plus.github.io/signum/dokka/indispensable/at.asitplus.signum.indispensable/-ios-homebrew-attestation/index.html) containing it.
 
 This library abstracts away all the nitty-gritty details of this verification process and provides a unified API
-which works with both Android and iOS.
+which works with both Android and iOS. (The [AndroidKeyStoreAttestation](https://a-sit-plus.github.io/signum/dokka/indispensable/at.asitplus.signum.indispensable/-android-keystore-attestation/index.html) contains simply the certificate chain attached to an attested key.)  
+The test resources contain examples of [Android](https://github.com/a-sit-plus/warden/tree/main/warden/src/test/resources/aksattest.json) and [iOS](https://github.com/a-sit-plus/warden/tree/main/warden/src/test/resources/ios-appattest.json) attestation proofs.
 
 ## Usage
 Written in Kotlin, plays nicely with Java (cf. `@JvmOverloads`), published at maven central.

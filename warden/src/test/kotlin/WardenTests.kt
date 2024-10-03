@@ -1082,16 +1082,17 @@ class WardenTest : FreeSpec() {
             val android = "CAC4307080875C418BEB668E825649DC" to
                     Json.decodeFromStream<Attestation>(this::class.java.classLoader.getResourceAsStream("aksattest.json"))
 
+            val androidSigDigests = listOf(
+                "941A4513A3027563D3A6EA48EEE85BA45EB9F69CEEA19EF0EBB17F100BFC8878".hexToByteArray(
+                    HexFormat.UpperCase
+                )
+            )
             withData(ios, android) {
                 Warden(
                     AndroidAttestationConfiguration.Builder(
                         AndroidAttestationConfiguration.AppData(
                             "at.asitplus.cryptotest.androidApp",
-                            listOf(
-                                "941A4513A3027563D3A6EA48EEE85BA45EB9F69CEEA19EF0EBB17F100BFC8878".hexToByteArray(
-                                    HexFormat.UpperCase
-                                )
-                            )
+                            androidSigDigests
                         )
                     ).build(),
                     IOSAttestationConfiguration(
@@ -1120,11 +1121,7 @@ class WardenTest : FreeSpec() {
                         AndroidAttestationConfiguration.Builder(
                             AndroidAttestationConfiguration.AppData(
                                 "borked",
-                                listOf(
-                                    "941A4513A3027563D3A6EA48EEE85BA45EB9F69CEEA19EF0EBB17F100BFC8878".hexToByteArray(
-                                        HexFormat.UpperCase
-                                    )
-                                )
+                                androidSigDigests
                             )
                         ).build(),
                         IOSAttestationConfiguration(
@@ -1147,7 +1144,7 @@ class WardenTest : FreeSpec() {
                         AndroidAttestationConfiguration.Builder(
                             AndroidAttestationConfiguration.AppData(
                                 "at.asitplus.cryptotest.androidApp",
-                                listOf(
+                                listOf( //wrong digest
                                     "491A4513A3027563D3A6EA48EEE85BA45EB9F69CEEA19EF0EBB17F100BFC8878".hexToByteArray(
                                         HexFormat.UpperCase
                                     )
@@ -1174,11 +1171,7 @@ class WardenTest : FreeSpec() {
                         AndroidAttestationConfiguration.Builder(
                             AndroidAttestationConfiguration.AppData(
                                 "at.asitplus.cryptotest.androidApp",
-                                listOf(
-                                    "941A4513A3027563D3A6EA48EEE85BA45EB9F69CEEA19EF0EBB17F100BFC8878".hexToByteArray(
-                                        HexFormat.UpperCase
-                                    )
-                                )
+                                androidSigDigests
                             )
                         ).build(),
                         IOSAttestationConfiguration(
