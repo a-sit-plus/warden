@@ -3,6 +3,7 @@ package at.asitplus.attestation
 import at.asitplus.attestation.android.*
 import at.asitplus.attestation.android.exceptions.AttestationValueException
 import at.asitplus.attestation.android.exceptions.CertificateInvalidException
+import at.asitplus.signum.indispensable.*
 import ch.veehait.devicecheck.appattest.AppleAppAttest
 import ch.veehait.devicecheck.appattest.assertion.Assertion
 import ch.veehait.devicecheck.appattest.assertion.AssertionChallengeValidator
@@ -185,6 +186,60 @@ class Warden(
             }
         }
     }
+
+    override fun verifyKeyAttestation(
+        attestationProof: Attestation,
+        challenge: ByteArray
+    ): KeyAttestation<PublicKey> =
+        when (attestationProof) {
+            is SelfAttestation, is IosLegacyHomebrewAttestation -> KeyAttestation<PublicKey>(
+                null,
+                AttestationResult.Error("${attestationProof::class.simpleName} is unsupported")
+            )
+
+            is IosHomebrewAttestation -> {
+                if (IosHomebrewAttestation.ClientData(
+                        attestationProof.parsedClientData.publicKey,
+                        challenge
+                    ) != attestationProof.parsedClientData
+                )
+                    KeyAttestation(
+                        null, AttestationResult.Error(
+                            "Challenge mismatch",
+                            AttestationException.Content.iOS(cause = IosAttestationException(reason = IosAttestationException.Reason.CHALLENGE))
+                        )
+                    )
+                else
+                    verifyAttestationApple(
+                        attestationProof.attestation,
+                        attestationProof.clientDataJSON,
+                        assertionData = null,
+                        counter = 0L
+                    ).let {
+                        when (it) {
+                            is AttestationResult.IOS -> KeyAttestation(
+                                attestationProof.parsedClientData.publicKey.getJcaPublicKey().getOrThrow(), it
+                            )
+                            is AttestationResult.Error -> KeyAttestation(null, it)
+                            is AttestationResult.Android -> KeyAttestation(null, AttestationResult.Error("This must never happen!"))
+                        }
+                    }
+            }
+
+            is AndroidKeystoreAttestation -> verifyAttestationAndroid(
+                attestationProof.certificateChain.map { it.encodeToDer() },
+                challenge
+            ).let {
+                when (it) {
+                    is AttestationResult.Android -> KeyAttestation(
+                        attestationProof.certificateChain.first().publicKey.getJcaPublicKey().getOrThrow(), it
+                    )
+                    is AttestationResult.Error -> KeyAttestation(null, it)
+                    is AttestationResult.IOS -> KeyAttestation(null, AttestationResult.Error("This must never happen!"))
+                }
+            }
+
+        }
 
     /**
      * Verifies [Android Key Attestation](https://developer.android.com/training/articles/security-key-attestation) based
