@@ -36,11 +36,20 @@ data class IOSAttestationConfiguration @JvmOverloads constructor(
      */
     val iosVersion: OsVersions? = null,
 
-    ) {
+    /**
+     * The maximum age an attestation statement is considered valid.
+     */
+    val attestationStatementValiditySeconds: Int = 5 * 60
+
+) {
 
 
     @JvmOverloads
-    constructor(singleApp: AppData, iosVersion: OsVersions? = null) : this(listOf(singleApp), iosVersion)
+    constructor(
+        singleApp: AppData,
+        iosVersion: OsVersions? = null,
+        attestationStatementValiditySeconds: Int = 5 * 60
+    ) : this(listOf(singleApp), iosVersion, attestationStatementValiditySeconds)
 
     init {
         if (applications.isEmpty())

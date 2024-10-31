@@ -154,6 +154,11 @@ class IosAttestationException(msg: String? = null, cause: Throwable? = null, val
         OS_VERSION,
 
         /**
+         * Attestation statement creation time in the future
+         */
+        STATEMENT_TIME,
+
+        /**
          * Signature counter in the assertion is too high. This could mean either an implementation error on the client, or a compromised client app.
          */
         SIG_CTR,

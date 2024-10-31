@@ -22,6 +22,8 @@ import kotlinx.serialization.json.decodeFromStream
 import java.security.KeyPairGenerator
 import java.security.spec.ECGenParameterSpec
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
 
 
 @OptIn(ExperimentalStdlibApi::class)
@@ -110,7 +112,7 @@ class WardenTest : FreeSpec() {
                             "9R0HW4Qprd+PVoFS1oQFrFO9pHFhdXRoZW50aWNhdG9yRGF0YVgljiSVS1qsC3yiRa+Gw3NrIPZ0W9pBspx+KbwXluNyqeVAAAAA" +
                             "AQ=="
                 ),
-                "2023-09-11T16:02:40Z",
+                "2023-09-11T13:06:32Z",
                 pubKeyB64 = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEFT1XwEeF8NftY84GfnqTFBoxHNkdG7wZHcOkLKwT4W6333Jqmga1XkKySq/ApnslBPNZE1Os363SAv8X85ZIrQ=="
             )
 
@@ -127,13 +129,17 @@ class WardenTest : FreeSpec() {
                         "at.asitplus.oegv-demo-app",
                         sandbox = true
                     )
-                ), FixedTimeClock(2023u, 9u, 11u)
+                ), FixedTimeClock(iosIDA.verificationDate.toInstant().toKotlinInstant())
             ).apply {
                 verifyKeyAttestation(
                     iosIDA.attestationProof, iosIDA.challenge, iosIDA.publicKey!!
                 ).apply {
                     isSuccess.shouldBeTrue()
-                    verifyKeyAttestation( iosIDA.attestationProof, iosIDA.challenge, iosIDA.pubKeyB64!!.decodeBase64ToArray()) shouldBe this
+                    verifyKeyAttestation(
+                        iosIDA.attestationProof,
+                        iosIDA.challenge,
+                        iosIDA.pubKeyB64!!.decodeBase64ToArray()
+                    ) shouldBe this
                 }
             }
         }
@@ -153,6 +159,7 @@ class WardenTest : FreeSpec() {
                                 timeSource = FixedTimeClock(
                                     recordedAttestation.verificationDate.toInstant().toKotlinInstant()
                                 ),
+                                androidAttestationStatementValidity = 10.hours
                             ).apply {
                                 "Generic" {
                                     verifyAttestation(
@@ -733,7 +740,7 @@ class WardenTest : FreeSpec() {
                     ySn502vQX3xvw==
                     """
                     ),
-                    isoDate = "2023-04-18T00:00:00Z",
+                    isoDate = "2023-04-17T15:10:00Z",
                     pubKeyB64 = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEgQC2Fo5nb6dlnJh2h4tg0vnJmjPN8x2t+tlwbZEjWO6uJWlqu5uTPFkYKzgpxF6HVoOFYWwPFBZgB4ktwU3ysw=="
                 ).apply {
 
@@ -808,7 +815,8 @@ class WardenTest : FreeSpec() {
                                     ),
                                     disableHardwareAttestation = true,
                                     enableSoftwareAttestation = true,
-                                    ignoreLeafValidity = true
+                                    ignoreLeafValidity = true,
+                                    attestationStatementValiditySeconds = 10*60
                                 ),
                                 DEFAULT_IOS_ATTESTATION_CFG,
                                 clock = clock
@@ -833,7 +841,8 @@ class WardenTest : FreeSpec() {
                                     disableHardwareAttestation = true,
                                     enableNougatAttestation = true,
                                     enableSoftwareAttestation = true,
-                                    ignoreLeafValidity = true
+                                    ignoreLeafValidity = true,
+                                    attestationStatementValiditySeconds = 10*60
                                 ),
                                 DEFAULT_IOS_ATTESTATION_CFG,
                                 clock = clock
@@ -857,7 +866,8 @@ class WardenTest : FreeSpec() {
                                     ),
                                     enableNougatAttestation = true,
                                     enableSoftwareAttestation = true,
-                                    ignoreLeafValidity = true
+                                    ignoreLeafValidity = true,
+                                    attestationStatementValiditySeconds = 10*60
                                 ),
                                 DEFAULT_IOS_ATTESTATION_CFG,
                                 clock = clock
@@ -1101,7 +1111,10 @@ class WardenTest : FreeSpec() {
                             "at.asitplus.signumtest.iosApp",
                             sandbox = true
                         )
-                    ), FixedTimeClock(2024u, 10u, 1u)
+                    ),
+                    FixedTimeClock(2024u, 10u, 1u),
+                    verificationTimeOffset = 12.hours + 45.minutes
+
                 ).apply {
                     withClue("should pass") {
                         verifyKeyAttestation(it.second, it.first.hexToByteArray(HexFormat.UpperCase)).apply {
@@ -1135,6 +1148,72 @@ class WardenTest : FreeSpec() {
 
                         verifyKeyAttestation(it.second, it.first.hexToByteArray(HexFormat.UpperCase)).apply {
                             isSuccess.shouldBeFalse()
+                        }
+                    }
+                }
+
+                withClue("Attestation created in the future") {
+                    Warden(
+                        AndroidAttestationConfiguration.Builder(
+                            AndroidAttestationConfiguration.AppData(
+                                "at.asitplus.cryptotest.androidApp",
+                                androidSigDigests
+                            )
+                        ).build(),
+                        IOSAttestationConfiguration(
+                            IOSAttestationConfiguration.AppData(
+                                "9CYHJNG644",
+                                "at.asitplus.signumtest.iosApp",
+                                sandbox = true
+                            )
+                        ),
+                        FixedTimeClock(2024u, 10u, 1u),
+                        verificationTimeOffset = 0.hours + 45.minutes
+
+                    ).apply {
+                        withClue("should pass") {
+                            verifyKeyAttestation(it.second, it.first.hexToByteArray(HexFormat.UpperCase)).apply {
+                                isSuccess.shouldBeFalse()
+                            }
+                        }
+
+                        withClue("challenge fail pass") {
+                            verifyKeyAttestation(it.second, it.first.reversed().hexToByteArray(HexFormat.UpperCase)).apply {
+                                isSuccess.shouldBeFalse()
+                            }
+                        }
+                    }
+                }
+
+                withClue("Verification Clock too far in the future (i.e. statement too old)") {
+                    Warden(
+                        AndroidAttestationConfiguration.Builder(
+                            AndroidAttestationConfiguration.AppData(
+                                "at.asitplus.cryptotest.androidApp",
+                                androidSigDigests
+                            )
+                        ).build(),
+                        IOSAttestationConfiguration(
+                            IOSAttestationConfiguration.AppData(
+                                "9CYHJNG644",
+                                "at.asitplus.signumtest.iosApp",
+                                sandbox = true
+                            )
+                        ),
+                        FixedTimeClock(2024u, 10u, 1u),
+                        verificationTimeOffset = 14.hours + 45.minutes
+
+                    ).apply {
+                        withClue("should pass") {
+                            verifyKeyAttestation(it.second, it.first.hexToByteArray(HexFormat.UpperCase)).apply {
+                                isSuccess.shouldBeFalse()
+                            }
+                        }
+
+                        withClue("challenge fail pass") {
+                            verifyKeyAttestation(it.second, it.first.reversed().hexToByteArray(HexFormat.UpperCase)).apply {
+                                isSuccess.shouldBeFalse()
+                            }
                         }
                     }
                 }
