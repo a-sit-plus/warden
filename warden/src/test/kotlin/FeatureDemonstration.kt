@@ -30,7 +30,9 @@ class FeatureDemonstration : FreeSpec() {
                 requireStrongBox = false, //optional
                 allowBootloaderUnlock = false, //you don't usually want to change this
                 requireRollbackResistance = false, //depends on device, so leave off
-                ignoreLeafValidity = false //Hello, Samsung!
+                ignoreLeafValidity = false, //Hello, Samsung!
+                verificationSecondsOffset = 15 * 60 - 1 * 60 * 60 + 24 * 60 * 60, //iOS and Android statements were created at different times
+                attestationStatementValiditySeconds = 10*60 //But we were not that exact in the line above
             ),
             iosAttestationConfiguration = IOSAttestationConfiguration(
                 applications = listOf(
@@ -45,7 +47,7 @@ class FeatureDemonstration : FreeSpec() {
                     buildNumber = "0A0"
                 ) //optional, use SemVer notation and large hex number to ignore build number
             ),
-            clock = FixedTimeClock(Instant.parse("2023-04-13T00:00:00Z")), //optional
+            clock = FixedTimeClock(Instant.parse("2023-04-13T14:03:00Z")), //optional
             verificationTimeOffset = Duration.ZERO //optional
         )
 
@@ -57,7 +59,8 @@ class FeatureDemonstration : FreeSpec() {
                     .apply {
                         shouldBeInstanceOf<AttestationResult.Android>().apply {
                             attestationCertificate.encoded shouldBe nokiaX10KeyMasterGood.attestationProof.first()
-                            attestationRecord.attestationChallenge().toByteArray() shouldBe nokiaX10KeyMasterGood.challenge
+                            attestationRecord.attestationChallenge()
+                                .toByteArray() shouldBe nokiaX10KeyMasterGood.challenge
                             attestationRecord.attestationSecurityLevel() shouldBeIn listOf(
                                 ParsedAttestationRecord.SecurityLevel.TRUSTED_ENVIRONMENT,
                                 ParsedAttestationRecord.SecurityLevel.STRONG_BOX
@@ -80,7 +83,8 @@ class FeatureDemonstration : FreeSpec() {
                             attestedPublicKey!!.encoded shouldBe nokiaX10KeyMasterGood.publicKey!!.encoded
                             details.shouldBeInstanceOf<AttestationResult.Android>().apply {
                                 attestationCertificate.encoded shouldBe nokiaX10KeyMasterGood.attestationProof.first()
-                                attestationRecord.attestationChallenge().toByteArray() shouldBe nokiaX10KeyMasterGood.challenge
+                                attestationRecord.attestationChallenge()
+                                    .toByteArray() shouldBe nokiaX10KeyMasterGood.challenge
                                 attestationRecord.attestationSecurityLevel() shouldBeIn listOf(
                                     ParsedAttestationRecord.SecurityLevel.TRUSTED_ENVIRONMENT,
                                     ParsedAttestationRecord.SecurityLevel.STRONG_BOX
@@ -100,7 +104,8 @@ class FeatureDemonstration : FreeSpec() {
                             attestedPublicKey!!.encoded shouldBe nokiaX10KeyMasterGood.publicKey!!.encoded
                             details.shouldBeInstanceOf<AttestationResult.Android>().apply {
                                 attestationCertificate.encoded shouldBe nokiaX10KeyMasterGood.attestationProof.first()
-                                attestationRecord.attestationChallenge().toByteArray() shouldBe nokiaX10KeyMasterGood.challenge
+                                attestationRecord.attestationChallenge()
+                                    .toByteArray() shouldBe nokiaX10KeyMasterGood.challenge
                                 attestationRecord.attestationSecurityLevel() shouldBeIn listOf(
                                     ParsedAttestationRecord.SecurityLevel.TRUSTED_ENVIRONMENT,
                                     ParsedAttestationRecord.SecurityLevel.STRONG_BOX

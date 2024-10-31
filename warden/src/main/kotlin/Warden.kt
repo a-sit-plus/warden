@@ -3,7 +3,10 @@ package at.asitplus.attestation
 import at.asitplus.attestation.android.*
 import at.asitplus.attestation.android.exceptions.AttestationValueException
 import at.asitplus.attestation.android.exceptions.CertificateInvalidException
-import at.asitplus.signum.indispensable.*
+import at.asitplus.signum.indispensable.AndroidKeystoreAttestation
+import at.asitplus.signum.indispensable.Attestation
+import at.asitplus.signum.indispensable.IosHomebrewAttestation
+import at.asitplus.signum.indispensable.getJcaPublicKey
 import ch.veehait.devicecheck.appattest.AppleAppAttest
 import ch.veehait.devicecheck.appattest.assertion.Assertion
 import ch.veehait.devicecheck.appattest.assertion.AssertionChallengeValidator
@@ -12,7 +15,6 @@ import ch.veehait.devicecheck.appattest.attestation.ValidatedAttestation
 import ch.veehait.devicecheck.appattest.common.App
 import ch.veehait.devicecheck.appattest.common.AppleAppAttestEnvironment
 import ch.veehait.devicecheck.appattest.receipt.ReceiptException
-import ch.veehait.devicecheck.appattest.receipt.ReceiptValidator
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
@@ -31,6 +33,7 @@ import java.security.cert.CertificateException
 import java.security.cert.X509Certificate
 import java.security.interfaces.ECPublicKey
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
 import kotlin.time.toKotlinDuration
 
@@ -79,17 +82,45 @@ class Warden(
     private val log = LoggerFactory.getLogger(this.javaClass)
 
     private val androidAttestationCheckers = mutableListOf<AndroidAttestationChecker>().apply {
-        if (!androidAttestationConfiguration.disableHardwareAttestation) add(
+
+        if (verificationTimeOffset.inWholeSeconds > Int.MAX_VALUE) throw AttestationException.Configuration(
+            Platform.ANDROID,
+            "Offset too large!",
+            cause = NumberFormatException()
+        )
+        if (verificationTimeOffset.inWholeSeconds < Int.MIN_VALUE) throw AttestationException.Configuration(
+            Platform.ANDROID,
+            "Offset too large!",
+            cause = NumberFormatException()
+        )
+
+        val androidOffset =
+            (verificationTimeOffset + androidAttestationConfiguration.verificationSecondsOffset.seconds).inWholeSeconds
+        if (androidOffset > Int.MAX_VALUE) throw AttestationException.Configuration(
+            Platform.ANDROID,
+            "Calculated Android offset too large!",
+            cause = NumberFormatException()
+        )
+        if (androidOffset < Int.MIN_VALUE) throw AttestationException.Configuration(
+            Platform.ANDROID,
+            "Calculated Android offset too large!",
+            cause = NumberFormatException()
+        )
+
+        val correctlyOffsetAndroidConfig =
+            androidAttestationConfiguration.copy(verificationSecondsOffset = androidOffset.toInt())
+
+        if (!correctlyOffsetAndroidConfig.disableHardwareAttestation) add(
             HardwareAttestationChecker(
-                androidAttestationConfiguration
+                correctlyOffsetAndroidConfig
             ) { expected, actual -> expected contentEquals actual })
-        if (androidAttestationConfiguration.enableNougatAttestation) add(
+        if (correctlyOffsetAndroidConfig.enableNougatAttestation) add(
             NougatHybridAttestationChecker(
-                androidAttestationConfiguration
+                correctlyOffsetAndroidConfig
             ) { expected, actual -> expected contentEquals actual })
-        if (androidAttestationConfiguration.enableSoftwareAttestation) add(
+        if (correctlyOffsetAndroidConfig.enableSoftwareAttestation) add(
             SoftwareAttestationChecker(
-                androidAttestationConfiguration
+                correctlyOffsetAndroidConfig
             ) { expected, actual -> expected contentEquals actual })
     }
 
@@ -117,8 +148,7 @@ class Warden(
                 clock = appAttestClock,
                 receiptValidator = app.createReceiptValidator(
                     clock = appAttestClock,
-                    maxAge = (verificationTimeOffset.absoluteValue * 2).toJavaDuration()
-                        .plus(ReceiptValidator.APPLE_RECOMMENDED_MAX_AGE)
+                    maxAge = iosAttestationConfiguration.attestationStatementValiditySeconds.seconds.toJavaDuration()
                 )
             )
         }
@@ -215,8 +245,12 @@ class Warden(
                             is AttestationResult.IOS -> KeyAttestation(
                                 attestationProof.parsedClientData.publicKey.getJcaPublicKey().getOrThrow(), it
                             )
+
                             is AttestationResult.Error -> KeyAttestation(null, it)
-                            is AttestationResult.Android -> KeyAttestation(null, AttestationResult.Error("This must never happen!"))
+                            is AttestationResult.Android -> KeyAttestation(
+                                null,
+                                AttestationResult.Error("This must never happen!")
+                            )
                         }
                     }
             }
@@ -229,6 +263,7 @@ class Warden(
                     is AttestationResult.Android -> KeyAttestation(
                         attestationProof.certificateChain.first().publicKey.getJcaPublicKey().getOrThrow(), it
                     )
+
                     is AttestationResult.Error -> KeyAttestation(null, it)
                     is AttestationResult.IOS -> KeyAttestation(null, AttestationResult.Error("This must never happen!"))
                 }
@@ -267,7 +302,7 @@ class Warden(
             runCatching {
                 it.verifyAttestation(
                     certificates,
-                    (clock.now() + verificationTimeOffset).toJavaDate(),
+                    (clock.now()).toJavaDate(),
                     expectedChallenge
                 )
             }
@@ -365,6 +400,14 @@ class Warden(
         val result: Pair<AppleAppAttest, ValidatedAttestation> =
             results.first { (_, result) -> result.isSuccess }.let { (app, res) -> app to res.getOrNull()!! }
 
+
+        val notBefore =
+            result.second.receipt.payload.notBefore?.value ?: result.second.receipt.payload.creationTime.value
+        if (notBefore > appAttestClock.instant())
+            throw AttestationException.Content.iOS(
+                message = "Attestation statement created after ${appAttestClock.instant()}: $notBefore",
+                cause = IosAttestationException(reason = IosAttestationException.Reason.STATEMENT_TIME)
+            )
 
         val iosVersion =
             iosApps.entries.firstOrNull { (_, appAttest) -> appAttest.app == result.first.app }?.key?.iosVersionOverride
@@ -527,8 +570,11 @@ class Warden(
                         ex = ex.cause
                     }
                     if (ex.message?.startsWith("Receipt's creation time is after") == true)
-                        AttestationException.Certificate.Time.iOS(
-                            cause = ex
+                        AttestationException.Content.iOS(
+                            cause = IosAttestationException(
+                                cause = ex,
+                                reason = IosAttestationException.Reason.STATEMENT_TIME
+                            ),
                         )
                     else AttestationException.Content.iOS(
                         cause = IosAttestationException(
@@ -538,6 +584,8 @@ class Warden(
                     )
                 }
             }
+        } else if (it is AttestationException) {
+            it
         } else AttestationException.Content.iOS(
             cause = IosAttestationException(
                 cause = it,

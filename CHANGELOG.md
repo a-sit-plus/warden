@@ -1,3 +1,16 @@
+## 2.3.0 Behavioural Changes!
+- Update to WARDEN-roboto 1.7.0
+  - Android attestation statements (for SW, HW, but not Hybrid Nougat Attestation) do now verify attestation creation time!
+  - Refer to the [WARDEN-roboto changelog](https://github.com/a-sit-plus/warden-roboto/blob/main/CHANGELOG.md#170)!
+- Change Android verification offset calculation:  
+  It is now the sum of the toplevel offset and the Android-specific offset
+- Change the reason for iOS attestation statement temporal invalidity:
+    - It is now `AttestationException.Content.iOS(cause = IosAttestationException(…, reason = IosAttestationException.Reason.STATEMENT_TIME))` 
+        - **This reason was newly introduced in this release, making it binary and source incompatible!**
+    - iOS attestations are now also rejected if their validity starts in the future
+    - The validity time can now be configured in the same way as for Android, using the `attestationStatementValiditySeconds` property
+    - Any configured `verificationTimeOffset` is **NOT** automatically compensated for any more. **This means if you have previously used a five minutes offset, you now have to manually increase the `attestationStatementValiditySeconds` to `10 * 60`!**
+
 ## 2.2.0
 - Introduce new attestation format
 
