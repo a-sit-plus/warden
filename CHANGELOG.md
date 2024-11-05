@@ -1,3 +1,6 @@
+## 2.3.1
+* Fix wrong dependency
+
 ## 2.3.0 Behavioural Changes!
 - Update to WARDEN-roboto 1.7.0
   - Android attestation statements (for SW, HW, but not Hybrid Nougat Attestation) do now verify attestation creation time!
