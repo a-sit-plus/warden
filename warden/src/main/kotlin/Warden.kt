@@ -38,7 +38,7 @@ import kotlin.time.toJavaDuration
 import kotlin.time.toKotlinDuration
 
 /**
- * Default, functional Android Key Attestation and Apple App Attestation in all its glory.
+ * Default, functional Android and Apple App and Key Attestation in all its glory.
  *
  * Once configured, this class provides a streamlined interface for mobile client attestation
  *
@@ -48,7 +48,9 @@ import kotlin.time.toKotlinDuration
  * @param iosAttestationConfiguration IOS AppAttest configuration.  See [IOSAttestationConfiguration] for details.
  * @param clock a clock to set the time of verification (used for certificate validity checks)
  * @param verificationTimeOffset allows for fine-grained clock drift compensation (this duration is added to the certificate
- * validity checks); can be negative.
+ * validity checks); can be negative. Note that [androidAttestationConfiguration] is the exact same configuration format as used by
+ * [WARDEN-roboto](https://github.com/a-sit-plus/warden-roboto), which also supports setting a verification time offset.
+ * For the sake of consistency and intelligibility, **only** set this offset globally and not inside [iosAttestationConfiguration].
  */
 class Warden(
     androidAttestationConfiguration: AndroidAttestationConfiguration,
@@ -63,7 +65,9 @@ class Warden(
      * @param androidAttestationConfigurationJ Configuration for Android key attestation. See [AndroidAttestationConfiguration]
      * @param iosAttestationConfigurationJ IOS AppAttest configuration.  See [IOSAttestationConfiguration] for details.
      * @param verificationTimeOffsetJ allows for fine-grained clock drift compensation (this duration is added to the certificate
-     *                                validity checks); can be negative.
+     * validity checks); can be negative. Note that [androidAttestationConfiguration] is the exact same configuration format as used by
+     * [WARDEN-roboto](https://github.com/a-sit-plus/warden-roboto), which also supports setting a verification time offset.
+     * For the sake of consistency and intelligibility, **only** set this offset globally and not inside [iosAttestationConfiguration].
      * @param javaClock a clock to set the time of verification (used for certificate validity checks)
      */
     @JvmOverloads
