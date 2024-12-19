@@ -153,11 +153,11 @@ val warden = Warden(
                packageName = "at.asitplus.attestation_client-tiramisu",
                signatureDigests = listOf("NLl2LE1skNSEMZQMV73nMUJYsmQg7=".encodeToByteArray()),
                appVersion = 2, //with a different versioning scheme
-               androidVersionOverride = 13000, //so we need to override this
+               androidVersionOverride = 130000, //so we need to override this
                patchLevelOverride = PatchLevel(2023, 6) //also override patch level
            )
        ),
-       androidVersion = 11000,                 //OPTIONAL, null by default
+       androidVersion = 110000,                //OPTIONAL, null by default
        patchLevel = PatchLevel(2022, 12),      //OPTIONAL, null by default
        requireStrongBox = false,               //OPTIONAL, defaults to false
        allowBootloaderUnlock = false,          //OPTIONAL, defaults to false
