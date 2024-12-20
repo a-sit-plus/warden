@@ -1,3 +1,11 @@
+## 2.3.2
+* Fix documentation issue (Android version was missing a zero in all docs)
+* Dependency Updates
+  * WARDEN-roboto 1.7.1 (also fixing the same documentation issue)
+  * Kotlin 2.1.0
+  * Signum Indispensable 3.12.0
+  * Bouncy Castle 1.79
+
 ## 2.3.1
 * Fix wrong dependency
 
