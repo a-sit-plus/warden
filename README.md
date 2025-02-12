@@ -168,7 +168,8 @@ val warden = Warden(
        verificationSecondsOffset = -300,       //OPTIONAL, defaults to 0
        disableHardwareAttestation = false,     //OPTIONAL, defaults to false. Set to true to disable HW attestation
        enableNougatAttestation = false,        //OPTIONAL, defaults to false. Set to true to enable hybrid attestation
-       enableSoftwareAttestation = false       //OPTIONAL, defaults to false. Set to true to enable SW attestation
+       enableSoftwareAttestation = false,      //OPTIONAL, defaults to false. Set to true to enable SW attestation
+       attestationStatementValiditySeconds = 300 //OPTIONAL, defaults to 300s
    ),
    iosAttestationConfiguration = IOSAttestationConfiguration(
       applications = listOf(
@@ -180,6 +181,7 @@ val warden = Warden(
           )
       ),
       iosVersion = 14,                                               //OPTIONAL, null by default
+      attestationStatementValiditySeconds = 300                      //OPTIONAL, defaults to 300s
    ),
    clock = FixedTimeClock(Instant.parse("2023-04-13T00:00:00Z")),   //OPTIONAL, system clock by default,
    verificationTimeOffset = Duration.ZERO                           //OPTIONAL, defaults to zero
