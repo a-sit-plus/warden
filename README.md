@@ -189,7 +189,7 @@ val warden = Warden(
 ```
 
 The (nullable) properties like patch level, iOS version or Android app version essentially allow for excluding outdated devices.
-Custom android challenge verification has been omitted by design, considering iOS constraints and inconsistencies resulting from such a customisation.
+Defining a custom logic to verify the attestation challenge for Android is unsupported by design, considering iOS constraints and inconsistencies between platforms resulting from such a customisation.
 More details on the configuration can be found in the API documentation
 
 #### A Note on Android Attestation
@@ -203,10 +203,9 @@ no real use case for such a configuration.
 Note that not all flavours use different the same root of trust by default.
 
 ### Example Usage
-While still not complete, the test suite in this repository should provide a nice overview. [FeatureDemonstration](https://github.com/a-sit-plus/warden/blob/main/warden/src/test/kotlin/FeatureDemonstration.kt),
-in particular, was designed to demonstrate this library's API.
+While still not complete, the test suite in this repository should provide a nice overview.
 <br>
-See the provided [sample service](https://github.com/a-sit-plus/warden/tree/main/sample/backend) and its mobile clients for an MWE that integrates this library.
+See also the provided [sample service](https://github.com/a-sit-plus/warden/tree/main/sample/backend) and its mobile clients for an MWE that integrates this library.
 The sample also contains Android and iOS clients.
 
 #### Obtaining a Key Attestation Result
