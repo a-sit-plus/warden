@@ -3,6 +3,8 @@ package at.asitplus.attestation
 import at.asitplus.signum.indispensable.CryptoPublicKey
 import at.asitplus.signum.indispensable.fromJcaPublicKey
 import at.asitplus.signum.indispensable.getJcaPublicKey
+import at.asitplus.signum.indispensable.toCryptoPublicKey
+import at.asitplus.signum.indispensable.toJcaPublicKey
 import kotlinx.datetime.Clock
 import kotlinx.datetime.toJavaInstant
 import kotlinx.datetime.toKotlinInstant
@@ -42,7 +44,7 @@ data class AttestationObject(
     )
 }
 
-internal fun PublicKey.transcodeToAllFormats() = CryptoPublicKey.fromJcaPublicKey(this).getOrThrow().let {
+internal fun PublicKey.transcodeToAllFormats() = toCryptoPublicKey().getOrThrow().let {
     listOf(
         it.iosEncoded,
         (it as CryptoPublicKey.EC).toAnsiX963Encoded(useCompressed = !it.preferCompressedRepresentation),
@@ -71,9 +73,9 @@ internal fun kotlinx.datetime.Instant.toJavaDate() = Date.from(toJavaInstant())
 
 fun ByteArray.parseToPublicKey(): PublicKey =
     try {
-       CryptoPublicKey.decodeFromDer(this).getJcaPublicKey().getOrThrow()
+       CryptoPublicKey.decodeFromDer(this).toJcaPublicKey().getOrThrow()
     } catch (e: Throwable) {
-       CryptoPublicKey.fromIosEncoded(this).getJcaPublicKey().getOrThrow()
+       CryptoPublicKey.fromIosEncoded(this).toJcaPublicKey().getOrThrow()
     }
 
 /**

@@ -118,9 +118,6 @@ abstract class AttestationService {
     private fun <T : PublicKey> AttestationException.Content.toAttestationError(it: String): KeyAttestation<T> =
         KeyAttestation(null, AttestationResult.Error(it, this))
 
-    private fun <T : PublicKey> T.toCryptoPublicKey(): KmmResult<CryptoPublicKey> =
-        CryptoPublicKey.fromJcaPublicKey(this)
-
 
     /** Same as [verifyKeyAttestation], but taking an encoded (either ANSI X9.63 or DER) publix key as a byte array
      * @see verifyKeyAttestation
@@ -401,12 +398,12 @@ object NoopAttestationService : AttestationService() {
     override fun verifyKeyAttestation(attestationProof: Attestation, challenge: ByteArray): KeyAttestation<PublicKey> =
         when (attestationProof) {
             is IosHomebrewAttestation -> KeyAttestation(
-                attestationProof.parsedClientData.publicKey.getJcaPublicKey().getOrThrow(),
+                attestationProof.parsedClientData.publicKey.toJcaPublicKey().getOrThrow(),
                 AttestationResult.IOS.NOOP(attestationProof.parsedClientData.publicKey.encodeToDer())
             )
 
             is AndroidKeystoreAttestation -> KeyAttestation(
-                attestationProof.certificateChain.first().publicKey.getJcaPublicKey().getOrThrow(),
+                attestationProof.certificateChain.first().publicKey.toJcaPublicKey().getOrThrow(),
                 AttestationResult.Android.NOOP(attestationProof.certificateChain.map { it.encodeToDer() })
             )
 
