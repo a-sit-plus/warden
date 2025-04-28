@@ -82,13 +82,10 @@ abstract class AttestationService {
                         kotlin.runCatching { verifyAttestation(attestationProof, expectedChallenge, it) }
                             .getOrElse { return KeyAttestation(null, firstTry) }) {
 
-                        is AttestationResult.Android ->
-                            throw logicalError(keyToBeAttested, attestationProof, expectedChallenge)
-
                         is AttestationResult.Error -> {} //try again, IOS could have encoded it differently
 
                         //if this works, perfect!
-                        is AttestationResult.IOS -> return KeyAttestation(keyToBeAttested, secondTry)
+                        is AttestationResult.IOS, is AttestationResult.Android -> return KeyAttestation(keyToBeAttested, secondTry)
                     }
                 }
                 //if no encoding works, then it should just fail
