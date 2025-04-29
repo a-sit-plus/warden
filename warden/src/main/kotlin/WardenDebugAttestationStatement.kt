@@ -16,6 +16,7 @@ private val jsonDebug = kotlinx.serialization.json.Json {
 
 @Serializable
 class WardenDebugAttestationStatement internal constructor(
+    val method: Method,
     val androidAttestationConfiguration: AndroidAttestationConfiguration,
     val iosAttestationConfiguration: IOSAttestationConfiguration,
     val genericAttestationProof: List<@Serializable(with = ByteArrayBase64UrlSerializer::class) ByteArray>? = null,
@@ -25,6 +26,14 @@ class WardenDebugAttestationStatement internal constructor(
     val verificationTime: Instant,
     val verificationTimeOffset: Duration = Duration.ZERO
 ) {
+
+    enum class Method {
+        LEGACY,
+        SUPREME,
+        KEY_ATTESTATION_LEGACY,
+        KEY_ATTESTATION_LEGACY_RAW,
+    }
+
     /**
      * Creates a new [Warden] instance based on recorded debug data
      */
@@ -34,6 +43,12 @@ class WardenDebugAttestationStatement internal constructor(
         FixedTimeClock(verificationTime),
         verificationTimeOffset
     )
+
+    fun replaySmart() = when (method) {
+        Method.LEGACY -> replayGenericAttestation()
+        Method.SUPREME -> replayKeyAttestation()
+        Method.KEY_ATTESTATION_LEGACY, Method.KEY_ATTESTATION_LEGACY_RAW -> replayKeyAttestationLegacy()
+    }
 
     /**
      * Replays ```verifyAttestation(

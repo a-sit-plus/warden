@@ -202,6 +202,7 @@ class Warden(
         challenge: ByteArray,
         clientData: ByteArray? = null
     ) = WardenDebugAttestationStatement(
+        method = WardenDebugAttestationStatement.Method.LEGACY,
         androidAttestationConfiguration = androidAttestationConfiguration,
         iosAttestationConfiguration = iosAttestationConfiguration,
         genericAttestationProof = attestationProof,
@@ -227,6 +228,7 @@ class Warden(
         challenge: ByteArray,
         publicKey: PublicKey
     ) = WardenDebugAttestationStatement(
+        method = WardenDebugAttestationStatement.Method.KEY_ATTESTATION_LEGACY,
         androidAttestationConfiguration = androidAttestationConfiguration,
         iosAttestationConfiguration = iosAttestationConfiguration,
         genericAttestationProof = attestationProof,
@@ -251,6 +253,7 @@ class Warden(
         challenge: ByteArray,
         rawPublicKey: ByteArray
     ) = WardenDebugAttestationStatement(
+        method = WardenDebugAttestationStatement.Method.KEY_ATTESTATION_LEGACY_RAW,
         androidAttestationConfiguration = androidAttestationConfiguration,
         iosAttestationConfiguration = iosAttestationConfiguration,
         genericAttestationProof = attestationProof,
@@ -273,6 +276,7 @@ class Warden(
         attestationProof: Attestation,
         challenge: ByteArray
     ) = WardenDebugAttestationStatement(
+        method = WardenDebugAttestationStatement.Method.SUPREME,
         androidAttestationConfiguration = androidAttestationConfiguration,
         iosAttestationConfiguration = iosAttestationConfiguration,
         keyAttestation = attestationProof,
@@ -288,8 +292,21 @@ class Warden(
     ): AttestationResult {
         log.debug("attestation proof length: ${attestationProof.size}")
         return if (attestationProof.isEmpty()) AttestationResult.Error("Attestation proof is empty")
-        else if (attestationProof.size > 2)
-            verifyAttestationAndroid(attestationProof, challenge)
+        else if (attestationProof.size > 2) verifyAttestationAndroid(attestationProof, challenge).let {
+            if (it is AttestationResult.Android) clientData?.let { encodedKey ->
+                if (!it.attestationCertificate.publicKey.encoded.contentEquals(encodedKey)) {
+                    "Attestation certificate public key does not match provided public key".let { msg ->
+                        AttestationResult.Error(
+                            msg, AttestationException.Content.Android(
+                                msg,
+                                AttestationValueException(msg, reason = AttestationValueException.Reason.APP_UNEXPECTED)
+                            )
+                        )
+                    }
+                } else it
+            } ?: it
+            else it
+        }
         else {
             kotlin.runCatching {
                 verifyAttestationApple(

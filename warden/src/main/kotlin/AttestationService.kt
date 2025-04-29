@@ -1,16 +1,14 @@
 package at.asitplus.attestation
 
-import at.asitplus.KmmResult
 import at.asitplus.attestation.AttestationException
-import at.asitplus.attestation.IOSAttestationConfiguration.AppData
 import at.asitplus.attestation.android.*
 import at.asitplus.attestation.android.exceptions.AttestationValueException
+import at.asitplus.catchingUnwrapped
 import at.asitplus.signum.indispensable.*
 import ch.veehait.devicecheck.appattest.assertion.Assertion
 import ch.veehait.devicecheck.appattest.attestation.ValidatedAttestation
 import com.google.android.attestation.AttestationApplicationId
 import com.google.android.attestation.ParsedAttestationRecord
-import net.swiftzer.semver.SemVer
 import org.slf4j.LoggerFactory
 import java.security.PublicKey
 import java.security.cert.X509Certificate
@@ -65,36 +63,34 @@ abstract class AttestationService {
         attestationProof: List<ByteArray>,
         expectedChallenge: ByteArray,
         keyToBeAttested: T
-    ): KeyAttestation<T> {
-        when (val firstTry = verifyAttestation(
-            attestationProof,
-            expectedChallenge,
-            keyToBeAttested.encoded
-        )) {
-            is AttestationResult.Android -> return processAndroidAttestationResult(keyToBeAttested, firstTry)
+    ): KeyAttestation<T> = keyToBeAttested.transcodeToAllFormats().let { transcended ->
+        // try all different key encodings
+        // not the most efficient way, but doing it like this won't involve any guesswork at all
+        transcended.forEachIndexed { i, it ->
+            when (val secondTry =
+                catchingUnwrapped { verifyAttestation(attestationProof, expectedChallenge, it) }
+                    .getOrElse {
+                        if (it is AttException)
+                            AttestationResult.Error(it.message ?: it.javaClass.simpleName, it)
+                        else AttestationResult.Error(it.message ?: it.javaClass.simpleName)
+                    }.also {
+                        if (i == transcended.lastIndex) return KeyAttestation(null, it)
+                    }) {
+                is AttestationResult.Error -> {} //try again, IOS could have encoded it differently
 
-            is AttestationResult.Error -> {
-
-                // try all different key encodings
-                // not the most efficient way, but doing it like this won't involve any guesswork at all
-                keyToBeAttested.transcodeToAllFormats().forEach {
-                    when (val secondTry =
-                        kotlin.runCatching { verifyAttestation(attestationProof, expectedChallenge, it) }
-                            .getOrElse { return KeyAttestation(null, firstTry) }) {
-
-                        is AttestationResult.Error -> {} //try again, IOS could have encoded it differently
-
-                        //if this works, perfect!
-                        is AttestationResult.IOS, is AttestationResult.Android -> return KeyAttestation(keyToBeAttested, secondTry)
-                    }
+                //if this works, perfect!
+                is AttestationResult.IOS, is AttestationResult.Android -> {
+                    return KeyAttestation(
+                        keyToBeAttested,
+                        secondTry
+                    )
                 }
-                //if no encoding works, then it should just fail
-                return KeyAttestation(null, firstTry)
             }
-
-            is AttestationResult.IOS -> return KeyAttestation(keyToBeAttested, firstTry)
         }
+        //can never be reached
+        throw logicalError(keyToBeAttested, attestationProof, expectedChallenge)
     }
+
 
     private fun <T : PublicKey> processAndroidAttestationResult(
         keyToBeAttested: T,
@@ -206,6 +202,19 @@ value class AssertionData private constructor(private val pair: Pair<ByteArray, 
 sealed class AttestationResult {
 
     override fun toString() = "AttestationResult::$details)"
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is AttestationResult) return false
+
+        if (details != other.details) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return details.hashCode()
+    }
+
     protected abstract val details: String
 
     /**
@@ -328,6 +337,23 @@ sealed class AttestationResult {
 
     class Error(val explanation: String, val cause: AttException? = null) : AttestationResult() {
         override val details = "Error($explanation" + cause?.let { ", Cause: ${cause::class.qualifiedName}" }
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is Error) return false
+
+            if (explanation != other.explanation) return false
+            if (cause != other.cause) return false
+            if (details != other.details) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = explanation.hashCode()
+            result = 31 * result + (cause?.hashCode() ?: 0)
+            result = 31 * result + details.hashCode()
+            return result
+        }
     }
 }
 

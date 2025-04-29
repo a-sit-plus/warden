@@ -32,7 +32,6 @@ class WardenTest : FreeSpec() {
     private val theGood = androidGood + iosGood
 
     init {
-
         "iosIDA" {
             val iosIDA = AttestationData(
                 "ida",
@@ -173,7 +172,11 @@ class WardenTest : FreeSpec() {
                                         recordedAttestation.attestationProof,
                                         recordedAttestation.challenge
                                     ).serialize()
-                                    WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                                    val replayGenericAttestation =
+                                        WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                                    replayGenericAttestation shouldBe WardenDebugAttestationStatement.deserialize(dbg)
+                                        .replaySmart()
+                                    replayGenericAttestation
                                         .shouldNotBeInstanceOf<AttestationResult.Error>()
                                 }
                                 "Key Attestation" {
@@ -198,7 +201,11 @@ class WardenTest : FreeSpec() {
                                         recordedAttestation.challenge,
                                         recordedAttestation.publicKey!!
                                     ).serialize()
-                                    WardenDebugAttestationStatement.deserialize(dbg).replayKeyAttestationLegacy()
+                                    val replayKeyAttestationLegacy =
+                                        WardenDebugAttestationStatement.deserialize(dbg).replayKeyAttestationLegacy()
+                                    replayKeyAttestationLegacy shouldBe WardenDebugAttestationStatement.deserialize(dbg)
+                                        .replaySmart()
+                                    replayKeyAttestationLegacy
                                         .shouldNotBeInstanceOf<AttestationResult.Error>()
                                 }
                             }
@@ -231,7 +238,11 @@ class WardenTest : FreeSpec() {
                                     recordedAttestation.attestationProof,
                                     recordedAttestation.challenge
                                 ).serialize()
-                                WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                                val replayGenericAttestation =
+                                    WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                                replayGenericAttestation shouldBe WardenDebugAttestationStatement.deserialize(dbg)
+                                    .replaySmart()
+                                replayGenericAttestation
                                     .shouldNotBeInstanceOf<AttestationResult.Error>()
                             }
                         }
@@ -262,7 +273,11 @@ class WardenTest : FreeSpec() {
                                     recordedAttestation.attestationProof,
                                     recordedAttestation.challenge
                                 ).serialize()
-                                WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                                val replayGenericAttestation =
+                                    WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                                replayGenericAttestation shouldBe WardenDebugAttestationStatement.deserialize(dbg)
+                                    .replaySmart()
+                                replayGenericAttestation
                                     .shouldBeInstanceOf<AttestationResult.Error>()
                                     .cause.shouldBeInstanceOf<AttestationException.Certificate.Time>()
 
@@ -290,7 +305,11 @@ class WardenTest : FreeSpec() {
                                     recordedAttestation.attestationProof,
                                     recordedAttestation.challenge
                                 ).serialize()
-                                WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                                val replayGenericAttestation =
+                                    WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                                replayGenericAttestation shouldBe WardenDebugAttestationStatement.deserialize(dbg)
+                                    .replaySmart()
+                                replayGenericAttestation
                                     .shouldBeInstanceOf<AttestationResult.Error>()
                                     .cause.shouldBeInstanceOf<AttestationException.Certificate.Time>()
 
@@ -326,7 +345,11 @@ class WardenTest : FreeSpec() {
                                 recordedAttestation.attestationProof,
                                 recordedAttestation.challenge
                             ).serialize()
-                            WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                            val replayGenericAttestation =
+                                WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                            replayGenericAttestation shouldBe WardenDebugAttestationStatement.deserialize(dbg)
+                                .replaySmart()
+                            replayGenericAttestation
                                 .shouldBeInstanceOf<AttestationResult.Error>().apply {
                                     cause.shouldBeInstanceOf<AttestationException.Content>().also {
                                         when (it.platform) {
@@ -367,7 +390,11 @@ class WardenTest : FreeSpec() {
                                 recordedAttestation.attestationProof,
                                 recordedAttestation.challenge.reversedArray()
                             ).serialize()
-                            WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                            val replayGenericAttestation =
+                                WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                            replayGenericAttestation shouldBe WardenDebugAttestationStatement.deserialize(dbg)
+                                .replaySmart()
+                            replayGenericAttestation
                                 .shouldBeInstanceOf<AttestationResult.Error>().apply {
                                     cause.shouldBeInstanceOf<AttestationException.Content>().also {
                                         when (it.platform) {
@@ -416,6 +443,7 @@ class WardenTest : FreeSpec() {
                                 recordedAttestation.challenge
                             ).serialize()
                             WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation().apply {
+                                this shouldBe WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
                                 shouldBeInstanceOf<AttestationResult.Error>().apply {
                                     cause.shouldBeInstanceOf<AttestationException.Content>().also {
                                         when (it.platform) {
@@ -467,6 +495,7 @@ class WardenTest : FreeSpec() {
                                 keyToBeAttested
                             ).serialize()
                             WardenDebugAttestationStatement.deserialize(dbg).replayKeyAttestationLegacy().apply {
+                                this shouldBe WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
                                 isSuccess.shouldBeFalse()
                                 details.shouldBeInstanceOf<AttestationResult.Error>().also { println(it) }.apply {
                                     cause.shouldBeInstanceOf<AttestationException.Content>().also {
@@ -516,6 +545,7 @@ class WardenTest : FreeSpec() {
                                     recordedAttestation.challenge,
                                 ).serialize()
                                 WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation().apply {
+                                    this shouldBe WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
                                     shouldBeInstanceOf<AttestationResult.IOS>()
                                 }
                             }
@@ -545,6 +575,7 @@ class WardenTest : FreeSpec() {
                                     recordedAttestation.challenge,
                                 ).serialize()
                                 WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation().apply {
+                                    this shouldBe WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
                                     shouldBeInstanceOf<AttestationResult.Error>()
                                         .cause.shouldBeInstanceOf<AttestationException.Content>()
                                         .platformSpecificCause.shouldBeInstanceOf<IosAttestationException>()
@@ -578,6 +609,7 @@ class WardenTest : FreeSpec() {
                                     recordedAttestation.challenge,
                                 ).serialize()
                                 WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation().apply {
+                                    this shouldBe WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
                                     shouldBeInstanceOf<AttestationResult.Android>()
                                 }
                             }
@@ -598,6 +630,7 @@ class WardenTest : FreeSpec() {
                                     recordedAttestation.challenge,
                                 ).serialize()
                                 WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation().apply {
+                                    this shouldBe WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
                                     shouldBeInstanceOf<AttestationResult.Android>()
                                 }
                             }
@@ -618,6 +651,7 @@ class WardenTest : FreeSpec() {
                                     recordedAttestation.challenge,
                                 ).serialize()
                                 WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation().apply {
+                                    this shouldBe WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
                                     shouldBeInstanceOf<AttestationResult.Android>()
                                 }
                             }
@@ -654,6 +688,7 @@ class WardenTest : FreeSpec() {
                                         recordedAttestation.challenge,
                                     ).serialize()
                                     WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation().apply {
+                                        this shouldBe WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
                                         shouldBeInstanceOf<AttestationResult.Error>()
                                             .cause.shouldBeInstanceOf<AttestationException.Certificate.Trust>()
                                     }
@@ -687,6 +722,7 @@ class WardenTest : FreeSpec() {
                                         recordedAttestation.challenge,
                                     ).serialize()
                                     WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation().apply {
+                                        this shouldBe WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
                                         shouldBeInstanceOf<AttestationResult.Error>()
                                             .cause.shouldBeInstanceOf<AttestationException.Certificate.Trust>()
                                     }
@@ -720,6 +756,7 @@ class WardenTest : FreeSpec() {
                                         recordedAttestation.challenge,
                                     ).serialize()
                                     WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation().apply {
+                                        this shouldBe WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
                                         shouldBeInstanceOf<AttestationResult.Error>()
                                             .cause.shouldBeInstanceOf<AttestationException.Certificate.Trust>()
                                     }
@@ -748,6 +785,8 @@ class WardenTest : FreeSpec() {
                                         ).serialize()
                                         WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
                                             .apply {
+                                                this shouldBe WardenDebugAttestationStatement.deserialize(dbg)
+                                                    .replaySmart()
                                                 shouldBeInstanceOf<AttestationResult.Error>()
                                                     .cause.shouldBeInstanceOf<AttestationException.Certificate.Trust>()
                                             }
@@ -771,6 +810,8 @@ class WardenTest : FreeSpec() {
                                         ).serialize()
                                         WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
                                             .apply {
+                                                this shouldBe WardenDebugAttestationStatement.deserialize(dbg)
+                                                    .replaySmart()
                                                 shouldBeInstanceOf<AttestationResult.Error>()
                                                     .cause.shouldBeInstanceOf<AttestationException.Certificate.Trust>()
                                             }
@@ -794,6 +835,8 @@ class WardenTest : FreeSpec() {
                                         ).serialize()
                                         WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
                                             .apply {
+                                                this shouldBe WardenDebugAttestationStatement.deserialize(dbg)
+                                                    .replaySmart()
                                                 shouldBeInstanceOf<AttestationResult.Error>()
                                                     .cause.shouldBeInstanceOf<AttestationException.Certificate.Trust>()
                                             }
@@ -819,6 +862,7 @@ class WardenTest : FreeSpec() {
                                         recordedAttestation.challenge,
                                     ).serialize()
                                     WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation().apply {
+                                        this shouldBe WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
                                         shouldBeInstanceOf<AttestationResult.Error>()
                                             .cause.shouldBeInstanceOf<AttestationException.Content>()
                                     }
@@ -846,6 +890,7 @@ class WardenTest : FreeSpec() {
                                         recordedAttestation.challenge,
                                     ).serialize()
                                     WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation().apply {
+                                        this shouldBe WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
                                         shouldBeInstanceOf<AttestationResult.Error>()
                                             .cause.shouldBeInstanceOf<AttestationException.Content>()
                                     }
@@ -882,6 +927,7 @@ class WardenTest : FreeSpec() {
                                         recordedAttestation.challenge,
                                     ).serialize()
                                     WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation().apply {
+                                        this shouldBe WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
                                         shouldBeInstanceOf<AttestationResult.Error>()
                                             .cause.shouldBeInstanceOf<AttestationException.Content>()
                                     }
@@ -906,6 +952,7 @@ class WardenTest : FreeSpec() {
                                         recordedAttestation.challenge,
                                     ).serialize()
                                     WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation().apply {
+                                        this shouldBe WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
                                         shouldBeInstanceOf<AttestationResult.Error>()
                                             .cause.shouldBeInstanceOf<AttestationException.Content>()
                                     }
@@ -929,6 +976,7 @@ class WardenTest : FreeSpec() {
                                         recordedAttestation.challenge,
                                     ).serialize()
                                     WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation().apply {
+                                        this shouldBe WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
                                         shouldBeInstanceOf<AttestationResult.Error>()
                                             .cause.shouldBeInstanceOf<AttestationException.Content>()
                                     }
@@ -1008,6 +1056,7 @@ class WardenTest : FreeSpec() {
                                 challenge,
                             ).serialize()
                             WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation().apply {
+                                this shouldBe WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
                                 shouldBeInstanceOf<AttestationResult.Error>()
                                     .cause.shouldBeInstanceOf<AttestationException.Certificate.Trust>()
                             }
@@ -1045,6 +1094,7 @@ class WardenTest : FreeSpec() {
                                 challenge,
                             ).serialize()
                             WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation().apply {
+                                this shouldBe WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
                                 shouldBeInstanceOf<AttestationResult.Error>()
                                     .cause.shouldBeInstanceOf<AttestationException.Content>()
                             }
@@ -1076,6 +1126,7 @@ class WardenTest : FreeSpec() {
                                 challenge,
                             ).serialize()
                             WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation().apply {
+                                this shouldBe WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
                                 shouldBeInstanceOf<AttestationResult.Error>()
                                     .cause.shouldBeInstanceOf<AttestationException.Content>()
                             }
@@ -1109,7 +1160,11 @@ class WardenTest : FreeSpec() {
                                     attestationProof,
                                     challenge,
                                 ).serialize()
-                                WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                                val replayGenericAttestation =
+                                    WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                                replayGenericAttestation shouldBe WardenDebugAttestationStatement.deserialize(dbg)
+                                    .replaySmart()
+                                replayGenericAttestation
                                     .shouldBeInstanceOf<AttestationResult.Android>()
                             }
                         }
@@ -1140,7 +1195,11 @@ class WardenTest : FreeSpec() {
                                     attestationProof,
                                     challenge,
                                 ).serialize()
-                                WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                                val replayGenericAttestation =
+                                    WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                                replayGenericAttestation shouldBe WardenDebugAttestationStatement.deserialize(dbg)
+                                    .replaySmart()
+                                replayGenericAttestation
                                     .shouldBeInstanceOf<AttestationResult.Android>()
                             }
                         }
@@ -1170,7 +1229,11 @@ class WardenTest : FreeSpec() {
                                     attestationProof,
                                     challenge,
                                 ).serialize()
-                                WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                                val replayGenericAttestation =
+                                    WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                                replayGenericAttestation shouldBe WardenDebugAttestationStatement.deserialize(dbg)
+                                    .replaySmart()
+                                replayGenericAttestation
                                     .shouldBeInstanceOf<AttestationResult.Android>()
                             }
                         }
@@ -1225,7 +1288,11 @@ class WardenTest : FreeSpec() {
                                 data.attestationProof,
                                 data.challenge,
                             ).serialize()
-                            WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                            val replayGenericAttestation =
+                                WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                            replayGenericAttestation shouldBe WardenDebugAttestationStatement.deserialize(dbg)
+                                .replaySmart()
+                            replayGenericAttestation
                                 .shouldBeInstanceOf<AttestationResult.Android>().attestationRecord.apply {
                                     attestationSecurityLevel() shouldBe ParsedAttestationRecord.SecurityLevel.SOFTWARE
                                     keymasterSecurityLevel() shouldBe ParsedAttestationRecord.SecurityLevel.TRUSTED_ENVIRONMENT
@@ -1262,7 +1329,11 @@ class WardenTest : FreeSpec() {
                                 data.attestationProof,
                                 data.challenge,
                             ).serialize()
-                            WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                            val replayGenericAttestation =
+                                WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                            replayGenericAttestation shouldBe WardenDebugAttestationStatement.deserialize(dbg)
+                                .replaySmart()
+                            replayGenericAttestation
                                 .shouldBeInstanceOf<AttestationResult.Android>().attestationRecord.apply {
                                     attestationSecurityLevel() shouldBe ParsedAttestationRecord.SecurityLevel.SOFTWARE
                                     keymasterSecurityLevel() shouldBe ParsedAttestationRecord.SecurityLevel.TRUSTED_ENVIRONMENT
@@ -1299,7 +1370,11 @@ class WardenTest : FreeSpec() {
                                 data.attestationProof,
                                 data.challenge,
                             ).serialize()
-                            WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                            val replayGenericAttestation =
+                                WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                            replayGenericAttestation shouldBe WardenDebugAttestationStatement.deserialize(dbg)
+                                .replaySmart()
+                            replayGenericAttestation
                                 .shouldBeInstanceOf<AttestationResult.Android>().attestationRecord.apply {
                                     attestationSecurityLevel() shouldBe ParsedAttestationRecord.SecurityLevel.SOFTWARE
                                     keymasterSecurityLevel() shouldBe ParsedAttestationRecord.SecurityLevel.TRUSTED_ENVIRONMENT
@@ -1337,7 +1412,11 @@ class WardenTest : FreeSpec() {
                                 data.attestationProof,
                                 data.challenge,
                             ).serialize()
-                            WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                            val replayGenericAttestation =
+                                WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                            replayGenericAttestation shouldBe WardenDebugAttestationStatement.deserialize(dbg)
+                                .replaySmart()
+                            replayGenericAttestation
                                 .shouldBeInstanceOf<AttestationResult.Android>().attestationRecord.apply {
                                     attestationSecurityLevel() shouldBe ParsedAttestationRecord.SecurityLevel.SOFTWARE
                                     keymasterSecurityLevel() shouldBe ParsedAttestationRecord.SecurityLevel.TRUSTED_ENVIRONMENT
@@ -1372,7 +1451,10 @@ class WardenTest : FreeSpec() {
                             data.attestationProof,
                             data.challenge,
                         ).serialize()
-                        WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                        val replayGenericAttestation =
+                            WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                        replayGenericAttestation shouldBe WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
+                        replayGenericAttestation
                             .shouldBeInstanceOf<AttestationResult.Error>()
                             .cause.shouldBeInstanceOf<AttestationException.Certificate.Trust>()
                     }
@@ -1403,7 +1485,10 @@ class WardenTest : FreeSpec() {
                             data.attestationProof,
                             data.challenge,
                         ).serialize()
-                        WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                        val replayGenericAttestation =
+                            WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                        replayGenericAttestation shouldBe WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
+                        replayGenericAttestation
                             .shouldBeInstanceOf<AttestationResult.Error>()
                             .cause.shouldBeInstanceOf<AttestationException.Content>()
                     }
@@ -1434,7 +1519,10 @@ class WardenTest : FreeSpec() {
                             data.attestationProof,
                             data.challenge,
                         ).serialize()
-                        WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                        val replayGenericAttestation =
+                            WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                        replayGenericAttestation shouldBe WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
+                        replayGenericAttestation
                             .shouldBeInstanceOf<AttestationResult.Error>()
                             .cause.shouldBeInstanceOf<AttestationException.Content>()
                     }
@@ -1484,7 +1572,10 @@ class WardenTest : FreeSpec() {
                             it.second,
                             it.first.hexToByteArray(HexFormat.UpperCase),
                         ).serialize()
-                        WardenDebugAttestationStatement.deserialize(dbg).replayKeyAttestation().isSuccess.shouldBeTrue()
+                        val replayKeyAttestation =
+                            WardenDebugAttestationStatement.deserialize(dbg).replayKeyAttestation()
+                        replayKeyAttestation shouldBe WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
+                        replayKeyAttestation.isSuccess.shouldBeTrue()
 
                     }
 
@@ -1496,8 +1587,10 @@ class WardenTest : FreeSpec() {
                             it.second,
                             it.first.reversed().hexToByteArray(HexFormat.UpperCase)
                         ).serialize()
-                        WardenDebugAttestationStatement.deserialize(dbg)
-                            .replayKeyAttestation().isSuccess.shouldBeFalse()
+                        val attestation = WardenDebugAttestationStatement.deserialize(dbg)
+                            .replayKeyAttestation()
+                        attestation shouldBe  WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
+                        attestation.isSuccess.shouldBeFalse()
                     }
                 }
 
@@ -1524,8 +1617,10 @@ class WardenTest : FreeSpec() {
                             it.second,
                             it.first.hexToByteArray(HexFormat.UpperCase),
                         ).serialize()
-                        WardenDebugAttestationStatement.deserialize(dbg)
-                            .replayKeyAttestation().isSuccess.shouldBeFalse()
+                        val replayKeyAttestation = WardenDebugAttestationStatement.deserialize(dbg)
+                            .replayKeyAttestation()
+                        replayKeyAttestation shouldBe  WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
+                        replayKeyAttestation.isSuccess.shouldBeFalse()
                     }
                 }
 
@@ -1556,8 +1651,10 @@ class WardenTest : FreeSpec() {
                                 it.second,
                                 it.first.hexToByteArray(HexFormat.UpperCase),
                             ).serialize()
-                            WardenDebugAttestationStatement.deserialize(dbg)
-                                .replayKeyAttestation().isSuccess.shouldBeFalse()
+                            val replayKeyAttestation = WardenDebugAttestationStatement.deserialize(dbg)
+                                .replayKeyAttestation()
+                            replayKeyAttestation shouldBe  WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
+                            replayKeyAttestation.isSuccess.shouldBeFalse()
                         }
 
                         withClue("challenge fail pass") {
@@ -1571,8 +1668,10 @@ class WardenTest : FreeSpec() {
                                 it.second,
                                 it.first.hexToByteArray(HexFormat.UpperCase),
                             ).serialize()
-                            WardenDebugAttestationStatement.deserialize(dbg)
-                                .replayKeyAttestation().isSuccess.shouldBeFalse()
+                            val replayKeyAttestation = WardenDebugAttestationStatement.deserialize(dbg)
+                                .replayKeyAttestation()
+                            replayKeyAttestation shouldBe  WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
+                            replayKeyAttestation.isSuccess.shouldBeFalse()
                         }
                     }
                 }
@@ -1604,8 +1703,10 @@ class WardenTest : FreeSpec() {
                                 it.second,
                                 it.first.hexToByteArray(HexFormat.UpperCase),
                             ).serialize()
-                            WardenDebugAttestationStatement.deserialize(dbg)
-                                .replayKeyAttestation().isSuccess.shouldBeFalse()
+                            val replayKeyAttestation = WardenDebugAttestationStatement.deserialize(dbg)
+                                .replayKeyAttestation()
+                            replayKeyAttestation shouldBe  WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
+                            replayKeyAttestation.isSuccess.shouldBeFalse()
                         }
 
                         withClue("challenge fail pass") {
@@ -1619,8 +1720,10 @@ class WardenTest : FreeSpec() {
                                 it.second,
                                 it.first.hexToByteArray(HexFormat.UpperCase),
                             ).serialize()
-                            WardenDebugAttestationStatement.deserialize(dbg)
-                                .replayKeyAttestation().isSuccess.shouldBeFalse()
+                            val replayKeyAttestation = WardenDebugAttestationStatement.deserialize(dbg)
+                                .replayKeyAttestation()
+                            replayKeyAttestation shouldBe  WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
+                            replayKeyAttestation.isSuccess.shouldBeFalse()
                         }
                     }
                 }
@@ -1653,8 +1756,10 @@ class WardenTest : FreeSpec() {
                             it.second,
                             it.first.hexToByteArray(HexFormat.UpperCase),
                         ).serialize()
-                        WardenDebugAttestationStatement.deserialize(dbg)
-                            .replayKeyAttestation().isSuccess.shouldBeFalse()
+                        val replayKeyAttestation = WardenDebugAttestationStatement.deserialize(dbg)
+                            .replayKeyAttestation()
+                        replayKeyAttestation shouldBe  WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
+                        replayKeyAttestation.isSuccess.shouldBeFalse()
                     }
                 }
 
@@ -1681,8 +1786,10 @@ class WardenTest : FreeSpec() {
                             it.second,
                             it.first.hexToByteArray(HexFormat.UpperCase),
                         ).serialize()
-                        WardenDebugAttestationStatement.deserialize(dbg)
-                            .replayKeyAttestation().isSuccess.shouldBeFalse()
+                        val replayKeyAttestation = WardenDebugAttestationStatement.deserialize(dbg)
+                            .replayKeyAttestation()
+                        replayKeyAttestation shouldBe  WardenDebugAttestationStatement.deserialize(dbg).replaySmart()
+                        replayKeyAttestation.isSuccess.shouldBeFalse()
                     }
                 }
             }
