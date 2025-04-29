@@ -1,7 +1,8 @@
-## 2.4.0 (Breaking configuration changes!)
+## 2.4.0 (Breaking binary configuration changes!)
 - Update to WARDEN-roboto 1.8.0, which changes the Android configuration format to use `Long` instead of `Int` for temporal units in seconds
 - To match WARDEN-roboto, the `attestationStatementValiditySeconds` iOS config has also been changed to `Long`
 - Ability to record debug infos, serialize, deserialize and replay them
+- Re-structure high-level attestation checks
 
 
 ## 2.3.3

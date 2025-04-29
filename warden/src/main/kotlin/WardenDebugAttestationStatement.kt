@@ -1,8 +1,10 @@
 package at.asitplus.attestation
 
 import at.asitplus.attestation.android.AndroidAttestationConfiguration
+import at.asitplus.io.MultiBase
 import at.asitplus.signum.indispensable.Attestation
 import at.asitplus.signum.indispensable.io.ByteArrayBase64UrlSerializer
+import io.matthewnelson.encoding.core.Encoder.Companion.encodeToString
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
@@ -44,6 +46,11 @@ class WardenDebugAttestationStatement internal constructor(
         verificationTimeOffset
     )
 
+
+    /**
+     * Replay the attestation call that was recorded. I.e., it automatically calls the correct `replay` method
+     * baaed on how this debug statement was recorded.
+     */
     fun replaySmart() = when (method) {
         Method.LEGACY -> replayGenericAttestation()
         Method.SUPREME -> replayKeyAttestation()
@@ -83,11 +90,21 @@ class WardenDebugAttestationStatement internal constructor(
      */
     fun serialize() = jsonDebug.encodeToString(this)
 
+    /**
+     * serializes and multibase-encodes this debug info
+     */
+    fun serializeCompact() = MultiBase.encode(MultiBase.Base.BASE64_URL, serialize().encodeToByteArray())
+
     companion object {
         /**
          * Parses a debug info from JSON
          */
         fun deserialize(string: String) = jsonDebug.decodeFromString<WardenDebugAttestationStatement>(string)
+
+        /**
+         * Multibase-decodes and deserializes a debug info string.
+         */
+        fun deserializeCompact(string: String) = deserialize(MultiBase.decode(string)!!.decodeToString())
     }
 }
 
