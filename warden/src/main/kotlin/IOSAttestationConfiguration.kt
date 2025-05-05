@@ -1,10 +1,13 @@
 package at.asitplus.attestation
 
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import net.swiftzer.semver.SemVer
 
 /**
  * Configuration class for Apple App Attestation
  */
+@Serializable
 data class IOSAttestationConfiguration @JvmOverloads constructor(
 
     /**
@@ -23,7 +26,7 @@ data class IOSAttestationConfiguration @JvmOverloads constructor(
     /**
      * The maximum age an attestation statement is considered valid.
      */
-    val attestationStatementValiditySeconds: Int = 5 * 60
+    val attestationStatementValiditySeconds: Long = 5 * 60
 
 ) {
 
@@ -32,7 +35,7 @@ data class IOSAttestationConfiguration @JvmOverloads constructor(
     constructor(
         singleApp: AppData,
         iosVersion: OsVersions? = null,
-        attestationStatementValiditySeconds: Int = 5 * 60
+        attestationStatementValiditySeconds: Long = 5 * 60
     ) : this(listOf(singleApp), iosVersion, attestationStatementValiditySeconds)
 
     init {
@@ -46,6 +49,7 @@ data class IOSAttestationConfiguration @JvmOverloads constructor(
      * Since it makes rarely sense to only check for SemVer not for a hex-encoded build number (i.e only accept older iPhones),
      * encapsulating both variants into a dedicated type ensures that either both or neither are set.
      */
+    @Serializable
     data class OsVersions(
         /**
          * [SemVer](https://semver.org/)-formatted iOS version number.
@@ -66,6 +70,7 @@ data class IOSAttestationConfiguration @JvmOverloads constructor(
          * Parsed and normalised iOS build number. As per [TidBITS.com](https://tidbits.com/2020/07/08/how-to-decode-apple-version-and-build-numbers/):
          * @see BuildNumber
          */
+        @Transient
         val normalisedBuildNumber: BuildNumber = runCatching { BuildNumber(buildNumber) }.getOrElse { ex ->
             throw AttestationException.Configuration(
                 Platform.IOS,
@@ -77,8 +82,9 @@ data class IOSAttestationConfiguration @JvmOverloads constructor(
         /**
          * [SemVer](https://semver.org/)-formatted iOS version number.
          */
+        @Transient
         val semVerParsed: SemVer =
-            runCatching { SemVer.Companion.parse(semVer) }.getOrElse { ex ->
+            runCatching { SemVer.parse(semVer) }.getOrElse { ex ->
                 throw AttestationException.Configuration(
                     Platform.IOS,
                     "Illegal iOS version number $semVer",
@@ -104,12 +110,29 @@ data class IOSAttestationConfiguration @JvmOverloads constructor(
                 else -> throw UnsupportedOperationException("Cannot compare OsVersions to ${other::class.simpleName}")
             }
         }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is OsVersions) return false
+
+            if (semVer != other.semVer) return false
+            if (buildNumber != other.buildNumber) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = semVer.hashCode()
+            result = 31 * result + buildNumber.hashCode()
+            return result
+        }
     }
 
 
     /**
      * Specifies a to-be attested app
      */
+    @Serializable
     data class AppData @JvmOverloads constructor(
         /**
          * Nomen est omen
@@ -155,6 +178,24 @@ data class IOSAttestationConfiguration @JvmOverloads constructor(
 
             fun build() = AppData(teamIdentifier, bundleIdentifier, sandbox, iosVersionOverride)
         }
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is IOSAttestationConfiguration) return false
+
+        if (attestationStatementValiditySeconds != other.attestationStatementValiditySeconds) return false
+        if (applications != other.applications) return false
+        if (iosVersion != other.iosVersion) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = attestationStatementValiditySeconds
+        result = 31 * result + applications.hashCode()
+        result = 31 * result + (iosVersion?.hashCode() ?: 0)
+        return result.toInt()
     }
 
 }

@@ -260,6 +260,17 @@ for general-purpose crypto.
 **Limitation: supports only EC key on iOS (either ANSI X9.63 encoded or DER encoded).**
 The key can be passed in either encoding to the secure enclave when creating an assertion.
 
+
+## Recording and Replaying Attestation Checks
+Since WARDEN 2.4.0, `Warden` has methods to record the current config and an attestation statement to-be-checked.
+Multiple methods called `collectDebugInfo` exist and their signatures correspond to all the variants of `verifyAttestation` and `verifyKeyAttestation`.
+
+The resulting class can be serialized to JSON by invoking `.serialize()` (or `serializeCompact()`) on it.
+It can later be deserialized by calling `deserialize()` (or `deserializeCompact()`) on its companion.
+By finally calling `replaySmart()` on the deserialized debug info object, an attestation verification is performed.
+
+Attaching a debugger allows for step-by-step debugging of any attestation errors encountered.
+
 <br>
 
 ## Contributing

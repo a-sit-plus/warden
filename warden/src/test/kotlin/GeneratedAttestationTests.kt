@@ -54,6 +54,11 @@ class GeneratedAttestationTests : FreeSpec(
         "Generated Attestation Test" {
             attestationService.verifyAttestation(attestationProof = attestationProof.map { it.encoded }, challenge)
                 .shouldBeInstanceOf<AttestationResult.Android.Verified>().attestationCertificate shouldBe attestationProof.first()
+
+            val dbg = attestationService.collectDebugInfo(attestationProof.map { it.encoded }, challenge).serialize()
+
+            WardenDebugAttestationStatement.deserialize(dbg).replayGenericAttestation()
+                .shouldBeInstanceOf<AttestationResult.Android.Verified>().attestationCertificate shouldBe attestationProof.first()
         }
 
     })

@@ -6,7 +6,7 @@ import at.asitplus.attestation.android.exceptions.CertificateInvalidException
 import at.asitplus.signum.indispensable.AndroidKeystoreAttestation
 import at.asitplus.signum.indispensable.Attestation
 import at.asitplus.signum.indispensable.IosHomebrewAttestation
-import at.asitplus.signum.indispensable.getJcaPublicKey
+import at.asitplus.signum.indispensable.toJcaPublicKey
 import ch.veehait.devicecheck.appattest.AppleAppAttest
 import ch.veehait.devicecheck.appattest.assertion.Assertion
 import ch.veehait.devicecheck.appattest.assertion.AssertionChallengeValidator
@@ -53,7 +53,7 @@ import kotlin.time.toKotlinDuration
  * For the sake of consistency and intelligibility, **only** set this offset globally and not inside [iosAttestationConfiguration].
  */
 class Warden(
-    androidAttestationConfiguration: AndroidAttestationConfiguration,
+    private val androidAttestationConfiguration: AndroidAttestationConfiguration,
     private val iosAttestationConfiguration: IOSAttestationConfiguration,
     private val clock: Clock = Clock.System,
     private val verificationTimeOffset: Duration = Duration.ZERO
@@ -112,7 +112,7 @@ class Warden(
         )
 
         val correctlyOffsetAndroidConfig =
-            androidAttestationConfiguration.copy(verificationSecondsOffset = androidOffset.toInt())
+            androidAttestationConfiguration.copy(verificationSecondsOffset = androidOffset)
 
         if (!correctlyOffsetAndroidConfig.disableHardwareAttestation) add(
             HardwareAttestationChecker(
@@ -186,6 +186,105 @@ class Warden(
         )
     }
 
+    /**
+     * Collects a debug dump of an attestation call.
+     * Use this if you called ```verifyAttestation(
+     *               attestationProof: List<ByteArray>,
+     *               challenge: ByteArray,
+     *               clientData: ByteArray?
+     *           ): AttestationResult```
+     *
+     *  The resulting [WardenDebugAttestationStatement] features JSON-based`.serialize()` and `deserialize()` methods
+     */
+    @JvmName("collectKeyAttestationLegacy")
+    fun collectDebugInfo(
+        attestationProof: List<ByteArray>,
+        challenge: ByteArray,
+        clientData: ByteArray? = null
+    ) = WardenDebugAttestationStatement(
+        method = WardenDebugAttestationStatement.Method.LEGACY,
+        androidAttestationConfiguration = androidAttestationConfiguration,
+        iosAttestationConfiguration = iosAttestationConfiguration,
+        genericAttestationProof = attestationProof,
+        challenge = challenge,
+        clientData = clientData,
+        verificationTime = clock.now(),
+        verificationTimeOffset = verificationTimeOffset
+    )
+
+
+    /**
+     * Collects a debug dump of an attestation call.
+     * Use this if you called ``` <T : PublicKey> verifyKeyAttestation(
+     *         attestationProof: List<ByteArray>,
+     *         expectedChallenge: ByteArray,
+     *         keyToBeAttested: T
+     *     )```
+     *
+     *  The resulting [WardenDebugAttestationStatement] features JSON-based`.serialize()` and `deserialize()` methods
+     */
+    fun collectDebugInfo(
+        attestationProof: List<ByteArray>,
+        challenge: ByteArray,
+        publicKey: PublicKey
+    ) = WardenDebugAttestationStatement(
+        method = WardenDebugAttestationStatement.Method.KEY_ATTESTATION_LEGACY,
+        androidAttestationConfiguration = androidAttestationConfiguration,
+        iosAttestationConfiguration = iosAttestationConfiguration,
+        genericAttestationProof = attestationProof,
+        challenge = challenge,
+        clientData = publicKey.encoded,
+        verificationTime = clock.now(),
+        verificationTimeOffset = verificationTimeOffset
+    )
+
+    /**
+     * Collects a debug dump of an attestation call.
+     * Use this if you called  ```verifyKeyAttestation(
+     *         attestationProof: List<ByteArray>,
+     *         challenge: ByteArray,
+     *         encodedPublicKey: ByteArray
+     *     ): KeyAttestation<PublicKey>```
+     *
+     *  The resulting [WardenDebugAttestationStatement] features JSON-based`.serialize()` and `deserialize()` methods
+     */
+    fun collectDebugInfo(
+        attestationProof: List<ByteArray>,
+        challenge: ByteArray,
+        rawPublicKey: ByteArray
+    ) = WardenDebugAttestationStatement(
+        method = WardenDebugAttestationStatement.Method.KEY_ATTESTATION_LEGACY_RAW,
+        androidAttestationConfiguration = androidAttestationConfiguration,
+        iosAttestationConfiguration = iosAttestationConfiguration,
+        genericAttestationProof = attestationProof,
+        challenge = challenge,
+        clientData = rawPublicKey,
+        verificationTime = clock.now(),
+        verificationTimeOffset = verificationTimeOffset
+    )
+
+    /**
+     * Collects a debug dump of an attestation call.
+     * Use this if you called ```verifyKeyAttestation(
+     *         attestationProof: Attestation,
+     *         challenge: ByteArray
+     *     ): KeyAttestation<PublicKey>```
+     *
+     *  The resulting [WardenDebugAttestationStatement] features JSON-based`.serialize()` and `deserialize()` methods
+     */
+    fun collectDebugInfo(
+        attestationProof: Attestation,
+        challenge: ByteArray
+    ) = WardenDebugAttestationStatement(
+        method = WardenDebugAttestationStatement.Method.SUPREME,
+        androidAttestationConfiguration = androidAttestationConfiguration,
+        iosAttestationConfiguration = iosAttestationConfiguration,
+        keyAttestation = attestationProof,
+        challenge = challenge,
+        verificationTime = clock.now(),
+        verificationTimeOffset = verificationTimeOffset
+    )
+
     override fun verifyAttestation(
         attestationProof: List<ByteArray>,
         challenge: ByteArray,
@@ -193,8 +292,21 @@ class Warden(
     ): AttestationResult {
         log.debug("attestation proof length: ${attestationProof.size}")
         return if (attestationProof.isEmpty()) AttestationResult.Error("Attestation proof is empty")
-        else if (attestationProof.size > 2)
-            verifyAttestationAndroid(attestationProof, challenge)
+        else if (attestationProof.size > 2) verifyAttestationAndroid(attestationProof, challenge).let {
+            if (it is AttestationResult.Android) clientData?.let { encodedKey ->
+                if (!it.attestationCertificate.publicKey.encoded.contentEquals(encodedKey)) {
+                    "Attestation certificate public key does not match provided public key".let { msg ->
+                        AttestationResult.Error(
+                            msg, AttestationException.Content.Android(
+                                msg,
+                                AttestationValueException(msg, reason = AttestationValueException.Reason.APP_UNEXPECTED)
+                            )
+                        )
+                    }
+                } else it
+            } ?: it
+            else it
+        }
         else {
             kotlin.runCatching {
                 verifyAttestationApple(
@@ -247,7 +359,7 @@ class Warden(
                     ).let {
                         when (it) {
                             is AttestationResult.IOS -> KeyAttestation(
-                                attestationProof.parsedClientData.publicKey.getJcaPublicKey().getOrThrow(), it
+                                attestationProof.parsedClientData.publicKey.toJcaPublicKey().getOrThrow(), it
                             )
 
                             is AttestationResult.Error -> KeyAttestation(null, it)
@@ -265,7 +377,7 @@ class Warden(
             ).let {
                 when (it) {
                     is AttestationResult.Android -> KeyAttestation(
-                        attestationProof.certificateChain.first().publicKey.getJcaPublicKey().getOrThrow(), it
+                        attestationProof.certificateChain.first().publicKey.toJcaPublicKey().getOrThrow(), it
                     )
 
                     is AttestationResult.Error -> KeyAttestation(null, it)
