@@ -1,22 +1,16 @@
 package at.asitplus.attestation
 
 import at.asitplus.signum.indispensable.CryptoPublicKey
-import at.asitplus.signum.indispensable.fromJcaPublicKey
-import at.asitplus.signum.indispensable.getJcaPublicKey
+import at.asitplus.signum.indispensable.toCryptoPublicKey
+import at.asitplus.signum.indispensable.toJcaPublicKey
 import kotlinx.datetime.Clock
 import kotlinx.datetime.toJavaInstant
 import kotlinx.datetime.toKotlinInstant
-import org.bouncycastle.jce.ECNamedCurveTable
-import org.bouncycastle.jce.provider.JCEECPublicKey
 import org.bouncycastle.util.encoders.Base64
-import java.math.BigInteger
 import java.security.KeyFactory
 import java.security.PublicKey
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
-import java.security.interfaces.ECPublicKey
-import java.security.spec.InvalidKeySpecException
-import java.security.spec.X509EncodedKeySpec
 import java.time.Instant
 import java.time.ZoneId
 import java.util.*
@@ -42,12 +36,21 @@ data class AttestationObject(
     )
 }
 
-internal fun PublicKey.transcodeToAllFormats() = CryptoPublicKey.fromJcaPublicKey(this).getOrThrow().let {
-    listOf(
-        it.iosEncoded,
-        (it as CryptoPublicKey.EC).toAnsiX963Encoded(useCompressed = !it.preferCompressedRepresentation),
-        it.encodeToDer()
-    )
+internal fun PublicKey.transcodeToAllFormats() = toCryptoPublicKey().getOrThrow().let {
+    when (it) {
+        is CryptoPublicKey.EC -> listOf(
+            it.encodeToDer(),
+            it.toAnsiX963Encoded(useCompressed = it.preferCompressedRepresentation),
+            it.toAnsiX963Encoded(useCompressed = !it.preferCompressedRepresentation),
+            it.didEncoded.encodeToByteArray()
+        )
+
+        is CryptoPublicKey.RSA -> listOf(
+            it.encodeToDer(),
+            it.iosEncoded,
+            it.didEncoded.encodeToByteArray()
+        )
+    }
 }
 
 internal fun String.decodeBase64ToArray() = Base64.decode(this)
@@ -71,9 +74,9 @@ internal fun kotlinx.datetime.Instant.toJavaDate() = Date.from(toJavaInstant())
 
 fun ByteArray.parseToPublicKey(): PublicKey =
     try {
-       CryptoPublicKey.decodeFromDer(this).getJcaPublicKey().getOrThrow()
+        CryptoPublicKey.decodeFromDer(this).toJcaPublicKey().getOrThrow()
     } catch (e: Throwable) {
-       CryptoPublicKey.fromIosEncoded(this).getJcaPublicKey().getOrThrow()
+        CryptoPublicKey.fromIosEncoded(this).toJcaPublicKey().getOrThrow()
     }
 
 /**

@@ -301,8 +301,8 @@ fun attestationService(
     eternalLeaves: Boolean = false,
     androidSW: Boolean = false,
     androidN: Boolean = false,
-    androidAttestationStatementValidity: Duration= 10.minutes,
-    iosAttestationStatementValidity: Duration= 10.minutes,
+    androidAttestationStatementValidity: Duration = 10.minutes,
+    iosAttestationStatementValidity: Duration = 10.minutes,
 ) =
     Warden(
         AndroidAttestationConfiguration(
@@ -321,7 +321,7 @@ fun attestationService(
             ignoreLeafValidity = eternalLeaves,
             enableSoftwareAttestation = androidSW,
             enableNougatAttestation = androidN,
-            attestationStatementValiditySeconds = androidAttestationStatementValidity.inWholeSeconds.toInt()
+            attestationStatementValiditySeconds = androidAttestationStatementValidity.inWholeSeconds
         ),
         IOSAttestationConfiguration(
             applications = listOf(
@@ -332,27 +332,12 @@ fun attestationService(
                 )
             ),
             iosVersion = iosVersion,
-            attestationStatementValiditySeconds = iosAttestationStatementValidity.inWholeSeconds.toInt()
+            attestationStatementValiditySeconds = iosAttestationStatementValidity.inWholeSeconds
         ),
         timeSource,
         offset
     )
 
-
-internal class FixedTimeClock(private val epochMilliseconds: Long) : Clock {
-    constructor(instant: Instant) : this(instant.toEpochMilliseconds())
-    constructor(yyyy: UInt, mm: UInt, dd: UInt) : this(
-        Instant.parse(
-            "$yyyy-${
-                mm.toString().let { if (it.length < 2) "0$it" else it }
-            }-${
-                dd.toString().let { if (it.length < 2) "0$it" else it }
-            }T00:00:00.000Z"
-        )
-    )
-
-    override fun now() = Instant.fromEpochMilliseconds(epochMilliseconds)
-}
 
 private object TestTimeSource : Clock {
     const val timePeriod = 2021

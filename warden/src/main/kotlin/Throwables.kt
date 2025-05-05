@@ -6,6 +6,7 @@ import at.asitplus.attestation.android.exceptions.AndroidAttestationException
 import at.asitplus.attestation.android.exceptions.AttestationValueException
 import kotlinx.datetime.Clock
 import java.security.PublicKey
+import java.security.cert.CertPathValidatorException
 
 
 /**
@@ -84,6 +85,14 @@ sealed class AttestationException(val platform: Platform, message: String? = nul
 
             fun Unknown(message: String? = null, cause: Throwable) = Content(Platform.UNKNOWN, message, cause)
         }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is Content) return false
+            if (!super.equals(other)) return false
+            return true
+        }
+
     }
 
     /**
@@ -114,6 +123,18 @@ sealed class AttestationException(val platform: Platform, message: String? = nul
                 ) = Time(Platform.IOS, message, cause)
 
             }
+
+            override fun equals(other: Any?): Boolean {
+                if (this === other) return true
+                if (other !is Time) return false
+                if (!super.equals(other)) return false
+                return true
+            }
+
+            override fun hashCode(): Int {
+                return super.hashCode()
+            }
+
         }
 
         /**
@@ -131,17 +152,65 @@ sealed class AttestationException(val platform: Platform, message: String? = nul
                 ) = Trust(Platform.IOS, message, cause)
 
             }
+
+            override fun equals(other: Any?): Boolean {
+                if (this === other) return true
+                if (other !is Trust) return false
+                if (!super.equals(other)) return false
+                return true
+            }
+
         }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is Certificate) return false
+            if (!super.equals(other)) return false
+            return true
+        }
+
     }
 
     /**
      * Thrown on instantiation, for illegal configurations (e.g. no apps configured)
      */
     class Configuration(platform: Platform, message: String? = null, cause: Throwable) :
-        AttestationException(platform, message = message, cause = cause)
+        AttestationException(platform, message = message, cause = cause) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is Configuration) return false
+            if (!super.equals(other)) return false
+            return true
+        }
+
+    }
 
     override fun toString() =
         "AttestationException.${this::class.simpleName}: platform: $platform, message: ${message ?: cause?.message}, cause: $cause"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is AttestationException) return false
+
+        if (platform != other.platform) return false
+        if(platformSpecificCause is CertPathValidatorException && other.platformSpecificCause is CertPathValidatorException){
+            val own = platformSpecificCause as CertPathValidatorException
+            val other= other.platformSpecificCause as CertPathValidatorException
+            if(own.reason != other.reason) return false
+            if(own.certPath != other.certPath) return false
+            if(own.index != other.index) return false
+            return true
+        }
+        if (platformSpecificCause != other.platformSpecificCause) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = platform.hashCode()
+        result = 31 * result + platformSpecificCause.hashCode()
+        return result
+    }
 }
 
 
@@ -181,6 +250,19 @@ class IosAttestationException(msg: String? = null, cause: Throwable? = null, val
          */
         APP_UNEXPECTED,
 
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is IosAttestationException) return false
+
+        if (reason != other.reason) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return reason.hashCode()
     }
 }
 

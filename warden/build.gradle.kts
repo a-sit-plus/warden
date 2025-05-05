@@ -1,9 +1,11 @@
 import at.asitplus.gradle.bouncycastle
 import at.asitplus.gradle.datetime
+import org.gradle.kotlin.dsl.kotlin
 import org.gradle.kotlin.dsl.support.listFilesOrdered
 
 plugins {
     kotlin("jvm")
+    kotlin("plugin.serialization")
     id("org.jetbrains.dokka")
     id("maven-publish")
     id("signing")
@@ -24,7 +26,6 @@ sourceSets.test {
 dependencies {
     api("at.asitplus:warden-roboto:$androidAttestationVersion")
     api(datetime())
-    implementation("at.asitplus.signum:indispensable:3.12.0")
     implementation("ch.veehait.devicecheck:devicecheck-appattest:0.9.6")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.14.2")
     implementation("net.swiftzer.semver:semver:1.2.0")
