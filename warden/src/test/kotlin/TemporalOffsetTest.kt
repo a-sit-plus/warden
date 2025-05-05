@@ -20,43 +20,55 @@ class TemporalOffsetTest : FreeSpec() {
     init {
         "Exact Time of Validity" - {
             withData(exactStartOfValidity) {
-                attestationService(timeSource = FixedTimeClock(it.verificationDate.time)).verifyAttestation(
+                val attestationService = attestationService(timeSource = FixedTimeClock(it.verificationDate.time))
+                attestationService.verifyAttestation(
                     it.attestationProof,
                     it.challenge
                 ).apply {
                     shouldNotBeInstanceOf<AttestationResult.Error>()
+                    WardenDebugAttestationStatement.deserializeCompact(
+                        attestationService.collectDebugInfo(it.attestationProof, it.challenge).serializeCompact()
+                    ).replaySmart() shouldBe this
                 }
             }
         }
 
         "Exact Time of Validity + 1D" - {
             withData(exactStartOfValidity) {
-                attestationService(
+                val attestationService = attestationService(
                     timeSource = FixedTimeClock(it.verificationDate.time),
                     offset = 1.days,
                     androidAttestationStatementValidity = 1.days + 1.seconds,
                     iosAttestationStatementValidity = 1.days + 1.seconds,
-                ).verifyAttestation(
+                )
+                attestationService.verifyAttestation(
                     it.attestationProof,
                     it.challenge,
                 ).apply {
                     shouldNotBeInstanceOf<AttestationResult.Error>()
+                    WardenDebugAttestationStatement.deserializeCompact(
+                        attestationService.collectDebugInfo(it.attestationProof, it.challenge).serializeCompact()
+                    ).replaySmart() shouldBe this
                 }
             }
         }
 
         "Exact Time of Validity - 1D" - {
             withData(mapOf("KeyMint 200" to pixel6KeyMint200Good)) {
-                attestationService(
+                val attestationService = attestationService(
                     timeSource = FixedTimeClock(it.verificationDate.time),
                     offset = (-1).days,
                     androidN = true, androidSW = true
-                ).verifyAttestation(
+                )
+                attestationService.verifyAttestation(
                     it.attestationProof,
                     it.challenge,
                 ).apply {
                     shouldBeInstanceOf<AttestationResult.Error>()
                         .cause.shouldBeInstanceOf<AttestationException.Certificate.Time>()
+                    WardenDebugAttestationStatement.deserializeCompact(
+                        attestationService.collectDebugInfo(it.attestationProof, it.challenge).serializeCompact()
+                    ).replaySmart() shouldBe this
 
                 }
             }
@@ -64,38 +76,49 @@ class TemporalOffsetTest : FreeSpec() {
 
         "KeyMint eternal leaves - 1D" - {
             withData("eternal" to true, "expiring" to false) {
-                attestationService(
+                val attestationService = attestationService(
                     timeSource = FixedTimeClock(pixel6KeyMint200Good.verificationDate.time),
                     offset = (-1).days,
                     androidN = true, androidSW = true
-                ).verifyAttestation(
+                )
+                attestationService.verifyAttestation(
                     pixel6KeyMint200Good.attestationProof,
                     pixel6KeyMint200Good.challenge,
                 ).apply {
                     shouldBeInstanceOf<AttestationResult.Error>()
                         .cause.shouldBeInstanceOf<AttestationException.Certificate.Time>()
+                    WardenDebugAttestationStatement.deserializeCompact(
+                        attestationService.collectDebugInfo(
+                            pixel6KeyMint200Good.attestationProof,
+                            pixel6KeyMint200Good.challenge
+                        ).serializeCompact()
+                    ).replaySmart() shouldBe this
                 }
             }
         }
 
-        "iOS Temporal Offset Strict Fail"  - {
-                withData(nameFn = {it.toIsoString()},1.days, -1.days) { offset ->
-                    attestationService(
-                        timeSource = FixedTimeClock(ios16.verificationDate.time),
-                        offset = offset,
-                        iosAttestationStatementValidity =23.hours,
-                        androidAttestationStatementValidity = 23.hours
-                    ).verifyAttestation(
-                        ios16.attestationProof,
-                        ios16.challenge,
-                    ).apply {
-                        shouldBeInstanceOf<AttestationResult.Error>()
-                        this.cause.shouldBeInstanceOf<AttestationException.Content>()
-                        (this.cause as AttestationException.Content).cause.shouldBeInstanceOf<IosAttestationException>()
-                        ((cause as AttestationException.Content).cause as IosAttestationException).reason shouldBe IosAttestationException.Reason.STATEMENT_TIME
-                    }
-                }
+        "iOS Temporal Offset Strict Fail" - {
+            withData(nameFn = { it.toIsoString() }, 1.days, -1.days) { offset ->
+                val attestationService = attestationService(
+                    timeSource = FixedTimeClock(ios16.verificationDate.time),
+                    offset = offset,
+                    iosAttestationStatementValidity = 23.hours,
+                    androidAttestationStatementValidity = 23.hours
+                )
+                attestationService.verifyAttestation(
+                    ios16.attestationProof,
+                    ios16.challenge,
+                ).apply {
+                    shouldBeInstanceOf<AttestationResult.Error>()
+                    this.cause.shouldBeInstanceOf<AttestationException.Content>()
+                    (this.cause as AttestationException.Content).cause.shouldBeInstanceOf<IosAttestationException>()
+                    ((cause as AttestationException.Content).cause as IosAttestationException).reason shouldBe IosAttestationException.Reason.STATEMENT_TIME
+
+                    WardenDebugAttestationStatement.deserializeCompact(
+                        attestationService.collectDebugInfo(ios16.attestationProof, ios16.challenge).serializeCompact()
+                    ).replaySmart() shouldBe this}
             }
         }
     }
+}
 

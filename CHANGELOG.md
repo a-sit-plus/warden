@@ -3,6 +3,10 @@
 - To match WARDEN-roboto, the `attestationStatementValiditySeconds` iOS config has also been changed to `Long`
 - Ability to record debug infos, serialize, deserialize and replay them
 - Re-structure high-level attestation checks
+- Dependency Updates
+  * Kotlin 2.1.20
+  * Kotlinx-Serialization 1.8.0
+  * Ktor 3.0.3
 
 
 ## 2.3.3
