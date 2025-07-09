@@ -1,7 +1,10 @@
 # Changelog
 
 ## NEXT
-
+* Update to latest WARDEN-roboto, bringing Google's PKI cert path validator to guard against cert path validations
+* BEHAVIOURAL CHANGE:
+  * Android attestation errors due to certificate revocation don't fall into the `Content` exception category any more
+  * Instead, they are now more correctly binned into the `Certificate.Trust` exception subtree
 * Kotlin 2.1.21
 * Bouncy Castle 1.81
 * KmmResult 1.9.3
