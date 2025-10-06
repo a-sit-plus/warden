@@ -1,7 +1,6 @@
-rootProject.name = "WARDEN-root"
+rootProject.name = "WARDEN-Supreme"
 pluginManagement {
     repositories {
-        maven("https://s01.oss.sonatype.org/content/repositories/snapshots") //KOTEST snapshot
         maven {
             url = uri("https://raw.githubusercontent.com/a-sit-plus/gradle-conventions-plugin/mvn/repo")
             name = "aspConventions"
@@ -11,12 +10,9 @@ pluginManagement {
     }
 }
 
-include("warden")
-
-//do not depend on included build for publishing
-if (gradle.startParameter.taskNames.find { it.contains("publish") } == null)
-    includeBuild("warden-roboto") {
-        dependencySubstitution {
-            substitute(module("at.asitplus:warden-roboto")).using(project(":warden-roboto"))
-        }
-    }
+include("combinato")
+include("roboto")
+include("roboto-diag")
+project(":combinato").projectDir = file("serverside/combinato")
+project(":roboto").projectDir = file("serverside/roboto")
+project(":roboto-diag").projectDir = file("utils/roboto-diag")

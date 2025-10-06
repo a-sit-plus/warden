@@ -7,7 +7,7 @@ plugins {
     id("at.asitplus.gradle.conventions") version "20250729"
 }
 
-group = "at.asitplus"
+group = "at.asitplus.warden"
 
 //work around nexus publish bug
 val artifactVersion: String by extra
