@@ -77,7 +77,7 @@ dependencies {
     implementation(libs.gson)
     implementation(libs.errorprone.annotations)
     implementation(libs.protobuf.javalite)
-    implementation(libs.protobuf.kotlinlite)
+    api(libs.protobuf.kotlinlite)
 
     testImplementation(libs.slf4j.reload4j)
     testImplementation("io.netty:netty-all:4.1.94.Final")
