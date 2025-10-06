@@ -1,3 +1,5 @@
+package at.asitplus.attestation.test
+
 import at.asitplus.signum.supreme.os.PlatformSigningProvider
 import at.asitplus.signum.supreme.sign.Signer
 import at.asitplus.attestation.supreme.AttestationChallenge

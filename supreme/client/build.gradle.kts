@@ -18,8 +18,10 @@ plugins {
     id("at.asitplus.gradle.conventions")
 }
 
-group = "at.asitplus.wardensupreme"
+
 val artifactVersion: String by extra
+val groupId: String by extra
+group = groupId
 version = artifactVersion
 
 kotlin {
@@ -39,7 +41,7 @@ kotlin {
         }
 
         commonMain.dependencies {
-            api(project(":common"))
+            api(project(":supreme-common"))
             implementation(ktor("client-core"))
             api(ktor("client-content-negotiation"))
             api(ktor("client-encoding"))
@@ -115,6 +117,7 @@ android {
 
 
 val startVerifier = tasks.register<DefaultTask>("startVerifier") {
+    group = "verification"
     doLast {
         if (!kotlin.runCatching { Socket("localhost", 8080) }.fold(onSuccess = { true }, onFailure = { false }))
             logger.lifecycle("Starting Verifier")
@@ -145,7 +148,7 @@ val startVerifier = tasks.register<DefaultTask>("startVerifier") {
 }
 
 val javadocJar = setupDokka(
-    baseUrl = "https://github.com/a-sit-plus/warden-supreme/tree/main/",
+    baseUrl = "https://github.com/a-sit-plus/warden/tree/main/",
     multiModuleDoc = true
 )
 
@@ -156,7 +159,7 @@ publishing {
             pom {
                 name.set("WARDEN Supreme Client")
                 description.set("Attestation mobile client; part of the WARDEN Supreme integrated key attestation suite")
-                url.set("https://github.com/a-sit-plus/warden-supreme")
+                url.set("https://github.com/a-sit-plus/warden")
                 licenses {
                     license {
                         name.set("The Apache License, Version 2.0")
@@ -176,9 +179,9 @@ publishing {
                     }
                 }
                 scm {
-                    connection.set("scm:git:git@github.com:a-sit-plus/warden-supreme.git")
-                    developerConnection.set("scm:git:git@github.com:a-sit-plus/warden-supreme.git")
-                    url.set("https://github.com/a-sit-plus/warden-supreme")
+                    connection.set("scm:git:git@github.com:a-sit-plus/warden.git")
+                    developerConnection.set("scm:git:git@github.com:a-sit-plus/warden.git")
+                    url.set("https://github.com/a-sit-plus/warden")
                 }
             }
         }

@@ -1,3 +1,0 @@
-### NEXT
-
-Initial release

@@ -10,10 +10,10 @@ plugins {
     id("at.asitplus.gradle.conventions")
 }
 
-group = "at.asitplus.wardensupreme"
 val artifactVersion: String by extra
+val groupId: String by extra
+group = groupId
 version = artifactVersion
-
 
 
 kotlin {
@@ -25,7 +25,7 @@ kotlin {
         }
 
         commonMain.dependencies {
-            api(project(":common"))
+            api(project(":supreme-common"))
         }
 
         commonTest.dependencies {
@@ -33,18 +33,15 @@ kotlin {
             implementation(ktor("serialization-kotlinx-json"))
             implementation(ktor("server-content-negotiation"))
             implementation(libs.supreme)
-
         }
 
-        jvmMain.dependencies{
-            api("at.asitplus:warden:${libs.versions.warden.get()}"){
-                exclude("org.bouncycastle", "bcpkix-jdk18on")}
+        jvmMain.dependencies {
+            api(project(":cupertinoto"))
         }
     }
 }
-
 val javadocJar = setupDokka(
-    baseUrl = "https://github.com/a-sit-plus/warden-supreme/tree/main/",
+    baseUrl = "https://github.com/a-sit-plus/warden/tree/main/",
     multiModuleDoc = true
 )
 
@@ -75,9 +72,9 @@ publishing {
                     }
                 }
                 scm {
-                    connection.set("scm:git:git@github.com:a-sit-plus/warden-supreme.git")
-                    developerConnection.set("scm:git:git@github.com:a-sit-plus/warden-supreme.git")
-                    url.set("https://github.com/a-sit-plus/warden-supreme")
+                    connection.set("scm:git:git@github.com:a-sit-plus/warden.git")
+                    developerConnection.set("scm:git:git@github.com:a-sit-plus/warden.git")
+                    url.set("https://github.com/a-sit-plus/warden")
                 }
             }
         }

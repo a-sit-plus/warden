@@ -1,15 +1,18 @@
 # Changelog
 
+# WARDEN Supreme
 
-## NEXT
+## 0.9.0 
  * Export Apple App Attest Validation library as API
  * Attach more context to Android exceptions
  * Verify that Android patch levels are not too far in the future (default leeway: 1 month)
  * More powerful `patchLevel`
  * Dependency updates
    * Update conventions to 20250729
-   * Update Kotlin to 2.2.10
+   * Update Kotlin to 2.2.20
    * Replace `kotlinx.datetime` with `kotlin.time`
+
+# Pre-Supreme WARDEN
 
 
 ## 2.4.2

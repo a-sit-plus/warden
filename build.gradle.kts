@@ -7,6 +7,7 @@ plugins {
     kotlin("plugin.serialization") version kotlinVer apply false
     id("at.asitplus.gradle.conventions") version "20250729"
     id("com.google.devtools.ksp") version kspVer
+    id("com.android.library") version "8.10.0" apply (false)
 }
 
 val artifactVersion: String by extra

@@ -17,7 +17,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
       - name: Publish to Sonatype
-        run: ./gradlew clean combinato:publishToSonatype roboto:publishToSonatype closeSonatypeStagingRepository
+        run: ./gradlew clean cupertinoto:publishToSonatype roboto:publishToSonatype closeSonatypeStagingRepository
         env:
           ORG_GRADLE_PROJECT_signingKeyId: ${{ secrets.PUBLISH_SIGNING_KEYID }}
           ORG_GRADLE_PROJECT_signingKey: ${{ secrets.PUBLISH_SIGNING_KEY }}
@@ -27,8 +27,8 @@ jobs:
       - name: Upload jar
         uses: actions/upload-artifact@v4
         with:
-          name: combinato
-          path: serverside/**/build/libs/*jar,  utils/**/build/libs/*jar
+          name: WARDEN
+          path: serverside/*/build/libs/*jar,  utils/*/build/libs/*jar, supreme/*/build/libs/*jar
   deploy-docs:
     needs: build
     environment:
