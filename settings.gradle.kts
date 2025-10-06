@@ -1,4 +1,4 @@
-rootProject.name = "WARDEN-Supreme"
+rootProject.name = "WARDEN"
 pluginManagement {
     repositories {
         maven {

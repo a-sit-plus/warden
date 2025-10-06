@@ -1,6 +1,4 @@
 
-group = "at.asitplus"
-version = "0.0.3"
 
 plugins {
     kotlin("jvm")
@@ -8,6 +6,11 @@ plugins {
     id("at.asitplus.gradle.conventions")
     id("com.gradleup.shadow")
 }
+
+val artifactVersion: String by extra
+val groupId: String by extra
+group = groupId
+version = artifactVersion
 
 application {
     mainClass.set("at.asitplus.attestation.android.DiagKt")
@@ -32,9 +35,9 @@ sourceSets.main {
 
 dependencies {
     implementation(project(":roboto"))
-    implementation("com.google.auto.value:auto-value-annotations:1.11.0")
-    implementation("com.google.code.gson:gson:2.12.1")
-    implementation("at.asitplus.signum:indispensable:3.16.3") {
+    implementation(libs.autovalue.annotations)
+    implementation(libs.gson)
+    implementation(libs.signum) {
         exclude("org.bouncycastle", "bcpkix-jdk18on")
     }
 }

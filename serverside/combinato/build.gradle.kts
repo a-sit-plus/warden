@@ -12,8 +12,9 @@ plugins {
     id("at.asitplus.gradle.conventions")
 }
 
-group = "at.asitplus.attestation"
 val artifactVersion: String by extra
+val groupId: String by extra
+group = groupId
 version = artifactVersion
 
 sourceSets.test {
@@ -26,13 +27,13 @@ dependencies {
     api(project(":roboto"))
     api(bouncycastle("bcpkix", "jdk18on"))
     api(datetime())
-    api("ch.veehait.devicecheck:devicecheck-appattest:0.9.6")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.14.2")
-    implementation("net.swiftzer.semver:semver:1.2.0")
-    implementation("org.slf4j:slf4j-api:1.7.36")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.14.2")
+    api(libs.devicecheck)
+    implementation(libs.jackson.cbor)
+    implementation(libs.semver)
+    implementation(libs.slf4j.api)
+    implementation(libs.jackson.kotlin)
 
-    testImplementation("org.slf4j:slf4j-reload4j:1.7.36")
+    testImplementation(libs.slf4j.reload4j)
     testImplementation(kotlin("reflect"))
 }
 

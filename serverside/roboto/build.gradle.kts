@@ -5,8 +5,9 @@ import at.asitplus.gradle.ktor
 import org.gradle.kotlin.dsl.support.listFilesOrdered
 import org.jetbrains.kotlin.gradle.targets.js.testing.karma.processKarmaStackTrace
 
-group = "at.asitplus"
 val artifactVersion: String by extra
+val groupId: String by extra
+group = groupId
 version = artifactVersion
 
 plugins {
@@ -63,24 +64,23 @@ dependencies {
     implementation(ktor("serialization-kotlinx-json"))
     implementation(ktor("client-cio"))
 
-    api("com.google.guava:guava:33.4.0-jre")
-    implementation("com.google.auto.value:auto-value-annotations:1.11.0")
-    annotationProcessor("com.google.auto.value:auto-value:1.11.0")
-    api("com.google.protobuf:protobuf-javalite:4.29.3")
-    api("at.asitplus.signum:indispensable:3.17.0")  {
+    api(libs.guava)
+    implementation(libs.autovalue.annotations)
+    annotationProcessor(libs.autovalue.value)
+    api(libs.signum)  {
         exclude("org.bouncycastle", "bcpkix-jdk18on")
     }
 
 
     //dependencies for new attestation lib
-    implementation("co.nstant.in:cbor:0.9")
-    implementation("com.google.code.gson:gson:2.11.0")
-    implementation("com.google.errorprone:error_prone_annotations:2.41.0")
-    implementation("com.google.protobuf:protobuf-javalite:4.28.3")
-    implementation("com.google.protobuf:protobuf-kotlin-lite:4.28.3")
+    implementation(libs.cbor)
+    implementation(libs.gson)
+    implementation(libs.errorprone.annotations)
+    implementation(libs.protobuf.javalite)
+    implementation(libs.protobuf.kotlinlite)
 
-    testImplementation("org.slf4j:slf4j-reload4j:1.7.36")
-    testImplementation("io.netty:netty-all:4.1.36.Final")
+    testImplementation(libs.slf4j.reload4j)
+    testImplementation("io.netty:netty-all:4.1.94.Final")
     testImplementation("commons-cli:commons-cli:1.4")
     testImplementation("ch.qos.logback:logback-classic:1.2.3")
     testImplementation("ch.qos.logback:logback-access:1.2.3")
