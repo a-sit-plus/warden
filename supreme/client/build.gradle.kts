@@ -134,7 +134,7 @@ val startVerifier = tasks.register<DefaultTask>("startVerifier") {
             exec {
                 workingDir = rootDir
                 executable = "./gradlew"
-                args = listOf(":verifier:jvmTest")
+                args = listOf(":supreme-verifier:jvmTest")
             }
         }
 
