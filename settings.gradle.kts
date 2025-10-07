@@ -11,10 +11,10 @@ pluginManagement {
     }
 }
 
-include("cupertinoto")
+include("proto")
 include("roboto")
 include("roboto-diag")
-project(":cupertinoto").projectDir = file("serverside/cupertinoto")
+project(":proto").projectDir = file("serverside/proto")
 project(":roboto").projectDir = file("serverside/roboto")
 project(":roboto-diag").projectDir = file("utils/roboto-diag")
 

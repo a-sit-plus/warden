@@ -9,6 +9,7 @@ import at.asitplus.signum.indispensable.SpecializedSignatureAlgorithm
 import at.asitplus.signum.indispensable.asn1.ObjectIdentifier
 import at.asitplus.signum.indispensable.getJCASignatureInstance
 import at.asitplus.signum.indispensable.jcaSignatureBytes
+import at.asitplus.signum.indispensable.pki.CertificateChain
 import at.asitplus.signum.indispensable.pki.Pkcs10CertificationRequest
 import at.asitplus.signum.indispensable.pki.X509Certificate
 import kotlin.time.Clock
@@ -32,7 +33,7 @@ class AttestationValidator(
         nonce: ByteArray,
         validity: Duration,
         postEndpoint: String,
-        timeOffset: Duration = 5.minutes
+        timeOffset: Duration
     ) =
         AttestationChallenge(
             issuedAt = Clock.System.now() + timeOffset,
@@ -112,4 +113,4 @@ typealias NonceValidator = suspend (ByteArray) -> Boolean
  * Hence, a certificate can be issued and the whole certificate chain (from newly issued certificate up to the CA)
  * shall be returned.
  */
-typealias CertificateIssuer = suspend (Pkcs10CertificationRequest) -> KmmResult<List<X509Certificate>>
+typealias CertificateIssuer = suspend (Pkcs10CertificationRequest) -> KmmResult<CertificateChain>

@@ -23,7 +23,7 @@ augmented by the Supreme KMP crypto provider for a consistent UX across Android 
 The original server-side only key and app attestation library is still available and actively maintained, as it is one
 of the pillars supporting WARDEN Supreme.
 
-## About this Document
+## 0. About this Document
 This README focuses on the technical aspects and is aimed at informed developers who are familiar with the general concepts, limitations,
 and benefits of key and app attestation.
 
@@ -42,44 +42,45 @@ as a quick-start guide to integrate WARDEN Supreme to remotely establish trust i
 
 Full API docs are available [here](https://a-sit-plus.github.io/warden/).
 
-## Using it in your Projects
+## 1. Using WARDEN Supreme in your Projects
 
 WARDEN Supreme targets Android and iOS clients and JVM-based back-ends.
 * On the back-end, add the `verifier` dependency: 
   ```kotlin
-  implementation("at.asitplus.warden:verifier:$version")
+  implementation("at.asitplus.warden:supreme-verifier:$version")
   ```
 * On mobile clients, add the `client` dependency:
   ```kotlin
-  implementation("at.asitplus.warden:client:$version")
+  implementation("at.asitplus.warden:supreme-client:$version")
   ```
 
 WARDEN Supreme currently only supports HTTP as its communication protocol and relies on [Ktor](https://ktor.io/) on mobile clients.
 The back-end, however, can also use [Spring](https://spring.io/), for example.
 An attestation flow works as follows:
-1. The client fetches a challenge from the back-end
-2. The client feeds the challenge into hardware-backed key generation to create an attestation statement
-3. The client sends the attestation statement back to the back-end
-4. The back-end verifies the attestation statement against a predefined policy
-   * If the attestation is considered valid, the back-end issues a certificate for the attested key, thus vouching for integrity of the client
-   * In case the attestation does not verify, the back-end records the reason for this failure
-5. The back-end responds either with the full certificate chain (success), or a detailed error reason (failure)
+1. The client fetches a challenge from the back-end.
+2. The client feeds the challenge into hardware-backed key generation to create an attestation statement.
+3. The client sends the attestation statement back to the back-end.
+4. The back-end verifies the attestation statement against a predefined policy.
+   * If the attestation is considered valid, the back-end issues a certificate for the attested key, thus vouching for the integrity of the client.
+   * In case the attestation does not verify, the back-end records the reason for this failure.
+5. The back-end responds either with the full certificate chain (success) or a detailed error reason (failure).
 
 Figure&nbsp;1 illustrates this process
-
-TODO cntinue here
 
 <div align="center">
 
 ![flow.png](flow.png)
 
-Figure&nbsp;1: Abstract example usage: remotely establishing trust in mobile clients
+Figure&nbsp;1: Remotely establishing trust in mobile clients
 
 </div>
 
+As shown in Figure&nbsp;1, the back-end needs to be configured before being able to assert the trustworthiness of a client.
+While the actual API is unified for Android and iOS (both for verifying attestation statements and on the mobile clients creating
+attestation statements), configuration needs to deal with each platform separately.
 
-## Back-End Configuration
-Android and iOS attestation require different configuration parameters. Hence, distinct configuration classes exist.
+### 1.1 Back-End Configuration
+Since Android and iOS attestation require different configuration parameters, distinct configuration classes exist.
 The following snippet lists all configuration values:
 
 ```kotlin
@@ -141,7 +142,7 @@ The (nullable) properties like patch level, iOS version, or Android app version 
 Defining a custom logic to verify the attestation challenge for Android is unsupported by design, considering iOS constraints and inconsistencies between platforms resulting from such a customisation.
 More details on the configuration can be found in the API documentation
 
-#### A Note on Android Attestation
+#### 1.1.1 A Note on Android Attestation
 This library allows for using combining different flavours of Android attestation, ranging from full hardware attestation
 to (rather useless in practice) software-only attestation which can be useful for testing using an Android emulator.
 Hardware attestation is enabled by default, while hybrid and software-only attestation need to be explicitly enabled
@@ -150,11 +151,53 @@ through `enableNougatAttestation` and `enableSoftwareAttestation`, respectively.
 Naturally, hardware attestation can also be disabled by setting `disableHardwareAttestation = true` although there is probably
 no real use case for such a configuration except for testing.
 
-### Example Usage
-While still not complete, the test suite in this repository should provide a nice overview.
-<br>
-See also the provided [sample service](https://github.com/a-sit-plus/warden/tree/main/sample/backend) and its mobile clients for an MWE that integrates this library.
-The sample also contains Android and iOS clients.
+### 1.2 Example Usage
+Once WARDEN instance has been configured, the back-end's endpoints and an OID (globally unique, usually UUID-based) need
+to be defined. Naturally clients and back-end need to agree on these parameters. Hence it makes sense to set them inside
+a common module that is shared by back-end and clients. This leads to the following shares constants:
+
+```kotlin
+val ENDPOINT_CHALLENGE = "/api/v1/challenge"
+val ENDPOINT_ATTEST = "/api/v1/attest"
+val PROOF_OID = ObjectIdentifier(Uuid.parse("c893b702-28f6-4c50-8578-d1d7a1580729"))
+```
+
+#### 1.2.1 Back-End Setup
+The back-end also dictates how an attestation challenge may be verified.
+The back-end also needs a source to generate attestation challenges, track them, and match them against incoming attestation requests.
+WARDEN Supreme's verifier component aims to integrate with any service, it simply expects a lambda that matches an incoming attestation statement against the expected nonce.
+Session management is out of scope, as it is provided by frameworks such as Ktor or Spring.
+In the end, a verifier instance is created as follows:
+
+```kotlin
+val attestationValidator = AttestationValidator(
+    warden /*the configured instance as per Section 1.1*/,
+    attestationProofOID = PROOF_OID /*as per Section 1.2*/,) {
+    /*
+    Your nonce validation logic here:
+    Usually, you'll want to check
+      * whether the challenge you got is one you issued before
+      * and whether it is still fresh enough
+    and then remove it from whatever challenge-cache you are using.
+    
+    Since you receive the challenge in the logic attached to the HTTP endpoint accepting attestation
+    statements, you'll be matching it against the active session there anyway.
+    */
+}
+```
+
+#### 1.2.2 Handling Requests
+As per Section 1.2, `ENDPOINT_CHALLENGE` and `ENDPOINT_ATTEST` need to be wired. The first is expected to return an
+`AttestationChallenge`, containing:
+1. `nonce: ByteArray`: The actual challenge value; usually a cryptographic nonce, based on true randomness
+2. `validity: Duration`: This is used to communicate the validity duration of a challenge to the client
+3. `postEndpoint: String`: This property conveys the endpoint to post the attestation statement to. This will typically be `<service url>/$ENDPOINT_ATTEST`.
+4. `timeOffset: Duration`: This property is used to inform the client about the maximum tolerated time offset for temporal validations.
+
+`ENDPOINT_ATTEST` expects a CSR created by the Supreme Client, after it obtained a challenge from `ENDPOINT_CHALLENGE`.
+
+
+TODO CONTINUE HERE
 
 #### Obtaining a Key Attestation Result
 * The general workflow this library caters to assumes a back-end service, sending an attestation challenge to the mobile app. This challenge needs to be kept for future reference

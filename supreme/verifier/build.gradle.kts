@@ -36,7 +36,7 @@ kotlin {
         }
 
         jvmMain.dependencies {
-            api(project(":cupertinoto"))
+            api(project(":proto"))
         }
     }
 }
