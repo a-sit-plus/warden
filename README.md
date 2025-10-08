@@ -287,48 +287,6 @@ This can be useful for statistical analyses, for example.
 TODO: continue here
 
 
-* The general workflow this library caters to assumes a back-end service, sending an attestation challenge to the mobile app. This challenge needs to be kept for future reference
-* The app is assumed to generate a key pair with attestation (passing the received challenge to the platform's respective crypto APIs)
-* The app responds with a platform-dependent attestation proof, the public key just created, and the challenge.
-
-
-* On the back-end, a single call to `verifyKeyAttestation()`  is sufficient to remotely verify
-   whether the key is indeed stored in HW (and whether the app can be trusted). This call requires the challenge from step 1.
-
-Various advanced, platform-specific variants of this `verifyKeyAttestation()` call exist, to cater towards features specific to Android and iOS
-(do see [FeatureDemonstration](https://github.com/a-sit-plus/warden/blob/main/warden/src/test/kotlin/FeatureDemonstration.kt) for details).
-However, only `verifyKeyAttestation()` works for both Android and iOS and returns a [KeyAttestation](https://github.com/a-sit-plus/warden/blob/main/warden/src/main/kotlin/AttestationService.kt#L293) object:
-
-```kotlin
-fun verifyKeyAttestation(
-  attestationProof: Attestation,
-  challenge: ByteArray)
-: KeyAttestation<PublicKey>
-```
-The returned `KeyAttestation` object contains the attested key on success, or an error on failure.
-
-#### Semantics
-The call succeeds if attestation data structures of the client (in `attestationProof`) can be verified and `expectedChallenge` matches
-the attestation challenge and if `keyToBeAttested` matches the key contained in the proof.
-
-As mentioned, the contents of **attestationProof** are platform-specific!
-On Android, this is simply the certificate chain from the attestation certificate
-(i.e. the certificate corresponding to the key to be attested) up to one of the
-[Google hardware attestation root certificates](https://developer.android.com/training/articles/security-key-attestation#root_certificate).
-on iOS this must contain the [AppAttest attestation statement](https://developer.apple.com/documentation/devicecheck/validating_apps_that_connect_to_your_server#3576643)
-at index `0` and an [assertion](https://developer.apple.com/documentation/devicecheck/validating_apps_that_connect_to_your_server#3576644)
-at index `1`, which, is verified for integrity and to match `keyToBeAttested` **if the deprecated ios Attestation is used**.
-The signature counter in the attestation must be `0` (and the signature counter in the assertion must be `1` **if the deprecated ios Attestation is used**).
-
-Passing a public key created in the same app on an iDevice's secure hardware as `clientData` to create an assertion effectively
-emulates Android's key attestation: Attesting such a secondary key through an assertion proves that
-it was also created within the same app, on the same device, resulting in an attested key, which can then be used
-for general-purpose crypto.
-<br>
-**Limitation: supports only EC key on iOS (either ANSI X9.63 encoded or DER encoded).**
-The key can be passed in either encoding to the secure enclave when creating an assertion.
-
-
 ## Recording and Replaying Attestation Checks
 Since Warden 2.4.0, `Warden` has methods to record the current config and an attestation statement to-be-checked.
 Multiple methods called `collectDebugInfo` exist and their signatures correspond to all the variants of `verifyAttestation` and `verifyKeyAttestation`.
