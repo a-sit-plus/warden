@@ -1,6 +1,6 @@
 <div align="center">
 
-![WARDEN](warden-supreme.png)
+![Warden Supreme](warden-supreme.png)
 
 # Integrated Key and App Attestation Suite
 
@@ -13,38 +13,39 @@
 
 </div>
 
-WARDEN Supreme is a fully integrated key and app attestation suite consisting of:
+_Warden Supreme_ is a fully integrated key and app attestation suite consisting of:
 1. Mobile (iOS and Android) client library to generate attestation statements
 2. Unified server-side key and app attestation verification library
 3. Agnostic communication logic, taking care of process flows and wire format
 
-Put differently, WARDEN Supreme the evolution of the battle-tested WARDEN server-side key and app attestation library,
-augmented by the Supreme KMP crypto provider for a consistent UX across Android and iOS.
-The original server-side only key and app attestation library is still available and actively maintained, as it is one
-of the pillars supporting WARDEN Supreme.
+Put differently, Warden Supreme the evolution of the battle-tested Warden server-side key and app attestation library,
+augmented by Signum's [_Supreme_ KMP crypto provider](https://a-sit-plus.github.io/signum/supreme/) for a consistent UX across Android and iOS.
+The original server-side-only key and app attestation library is still available and actively maintained, as it is one
+of the pillars supporting Warden Supreme.
+It now lives on as [Warden makoto](serverside/makoto) and continues to be published to Maven Central.
 
 ## 0. About this Document
 This README focuses on the technical aspects and is aimed at informed developers who are familiar with the general concepts, limitations,
 and benefits of key and app attestation.
 
-**WARDEN Supreme's [full documentation](https://a-sit-plus.github.io/warden) is a comprehensive one-stop shop covering
+**Warden Supreme's [full documentation](https://a-sit-plus.github.io/warden) is a comprehensive one-stop shop covering
 all topics regarding key and app attestation.**
 
 It provides an overview of the basic concepts, how to apply them, and
 a detailed write-up on how Android and iOS implement them.
 The full documentation also lays out a foundation for a risk analysis for anyone
 considering attestation as part of a more comprehensive security model.
-Finally, it lists all lessons learned from deploying and relying on WARDEN in production, attesting millions of clients,
+Finally, it lists all lessons learned from deploying and relying on Warden in production, attesting millions of clients,
 including hiccups, glitches, and outright failures due to non-compliant vendor implementations and how to cope with them.
 
 **The remainder of this document assumes familiarity with all the topics covered by the full documentation**, and serves
-as a quick-start guide to integrate WARDEN Supreme to remotely establish trust in mobile clients.
+as a quick-start guide to integrate Warden Supreme to remotely establish trust in mobile clients.
 
 Full API docs are available [here](https://a-sit-plus.github.io/warden/).
 
-## 1. Using WARDEN Supreme in your Projects
+## 1. Using Warden Supreme in your Projects
 
-WARDEN Supreme targets Android and iOS clients and JVM-based back-ends.
+Warden Supreme targets Android and iOS clients and JVM-based back-ends.
 * On the back-end, add the `verifier` dependency: 
   ```kotlin
   implementation("at.asitplus.warden:supreme-verifier:$version")
@@ -54,12 +55,16 @@ WARDEN Supreme targets Android and iOS clients and JVM-based back-ends.
   implementation("at.asitplus.warden:supreme-client:$version")
   ```
 
-WARDEN Supreme currently only supports HTTP as its communication protocol and relies on [Ktor](https://ktor.io/) on mobile clients.
+Warden Supreme currently only supports HTTP as its communication protocol and relies on [Ktor](https://ktor.io/) on mobile clients.
 The back-end, however, can also use [Spring](https://spring.io/), for example.
 An attestation flow works as follows:
 1. The client fetches a challenge from the back-end.
 2. The client feeds the challenge into hardware-backed key generation to create an attestation statement.
 3. The client sends the attestation statement back to the back-end.
+   * **Wire-format-wise this is a CSR, with a custom attribute carrying the actual attestation proof**
+   * CSRs were chosen as their canonical encoding is precisely specified and because they inherently come with a proof of possession of the private key
+   * CSRs freely allow defining arbitrary extensions and attributes, which is a perfect fit for Warden Supreme's usage scenario
+   * Finally, the PKIX-context is the natural habitat of a CSR
 4. The back-end verifies the attestation statement against a predefined policy.
    * If the attestation is considered valid, the back-end issues a certificate for the attested key, thus vouching for the integrity of the client.
    * In case the attestation does not verify, the back-end records the reason for this failure.
@@ -121,9 +126,9 @@ val warden = Warden(
        enableSoftwareAttestation = false,        //OPTIONAL, defaults to false. Set to true to enable SW attestation
        attestationStatementValiditySeconds = 300 //OPTIONAL, defaults to 300s
    ),
-   iosAttestationConfiguration = IOSAttestationConfiguration(
+   iosAttestationConfiguration = IosAttestationConfiguration(
       applications = listOf(
-        IOSAttestationConfiguration.AppData(
+        IosAttestationConfiguration.AppData(
           teamIdentifier = "9CYHJNG644",
           bundleIdentifier = "at.asitplus.attestation-client",
           iosVersionOverride = "16.0",     //OPTIONAL, null by default
@@ -152,8 +157,14 @@ Naturally, hardware attestation can also be disabled by setting `disableHardware
 no real use case for such a configuration except for testing.
 
 ### 1.2 Example Usage
-Once WARDEN instance has been configured, the back-end's endpoints and an OID (globally unique, usually UUID-based) need
-to be defined. Naturally clients and back-end need to agree on these parameters. Hence it makes sense to set them inside
+A verifier expects the following parameters to be configured
+1.
+   * a preconfigured `Warden` instance, or
+   * directly pass all Warden configuration properties
+2. an OID (globally unique, usually UUID-based) of the CSR attribute to carry the attestation statement (see Section&nbsp;1, Item&nbsp;3)
+3. A lambda specifying how the validity of challenges is verified (and how used challenges are invalidated)
+
+Naturally clients and back-end need to agree on these parameters. Hence, it makes sense to set them inside
 a common module that is shared by back-end and clients. This leads to the following shares constants:
 
 ```kotlin
@@ -163,9 +174,8 @@ val PROOF_OID = ObjectIdentifier(Uuid.parse("c893b702-28f6-4c50-8578-d1d7a158072
 ```
 
 #### 1.2.1 Back-End Setup
-The back-end also dictates how an attestation challenge may be verified.
-The back-end also needs a source to generate attestation challenges, track them, and match them against incoming attestation requests.
-WARDEN Supreme's verifier component aims to integrate with any service, it simply expects a lambda that matches an incoming attestation statement against the expected nonce.
+In addition to the parameters described above, the back-end also needs a source to generate attestation challenges, track them, and match them against incoming attestation requests.
+As Warden Supreme's verifier component aims to integrate with any service, it simply expects a lambda that matches an incoming attestation statement against the expected nonce.
 Session management is out of scope, as it is provided by frameworks such as Ktor or Spring.
 In the end, a verifier instance is created as follows:
 
@@ -186,6 +196,8 @@ val attestationValidator = AttestationValidator(
 }
 ```
 
+As mentioned, it is also possible to directly pass the configuration parameters laid out in Section&nbsp;1.1.
+
 #### 1.2.2 Handling Requests
 As per Section 1.2, `ENDPOINT_CHALLENGE` and `ENDPOINT_ATTEST` need to be wired. The first is expected to return an
 `AttestationChallenge`, containing:
@@ -195,11 +207,86 @@ As per Section 1.2, `ENDPOINT_CHALLENGE` and `ENDPOINT_ATTEST` need to be wired.
 4. `timeOffset: Duration`: This property is used to inform the client about the maximum tolerated time offset for temporal validations.
 
 `ENDPOINT_ATTEST` expects a CSR created by the Supreme Client, after it obtained a challenge from `ENDPOINT_CHALLENGE`.
+Hence, the back-end is expected to decode the received body into a CSR, verify the contained attestation statement and
+(if everything checks out) issue a binding certificate and respond with the full certificate chain. When using Ktor,
+this typically works as follows
+
+```kotlin
+post(PATH_ATTEST) {
+    val src = call.receive<ByteArray>()
+    val resp =
+        attestationValidator.verifyKeyAttestation(Pkcs10CertificationRequest.decodeFromDer(src)) { csr ->
+        
+        /*certificateSigner is assumed to be a `Signer` instance, configured to use the CA key for signing*/
+        certificateSigner.sign(
+            TbsCertificate(
+                serialNumber = YOUR_SERIAL_HERE,
+                publicKey = signer.publicKey,
+                signatureAlgorithm = signer.signatureAlgorithm.toX509SignatureAlgorithm().getOrThrow(),
+                validFrom = Asn1Time(Clock.System.now()),
+                validUntil = Asn1Time(Clock.System.now() + CERT_VALIDITY),
+                issuerName = YOUR_ISSUER_NAME_HERE,
+                subjectName = YOUR_SUBJECT_NAME_HERE,
+            )
+        ).map { listOf(it) }
+    }
+        
+    call.respondText(Json.encodeToString(resp), contentType = ContentType.Application.Json)
+}
+```
+
+#### 1.2.3 Client Integration
+
+On the client, Warden Supreme is even easier to integrate, assuming you are using
+Signum's [_Supreme_ KMP crypto provider](https://a-sit-plus.github.io/signum/supreme/):
+
+```kotlin
+//Create a supreme attestation client
+val client = AttestationClient(HttpClient())
+
+//fetch a challenge
+val challenge =  client.getChallenge(Url(ENDPOINT_CHALLENGE)).getOrThrow()
+
+//Init the signer with a freshly created key and produce an attestation statement
+val signer = PlatformSigningProvider.createSigningKey(alias) {
+    ec {}
+    hardware {
+        attestation {
+            this.challenge = challenge.nonce
+        }
+    }
+}.getOrThrow()
+
+//create and sign a CSR
+val csr = signer.createCsr(challenge).getOrThrow()
+
+//have the bach-end attest it
+val result = client.attest(csr, challenge.attestationEndpointUrl)
+
+//get the certificate chain containing the binding certificate as leaf
+val certificateChain = when(result) {
+    is AttestationResponse.Failure -> TODO()
+    is AttestationResponse.Success -> result.certificateChain
+}
+```
+
+Again, more details can be found in **Warden Supreme's [full documentation](https://a-sit-plus.github.io/warden)**.
+
+## 2. Handling Attestation Failures
+The Supreme attestation verifier only returns an enum, indicating the reason for an error, with the option to attach a custom explanatory string.
+This is by design, as it is generally undesirable to expose the internals of a back-end to clients.
+
+On the back-end, however, attestation issues typically need to be analysed. Hence, the Supreme attestation validator provides 
+three callbacks to analyse attestation errors and success (without side effects).
+1. `onPreAttestationError` is called in case of operational/internal errors, or if the attestation statement cannot
+be extracted from a CSR, for example.
+2. `onAttestationError` is called, if the attestation statement fails to verify. This includes an invalid bootloader lock state, wrong package identifier, etc.
+3. `onAttestationSuccess` is called right before an `AttestationResponse.Success` is returned with the fully parsed and verified attestation statment and the associated public key.
+This can be useful for statistical analyses, for example.
+
+TODO: continue here
 
 
-TODO CONTINUE HERE
-
-#### Obtaining a Key Attestation Result
 * The general workflow this library caters to assumes a back-end service, sending an attestation challenge to the mobile app. This challenge needs to be kept for future reference
 * The app is assumed to generate a key pair with attestation (passing the received challenge to the platform's respective crypto APIs)
 * The app responds with a platform-dependent attestation proof, the public key just created, and the challenge.
@@ -243,7 +330,7 @@ The key can be passed in either encoding to the secure enclave when creating an 
 
 
 ## Recording and Replaying Attestation Checks
-Since WARDEN 2.4.0, `Warden` has methods to record the current config and an attestation statement to-be-checked.
+Since Warden 2.4.0, `Warden` has methods to record the current config and an attestation statement to-be-checked.
 Multiple methods called `collectDebugInfo` exist and their signatures correspond to all the variants of `verifyAttestation` and `verifyKeyAttestation`.
 
 The resulting class can be serialized to JSON by invoking `.serialize()` (or `serializeCompact()`) on it.

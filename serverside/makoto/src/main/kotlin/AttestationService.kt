@@ -205,7 +205,6 @@ value class AssertionData private constructor(private val pair: Pair<ByteArray, 
  * [KeyAttestation] object.
  */
 sealed class AttestationResult {
-
     override fun toString() = "AttestationResult::$details)"
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -221,6 +220,8 @@ sealed class AttestationResult {
     }
 
     protected abstract val details: String
+
+    sealed interface Verified
 
     /**
      * Successful Android Key Attestation result. [attestationCertificateChain] contains the attested certificate.
@@ -248,7 +249,7 @@ sealed class AttestationResult {
             }
         }
 
-        class Verified(attestationCertificateChain: List<X509Certificate>) : Android(attestationCertificateChain) {
+        class Verified(attestationCertificateChain: List<X509Certificate>) : Android(attestationCertificateChain), AttestationResult.Verified {
 
             override val attestationRecord: ParsedAttestationRecord =
                 ParsedAttestationRecord.createParsedAttestationRecord(
@@ -306,7 +307,7 @@ sealed class AttestationResult {
             val iosVersion: ParsedVersions,
             val assertedClientData: Pair<ByteArray, Assertion>?
         ) :
-            IOS(assertedClientData?.first) {
+            IOS(assertedClientData?.first), AttestationResult.Verified {
             override val iosDetails =
                 "Verified(${attestation.certificate.publicKey.algorithm} public key: ${attestation.certificate.publicKey.encoded.encodeBase64()}, " +
                         "iOS version: (semVer=${iosVersion.first}, buildNumber=[${iosVersion.second}]), app: ${attestation.receipt.payload.appId}"
@@ -364,7 +365,7 @@ sealed class AttestationResult {
 
 /**
  * Result type returned by [AttestationService.verifyKeyAttestation].
- * [attestedPublicKey] contains attested public key if attestation was successful (null otherwise)
+ * [attestedPublicKey] contains an attested public key if attestation was successful (null otherwise)
  * [details] contains the detailed attestation result (see [AttestationResult] for more details)
  *
  */

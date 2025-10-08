@@ -273,9 +273,9 @@ val ANDROID_SIGNATURE_DIGESTS = listOf(
     "LvfTC77F/uSecSfJDeLdxQ3gZrVLHX8+NNBp7AiUO0E=".decodeBase64ToArray()!!
 )
 
-val DEFAULT_IOS_ATTESTATION_CFG = IOSAttestationConfiguration(
+val DEFAULT_IOS_ATTESTATION_CFG = IosAttestationConfiguration(
     applications = listOf(
-        IOSAttestationConfiguration.AppData(
+        IosAttestationConfiguration.AppData(
             "9CYHJNG644",
             bundleIdentifier = "at.asitplus.attestation-client",
             sandbox = false
@@ -294,7 +294,7 @@ fun attestationService(
     requireRollbackResistance: Boolean = false,
     iosTeamIdentifier: String = "9CYHJNG644",
     iosBundleIdentifier: String = "at.asitplus.attestation-client",
-    iosVersion: IOSAttestationConfiguration.OsVersions? = IOSAttestationConfiguration.OsVersions(
+    iosVersion: IosAttestationConfiguration.OsVersions? = IosAttestationConfiguration.OsVersions(
         semVer = "14",
         buildNumber = "18A373"
     ),
@@ -326,9 +326,9 @@ fun attestationService(
             enableNougatAttestation = androidN,
             attestationStatementValiditySeconds = androidAttestationStatementValidity.inWholeSeconds
         ),
-        IOSAttestationConfiguration(
+        IosAttestationConfiguration(
             applications = listOf(
-                IOSAttestationConfiguration.AppData(
+                IosAttestationConfiguration.AppData(
                     iosTeamIdentifier,
                     iosBundleIdentifier,
                     sandbox = iosSandbox

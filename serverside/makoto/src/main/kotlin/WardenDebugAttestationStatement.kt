@@ -24,7 +24,7 @@ data class WardenDebugAttestationStatement
 internal constructor(
     val method: Method,
     val androidAttestationConfiguration: AndroidAttestationConfiguration,
-    val iosAttestationConfiguration: IOSAttestationConfiguration,
+    val iosAttestationConfiguration: IosAttestationConfiguration,
     val genericAttestationProof: List<@Serializable(with = ByteArrayBase64UrlSerializer::class) ByteArray>? = null,
     val keyAttestation: Attestation? = null,
     @Serializable(with = ByteArrayBase64UrlSerializer::class) val challenge: ByteArray? = null,

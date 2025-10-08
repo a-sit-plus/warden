@@ -3,6 +3,7 @@
 # WARDEN Supreme
 
 ## 0.9.0 
+ * Breaking change: AttestationResult hierarchy
  * Export Apple App Attest Validation library as API
  * Attach more context to Android exceptions
  * Verify that Android patch levels are not too far in the future (default leeway: 1 month)

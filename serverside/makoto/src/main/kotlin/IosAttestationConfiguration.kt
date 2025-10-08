@@ -4,11 +4,13 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import net.swiftzer.semver.SemVer
 
+@Deprecated("Legacy name", replaceWith = ReplaceWith("IosAttestationConfiguration"))
+typealias IOSAttestationConfiguration = IosAttestationConfiguration
 /**
  * Configuration class for Apple App Attestation
  */
 @Serializable
-data class IOSAttestationConfiguration @JvmOverloads constructor(
+data class IosAttestationConfiguration @JvmOverloads constructor(
 
     /**
      * List of applications that can be attested
@@ -182,7 +184,7 @@ data class IOSAttestationConfiguration @JvmOverloads constructor(
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other !is IOSAttestationConfiguration) return false
+        if (other !is IosAttestationConfiguration) return false
 
         if (attestationStatementValiditySeconds != other.attestationStatementValiditySeconds) return false
         if (applications != other.applications) return false

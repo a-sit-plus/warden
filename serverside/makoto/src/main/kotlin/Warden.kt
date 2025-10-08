@@ -36,25 +36,25 @@ import java.security.interfaces.ECPublicKey
 import kotlin.time.*
 import kotlin.time.Duration.Companion.seconds
 
+typealias Makoto = Warden
+
 /**
  * Default, functional Android and Apple App and Key Attestation in all its glory.
  *
  * Once configured, this class provides a streamlined interface for mobile client attestation
  *
  * @param androidAttestationConfiguration Configuration for Android key attestation.
- * See [AndroidAttestationConfiguration](https://a-sit-plus.github.io/android-attestation/-android%20%20-attestation%20-library/at.asitplus.attestation.android/-android-attestation-configuration/index.html)
+ * See [AndroidAttestationConfiguration]
  * for details.
- * @param iosAttestationConfiguration IOS AppAttest configuration.  See [IOSAttestationConfiguration] for details.
+ * @param iosAttestationConfiguration IOS AppAttest configuration.  See [IosAttestationConfiguration] for details.
  * @param clock a clock to set the time of verification (used for certificate validity checks)
  * @param verificationTimeOffset allows for fine-grained clock drift compensation (this duration is added to the certificate
- * validity checks); can be negative. Note that [androidAttestationConfiguration] is the exact same configuration format as used by
- * [WARDEN-roboto](https://github.com/a-sit-plus/warden-roboto), which also supports setting a verification time offset.
- * For the sake of consistency and intelligibility, **only** set this offset globally and not inside [iosAttestationConfiguration].
+ * validity checks); can be negative.
  */
 @OptIn(ExperimentalTime::class)
 class Warden(
     private val androidAttestationConfiguration: AndroidAttestationConfiguration,
-    private val iosAttestationConfiguration: IOSAttestationConfiguration,
+    private val iosAttestationConfiguration: IosAttestationConfiguration,
     private val clock: Clock = Clock.System,
     private val verificationTimeOffset: Duration = Duration.ZERO
 ) : AttestationService() {
@@ -63,7 +63,7 @@ class Warden(
      * Java-friendly constructor with `java.time` types
      *
      * @param androidAttestationConfigurationJ Configuration for Android key attestation. See [AndroidAttestationConfiguration]
-     * @param iosAttestationConfigurationJ IOS AppAttest configuration.  See [IOSAttestationConfiguration] for details.
+     * @param iosAttestationConfigurationJ IOS AppAttest configuration.  See [IosAttestationConfiguration] for details.
      * @param verificationTimeOffsetJ allows for fine-grained clock drift compensation (this duration is added to the certificate
      * validity checks); can be negative. Note that [androidAttestationConfiguration] is the exact same configuration format as used by
      * [WARDEN-roboto](https://github.com/a-sit-plus/warden-roboto), which also supports setting a verification time offset.
@@ -73,7 +73,7 @@ class Warden(
     @JvmOverloads
     constructor(
         androidAttestationConfigurationJ: AndroidAttestationConfiguration,
-        iosAttestationConfigurationJ: IOSAttestationConfiguration,
+        iosAttestationConfigurationJ: IosAttestationConfiguration,
         verificationTimeOffsetJ: java.time.Duration = java.time.Duration.ZERO,
         javaClock: java.time.Clock = java.time.Clock.systemUTC()
     ) : this(

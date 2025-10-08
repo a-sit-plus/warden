@@ -1,6 +1,6 @@
 import at.asitplus.attestation.AttestationService;
 import at.asitplus.attestation.Warden;
-import at.asitplus.attestation.IOSAttestationConfiguration;
+import at.asitplus.attestation.IosAttestationConfiguration;
 import at.asitplus.attestation.KeyAttestation;
 import at.asitplus.attestation.android.AndroidAttestationChecker;
 import at.asitplus.attestation.android.AndroidAttestationConfiguration;
@@ -29,7 +29,7 @@ public class JavaInteropTest {
                     new Warden(
                             new AndroidAttestationConfiguration.Builder(new AndroidAttestationConfiguration.AppData(
                                     "at.asitplus.attestation-example", Collections.emptyList())).build(),
-                            new IOSAttestationConfiguration(new IOSAttestationConfiguration.AppData(
+                            new IosAttestationConfiguration(new IosAttestationConfiguration.AppData(
                                     "1234567890",
                                     "at.asitplus.attestation-example")));
                 },
@@ -40,7 +40,7 @@ public class JavaInteropTest {
                             new AndroidAttestationConfiguration.Builder(new AndroidAttestationConfiguration.AppData("at.asitplus.attestation-example",
                                     new ArrayList<>()
                             )).build(),
-                            new IOSAttestationConfiguration(new IOSAttestationConfiguration.AppData(
+                            new IosAttestationConfiguration(new IosAttestationConfiguration.AppData(
                                     "1234567890",
                                     "at.asitplus.attestation-example")),
                             Duration.ZERO);
@@ -53,7 +53,7 @@ public class JavaInteropTest {
                                     new ArrayList<>(),
                                     10)
                             ).build(),
-                            new IOSAttestationConfiguration(new IOSAttestationConfiguration.AppData(
+                            new IosAttestationConfiguration(new IosAttestationConfiguration.AppData(
                                     "1234567890",
                                     "at.asitplus.attestation-example")),
                             Duration.ZERO);
@@ -67,7 +67,7 @@ public class JavaInteropTest {
                                     10,
                                     10000)
                             ).build(),
-                            new IOSAttestationConfiguration(new IOSAttestationConfiguration.AppData(
+                            new IosAttestationConfiguration(new IosAttestationConfiguration.AppData(
                                     "1234567890",
                                     "at.asitplus.attestation-example",
                                     true)),
@@ -80,11 +80,11 @@ public class JavaInteropTest {
                             new AndroidAttestationConfiguration.Builder(new AndroidAttestationConfiguration.AppData("at.asitplus.attestation-example",
                                     new ArrayList<>()
                             )).build(),
-                            new IOSAttestationConfiguration(new IOSAttestationConfiguration.AppData(
+                            new IosAttestationConfiguration(new IosAttestationConfiguration.AppData(
                                     "1234567890",
                                     "at.asitplus.attestation-example",
                                     false),
-                                    new IOSAttestationConfiguration.OsVersions("14.1", "18A8395")),
+                                    new IosAttestationConfiguration.OsVersions("14.1", "18A8395")),
                             Duration.ZERO);
                 },
                 "No signature digests specified");
@@ -95,11 +95,11 @@ public class JavaInteropTest {
                 new AndroidAttestationConfiguration.Builder(new AndroidAttestationConfiguration.AppData("at.asitplus.attestation-example",
                         Arrays.asList(new byte[][]{new byte[]{0, 1, 2, 3, 4, 5, 6, 7, 8}}))
                 ).build(),
-                new IOSAttestationConfiguration(new IOSAttestationConfiguration.AppData(
+                new IosAttestationConfiguration(new IosAttestationConfiguration.AppData(
                         "1234567890",
                         "at.asitplus.attestation-example",
                         false),
-                        new IOSAttestationConfiguration.OsVersions("14.1", "18A8395")),
+                        new IosAttestationConfiguration.OsVersions("14.1", "18A8395")),
                 Duration.ZERO);
 
         KeyAttestation<ECPublicKey> keyAttestationResult = service.verifyKeyAttestation(Collections.emptyList(),

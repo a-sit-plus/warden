@@ -44,9 +44,9 @@ class GeneratedAttestationTests : FreeSpec(
                 ignoreLeafValidity = false,
                 hardwareAttestationTrustAnchors = setOf(attestationProof.last().publicKey)
             ),
-            iosAttestationConfiguration = IOSAttestationConfiguration(
+            iosAttestationConfiguration = IosAttestationConfiguration(
                 applications = listOf(
-                    IOSAttestationConfiguration.AppData(
+                    IosAttestationConfiguration.AppData(
                         teamIdentifier = "9CYHJNG644",
                         bundleIdentifier = "at.asitplus.attestation-client"
                     )

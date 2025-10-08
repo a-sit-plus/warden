@@ -37,15 +37,15 @@ class FeatureDemonstration : FreeSpec() {
                 verificationSecondsOffset = 15 * 60 - 1 * 60 * 60 + 24 * 60 * 60, //iOS and Android statements were created at different times
                 attestationStatementValiditySeconds = 10*60 //But we were not that exact in the line above
             ),
-            iosAttestationConfiguration = IOSAttestationConfiguration(
+            iosAttestationConfiguration = IosAttestationConfiguration(
                 applications = listOf(
-                    IOSAttestationConfiguration.AppData(
+                    IosAttestationConfiguration.AppData(
                         teamIdentifier = "9CYHJNG644",
                         bundleIdentifier = "at.asitplus.attestation-client",
                         sandbox = false
                     )
                 ),
-                iosVersion = IOSAttestationConfiguration.OsVersions(
+                iosVersion = IosAttestationConfiguration.OsVersions(
                     semVer = "16",
                     buildNumber = "0A0"
                 ) //optional, use SemVer notation and large hex number to ignore build number

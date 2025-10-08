@@ -125,8 +125,8 @@ class WardenTest : FreeSpec() {
                         listOf(byteArrayOf())
                     )
                 ).build(),
-                IOSAttestationConfiguration(
-                    IOSAttestationConfiguration.AppData(
+                IosAttestationConfiguration(
+                    IosAttestationConfiguration.AppData(
                         "9CYHJNG644",
                         "at.asitplus.oegv-demo-app",
                         sandbox = true
@@ -428,7 +428,7 @@ class WardenTest : FreeSpec() {
                                 iosSandbox = !(recordedAttestation.isProductionOverride
                                     ?: !DEFAULT_IOS_ATTESTATION_CFG.applications.first().sandbox),
                                 androidVersion = 200000,
-                                iosVersion = IOSAttestationConfiguration.OsVersions(
+                                iosVersion = IosAttestationConfiguration.OsVersions(
                                     semVer = "99.0",
                                     buildNumber = "999ZZ0"
                                 ),
@@ -537,7 +537,7 @@ class WardenTest : FreeSpec() {
                         "OK" - {
                             withData("14", "15.0.1", "16", "16.0.2", "16.2", "16.2.0") { version ->
                                 val attestationService = attestationService(
-                                    iosVersion = IOSAttestationConfiguration.OsVersions(
+                                    iosVersion = IosAttestationConfiguration.OsVersions(
                                         semVer = version,
                                         buildNumber = "21A36"
                                     ),
@@ -1618,8 +1618,8 @@ class WardenTest : FreeSpec() {
                             androidSigDigests
                         )
                     ).build(),
-                    IOSAttestationConfiguration(
-                        IOSAttestationConfiguration.AppData(
+                    IosAttestationConfiguration(
+                        IosAttestationConfiguration.AppData(
                             "9CYHJNG644",
                             "at.asitplus.signumtest.iosApp",
                             sandbox = true
@@ -1671,8 +1671,8 @@ class WardenTest : FreeSpec() {
                                 androidSigDigests
                             )
                         ).build(),
-                        IOSAttestationConfiguration(
-                            IOSAttestationConfiguration.AppData(
+                        IosAttestationConfiguration(
+                            IosAttestationConfiguration.AppData(
                                 "9CYHJNG644",
                                 "borked",
                                 sandbox = true
@@ -1702,8 +1702,8 @@ class WardenTest : FreeSpec() {
                                 androidSigDigests
                             )
                         ).build(),
-                        IOSAttestationConfiguration(
-                            IOSAttestationConfiguration.AppData(
+                        IosAttestationConfiguration(
+                            IosAttestationConfiguration.AppData(
                                 "9CYHJNG644",
                                 "at.asitplus.signumtest.iosApp",
                                 sandbox = true
@@ -1756,8 +1756,8 @@ class WardenTest : FreeSpec() {
                                 androidSigDigests
                             )
                         ).build(),
-                        IOSAttestationConfiguration(
-                            IOSAttestationConfiguration.AppData(
+                        IosAttestationConfiguration(
+                            IosAttestationConfiguration.AppData(
                                 "9CYHJNG644",
                                 "at.asitplus.signumtest.iosApp",
                                 sandbox = true
@@ -1814,8 +1814,8 @@ class WardenTest : FreeSpec() {
                                 )
                             )
                         ).build(),
-                        IOSAttestationConfiguration(
-                            IOSAttestationConfiguration.AppData(
+                        IosAttestationConfiguration(
+                            IosAttestationConfiguration.AppData(
                                 "borked1337",
                                 "at.asitplus.signumtest.iosApp",
                                 sandbox = true
@@ -1846,8 +1846,8 @@ class WardenTest : FreeSpec() {
                                 androidSigDigests
                             )
                         ).build(),
-                        IOSAttestationConfiguration(
-                            IOSAttestationConfiguration.AppData(
+                        IosAttestationConfiguration(
+                            IosAttestationConfiguration.AppData(
                                 "9CYHJNG644",
                                 "at.asitplus.signumtest.iosApp",
                                 sandbox = true

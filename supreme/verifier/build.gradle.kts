@@ -36,7 +36,7 @@ kotlin {
         }
 
         jvmMain.dependencies {
-            api(project(":proto"))
+            api(project(":makoto"))
         }
     }
 }

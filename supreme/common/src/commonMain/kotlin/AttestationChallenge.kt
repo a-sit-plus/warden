@@ -148,9 +148,9 @@ fun TbsCertificationRequest.attestationStatementForOid(oid: ObjectIdentifier): K
 
 
 /**
- * Tries to extract the nonce from a TBS CSR's subject name, given it is encoded into an RDN containing a [KnownOIDs.serialNumber]
+ * Tries to extract the challenge from a TBS CSR's subject name, given it is encoded into an RDN containing a [KnownOIDs.serialNumber]
  */
-val TbsCertificationRequest.nonce: KmmResult<ByteArray>
+val TbsCertificationRequest.challenge: KmmResult<ByteArray>
     get() = catching {
         val noncesRecovered =
             subjectName.mapNotNull { name -> name.attrsAndValues.find { attributeTypeAndValue -> attributeTypeAndValue.oid == KnownOIDs.serialNumber } }
