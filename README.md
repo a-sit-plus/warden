@@ -363,6 +363,16 @@ The modules located here can be used on their own, in case the Supreme integrate
 
 ### 2.3 `/supreme`
 
+| Name | Info                                                                                                                                      |
+|------|-------------------------------------------------------------------------------------------------------------------------------------------|
+|   <picture>  <source media="(prefers-color-scheme: dark)" srcset="img/verifier-w.png">  <source media="(prefers-color-scheme: light)" srcset="img/verifier-b.png">  <img alt="Supreme verifier" src="img/verifier-b.png" width="283" height="37" style="height:auto;"> </picture>    | Supreme verifier to be integrated into back-ends that want to remotely establish trust in mobile clients through key and app attestation. |
+| <picture>  <source media="(prefers-color-scheme: dark)" srcset="img/client-w.png">  <source media="(prefers-color-scheme: light)" srcset="img/client-b.png">  <img alt="Supreme client" src="img/client-b.png" width="254" height="37" style="height:auto;"> </picture>     | Supreme client to be integrated into mobile apps that need to prove their integrity and trustworthiness towards back-end services.        |
+|  <picture>  <source media="(prefers-color-scheme: dark)" srcset="img/common-w.png">  <source media="(prefers-color-scheme: light)" srcset="img/common-b.png">  <img alt="Supreme common" src="img/common-b.png" width="262" height="37" style="height:auto;"> </picture>    | Commons containing shared client and verifier logic, data classes, etc.                                                                   |
+
+
+              
+              
+             
 
 
 ## Contributing
