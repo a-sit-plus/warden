@@ -31,5 +31,5 @@ jobs:
         if: success() || failure()
         with:
           name: WARDEN S Android Connected Tests
-          path: client/build/outputs/androidTest-results/connected/**/TEST*.xml
+          path: supreme/client/build/outputs/androidTest-results/connected/**/TEST*.xml
           reporter: java-junit
