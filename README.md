@@ -1,6 +1,6 @@
 <div align="center">
 
-![Warden Supreme](warden-supreme.png)
+![Warden Supreme](img/warden-supreme.png)
 
 # Integrated Key and App Attestation Suite
 
@@ -18,7 +18,7 @@ _Warden Supreme_ is a fully integrated key and app attestation suite consisting 
 2. Unified server-side key and app attestation verification library
 3. Agnostic communication logic, taking care of process flows and wire format
 
-Put differently, Warden Supreme the evolution of the battle-tested Warden server-side key and app attestation library,
+Put differently, Warden Supreme the evolution of the battle-tested WARDEN server-side key and app attestation library,
 augmented by Signum's [_Supreme_ KMP crypto provider](https://a-sit-plus.github.io/signum/supreme/) for a consistent UX across Android and iOS.
 The original server-side-only key and app attestation library is still available and actively maintained, as it is one
 of the pillars supporting Warden Supreme.
@@ -74,7 +74,7 @@ Figure&nbsp;1 illustrates this process
 
 <div align="center">
 
-![flow.png](flow.png)
+![flow.png](img/flow.png)
 
 Figure&nbsp;1: Remotely establishing trust in mobile clients
 
@@ -272,7 +272,7 @@ val certificateChain = when(result) {
 
 Again, more details can be found in **Warden Supreme's [full documentation](https://a-sit-plus.github.io/warden)**.
 
-## 2. Handling Attestation Failures
+## 1.3. Handling Attestation Failures
 The Supreme attestation verifier only returns an enum, indicating the reason for an error, with the option to attach a custom explanatory string.
 This is by design, as it is generally undesirable to expose the internals of a back-end to clients.
 
@@ -341,6 +341,30 @@ Attaching a debugger allows for step-by-step debugging of any attestation errors
 
 <br>
 
+## 2. Project Structure
+This project is structured into four groups:
+1. `/dependencies` contains external dependencies that are not published to maven central or anywhere else and are thus compiled into Warden Supreme and published alongside or used for testing.
+2. `/serverside` contains the server-side foundations with all the low-level logic to verify attestations
+3. `/supreme` contains the _Supreme_ integrated key and app attestation suite, building upon groups 1 and 2.
+4. `/utils` contains unpublished utility helpers aimed at aiding attestation errors. Those are to be used inside an IDE with a debugger attached to it
+
+### 2.1 `/dependencies`
+
+### 2.2 `/serverside`
+
+The modules located here can be used on their own, in case the Supreme integrated attestation suite is not desired. 
+
+| <img alt="Warden roboto" src="img/roboto.png" width="249" height="38" style="height:auto;">                                                        | <picture>  <source media="(prefers-color-scheme: dark)" srcset="img/makoto-w.png">  <source media="(prefers-color-scheme: light)" srcset="img/makoto-b.png">  <img alt="Warden makoto" src="img/makoto-w.png" width="232" height="36" style="height:auto;"> </picture>                                                               | 
+|----------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Android-only server-side key and app attestation library developed by A-SIT Plus. Used to be a separate projecte, now integrated here as a module. | Unified server-side Android and iOS key and app attestation library providing a common API for to remotely establish trust in Android and iOS devices. Depends on Warden roboto and [Vincent Haupert's](https://github.com/veehaitch) excellent [DeviceCheck/AppAttest](https://github.com/veehaitch/devicecheck-appattest) library. |
+| Location: `/serverside/roboto`                                                                                                                     | Location: `/serverside/makoto`                                                                                                                                                                                                                                                                                                       |
+| Maven coordinates: `at.asitplus.warden:roboto`                                                                                                     | Maven coordinates: `at.asitplus.warden.makoto`                                                                                                                                                                                                                                                                                       |
+
+
+### 2.3 `/supreme`
+
+
+
 ## Contributing
 External contributions are greatly appreciated!
 Just be sure to observe the contribution guidelines (see [CONTRIBUTING.md](CONTRIBUTING.md)).
@@ -351,7 +375,7 @@ This project has received funding from the European Union’s Horizon 2020 resea
 programme under grant agreement No 959072.
 </p>
 <p align="center">
-<img src="eu.svg" alt="EU flag">
+<img src="img/eu.svg" alt="EU flag">
 </p>
 
 

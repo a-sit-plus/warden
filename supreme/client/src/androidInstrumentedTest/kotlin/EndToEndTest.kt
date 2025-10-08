@@ -1,12 +1,9 @@
 package at.asitplus.attestation.test
 
+import at.asitplus.attestation.supreme.*
+import at.asitplus.catchingUnwrapped
 import at.asitplus.signum.supreme.os.PlatformSigningProvider
 import at.asitplus.signum.supreme.sign.Signer
-import at.asitplus.attestation.supreme.AttestationChallenge
-import at.asitplus.attestation.supreme.AttestationClient
-import at.asitplus.attestation.supreme.AttestationResponse
-import at.asitplus.attestation.supreme.attestationEndpointUrl
-import at.asitplus.attestation.supreme.createCsr
 import br.com.colman.kotest.FreeSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
@@ -55,6 +52,6 @@ class EndToEndTest : FreeSpec({
     }
 
     "Shutdown" {
-        HttpClient().get(ENDPOINT_SHUTDOWN)
+        catchingUnwrapped { HttpClient().get(ENDPOINT_SHUTDOWN) }
     }
 })
