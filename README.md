@@ -158,7 +158,7 @@ no real use case for such a configuration except for testing.
 
 ### 1.2 Example Usage
 A verifier expects the following parameters to be configured
-1.
+1. Either:
    * a preconfigured `Warden` instance, or
    * directly pass all Warden configuration properties
 2. an OID (globally unique, usually UUID-based) of the CSR attribute to carry the attestation statement (see Section&nbsp;1, Item&nbsp;3)
