@@ -300,7 +300,7 @@ By finally calling `replaySmart()` on such a deserialized debug info object, the
 Attaching a debugger allows for step-by-step debugging of any attestation errors encountered.
 For the most straight-forward debugging experience
 * import this project into IDEA
-* add a breakpoint [here in line 18](utils/makoto-diag/src/main/kotlin/Diag.kt)
+* add a breakpoint [here in line 19](utils/makoto-diag/src/main/kotlin/Diag.kt#L19)
 * and run it in debug mode.
 
 Just be sure to add a single argument pointing to a file as described in [Diag.kt](utils/makoto-diag/src/main/kotlin/Diag.kt)!

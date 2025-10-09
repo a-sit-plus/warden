@@ -15,7 +15,7 @@ fun main(args: Array<String>) {
     File(args.first()).forEachLine { line ->
         val stmt = WardenDebugAttestationStatement.deserializeCompact(line)
         println(stmt.serialize())
-        //TODO Add a breakpoint to Line 18
+        //TODO Add a breakpoint to Line 19
         stmt.replaySmart(ignoreProxy = true)
     }
 }
