@@ -3,6 +3,7 @@
 package at.asitplus.attestation
 
 import at.asitplus.attestation.android.AndroidAttestationConfiguration
+import at.asitplus.attestation.jsonCompact
 import at.asitplus.io.MultiBase
 import at.asitplus.signum.indispensable.Attestation
 import at.asitplus.signum.indispensable.io.ByteArrayBase64UrlSerializer
@@ -15,6 +16,13 @@ import kotlin.time.Instant
 private val jsonDebug = kotlinx.serialization.json.Json {
     encodeDefaults = true
     ignoreUnknownKeys = true
+    prettyPrint = true
+}
+
+private val jsonCompact =  kotlinx.serialization.json.Json {
+    encodeDefaults = true
+    ignoreUnknownKeys = true
+    prettyPrint = false
 }
 
 
@@ -115,7 +123,7 @@ internal constructor(
     /**
      * serializes and multibase-encodes this debug info
      */
-    fun serializeCompact() = MultiBase.encode(MultiBase.Base.BASE64_URL, serialize().encodeToByteArray())
+    fun serializeCompact() = MultiBase.encode(MultiBase.Base.BASE64_URL, jsonCompact.encodeToString(this).encodeToByteArray())
 
     companion object {
         /**
@@ -126,7 +134,7 @@ internal constructor(
         /**
          * Multibase-decodes and deserializes a debug info string.
          */
-        fun deserializeCompact(string: String) = deserialize(MultiBase.decode(string)!!.decodeToString())
+        fun deserializeCompact(string: String) = jsonCompact.decodeFromString<WardenDebugAttestationStatement>(MultiBase.decode(string)!!.decodeToString())
     }
 }
 

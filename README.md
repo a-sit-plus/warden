@@ -272,7 +272,7 @@ val certificateChain = when(result) {
 
 Again, more details can be found in **Warden Supreme's [full documentation](https://a-sit-plus.github.io/warden)**.
 
-## 1.3. Handling Attestation Failures
+### 1.3. Reacting to Attestation Results
 The Supreme attestation verifier only returns an enum, indicating the reason for an error, with the option to attach a custom explanatory string.
 This is by design, as it is generally undesirable to expose the internals of a back-end to clients.
 
@@ -284,33 +284,55 @@ be extracted from a CSR, for example.
 3. `onAttestationSuccess` is called right before an `AttestationResponse.Success` is returned with the fully parsed and verified attestation statment and the associated public key.
 This can be useful for statistical analyses, for example.
 
-TODO: continue here
+## 2. Debugging, Recording, and Replaying Attestation Checks
+Whenever the actual attestation check fails (i.e., whenever `onAttestationError()` is called), a ready-made `WardenDebugAttestationStatement` is created and passed to this function.
+Hence, two pieces of information are available to aid debugging:
 
+1. the attestation error (as the receiver of this lambda)
+2. the debug statement, which can be exported for off-site analyses
 
-## Recording and Replaying Attestation Checks
-Since Warden 2.4.0, `Warden` has methods to record the current config and an attestation statement to-be-checked.
-Multiple methods called `collectDebugInfo` exist and their signatures correspond to all the variants of `verifyAttestation` and `verifyKeyAttestation`.
+### 2.1 Debugging Integrated Attestation
 
-The resulting class can be serialized to JSON by invoking `.serialize()` (or `serializeCompact()`) on it.
+The `WardenDebugAttestationStatement` can be serialized to JSON by invoking `.serialize()` (or `serializeCompact()`) on it.
 It can later be deserialized by calling `deserialize()` (or `deserializeCompact()`) on its companion.
-By finally calling `replaySmart()` on the deserialized debug info object, an attestation verification is performed.
+By finally calling `replaySmart()` on such a deserialized debug info object, the whole attestation verification process is replayed.
 
 Attaching a debugger allows for step-by-step debugging of any attestation errors encountered.
+For the most straight-forward debugging experience
+* import this project into IDEA
+* add a breakpoint [here in line 18](utils/makoto-diag/src/main/kotlin/Diag.kt)
+* and run it in debug mode.
 
-<br>
+Just be sure to add a single argument pointing to a file as described in [Diag.kt](utils/makoto-diag/src/main/kotlin/Diag.kt)!
 
-## 2. Project Structure
+### 2.2 Debugging raw Android Attestations
+A similar utility exists for printing the contents of an Android attestation statement, located in [/utils/roboto-diag](utils/roboto-diag).
+More Specifically, it pretty-prints the contents of the leaf certificate's Android attestation extension and expects either
+* `-f path/to/leaf/certificate.pem`
+* a base64-encoded certificate as the sole argument
+
+It will then serialize a certificate to JSON, giving insight into the attestable properties.
+
+
+## 3. Project Structure
 This project is structured into four groups:
-1. `/dependencies` contains external dependencies that are not published to maven central or anywhere else and are thus compiled into Warden Supreme and published alongside or used for testing.
+1. `/supreme` contains the _Supreme_ integrated key and app attestation suite, building upon group&nbsp;2.
 2. `/serverside` contains the server-side foundations with all the low-level logic to verify attestations
-3. `/supreme` contains the _Supreme_ integrated key and app attestation suite, building upon groups 1 and 2.
-4. `/utils` contains unpublished utility helpers aimed at aiding attestation errors. Those are to be used inside an IDE with a debugger attached to it
+3. `/utils` contains unpublished utility helpers aimed at aiding attestation errors. Those are to be used inside an IDE with a debugger attached to it
+4. `/dependencies` contains external dependencies that are not published to maven central or anywhere else and are thus compiled into group&nbsp;2 or used for testing.
 
-### 2.1 `/dependencies`
 
-### 2.2 `/serverside`
+### 3.1 `/supreme`
 
-The modules located here can be used on their own, in case the Supreme integrated attestation suite is not desired. 
+| Name | Info                                                                                                                                      |
+|------|-------------------------------------------------------------------------------------------------------------------------------------------|
+|   <picture>  <source media="(prefers-color-scheme: dark)" srcset="img/verifier-w.png">  <source media="(prefers-color-scheme: light)" srcset="img/verifier-b.png">  <img alt="Supreme verifier" src="img/verifier-b.png" width="283"  style="height:auto;"> </picture>    | Supreme verifier to be integrated into back-ends that want to remotely establish trust in mobile clients through key and app attestation. |
+| <picture>  <source media="(prefers-color-scheme: dark)" srcset="img/client-w.png">  <source media="(prefers-color-scheme: light)" srcset="img/client-b.png">  <img alt="Supreme client" src="img/client-b.png" width="254" style="height:auto;"> </picture>     | Supreme client to be integrated into mobile apps that need to prove their integrity and trustworthiness towards back-end services.        |
+|  <picture>  <source media="(prefers-color-scheme: dark)" srcset="img/common-w.png">  <source media="(prefers-color-scheme: light)" srcset="img/common-b.png">  <img alt="Supreme common" src="img/common-b.png" width="262" style="height:auto;"> </picture>    | Commons containing shared client and verifier logic, data classes, etc.                                                                   |
+
+### 3.2 `/serverside`
+
+The modules located here can be used on their own, in case the Supreme integrated attestation suite is not desired.
 
 | <img alt="Warden roboto" src="img/roboto.png" width="249" style="height:auto;">                                                                    | <picture>  <source media="(prefers-color-scheme: dark)" srcset="img/makoto-w.png">  <source media="(prefers-color-scheme: light)" srcset="img/makoto-b.png">  <img alt="Warden makoto" src="img/makoto-w.png" width="232" height="36" style="height:auto;"> </picture>                                                               | 
 |----------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -319,19 +341,14 @@ The modules located here can be used on their own, in case the Supreme integrate
 | Maven coordinates: `at.asitplus.warden:roboto`                                                                                                     | Maven coordinates: `at.asitplus.warden.makoto`                                                                                                                                                                                                                                                                                       |
 
 
-### 2.3 `/supreme`
+### 3.3 `/utils`
+This group houses the debugging/examination utils mentioned in Section&nbsp;2.
 
-| Name | Info                                                                                                                                      |
-|------|-------------------------------------------------------------------------------------------------------------------------------------------|
-|   <picture>  <source media="(prefers-color-scheme: dark)" srcset="img/verifier-w.png">  <source media="(prefers-color-scheme: light)" srcset="img/verifier-b.png">  <img alt="Supreme verifier" src="img/verifier-b.png" width="283"  style="height:auto;"> </picture>    | Supreme verifier to be integrated into back-ends that want to remotely establish trust in mobile clients through key and app attestation. |
-| <picture>  <source media="(prefers-color-scheme: dark)" srcset="img/client-w.png">  <source media="(prefers-color-scheme: light)" srcset="img/client-b.png">  <img alt="Supreme client" src="img/client-b.png" width="254" style="height:auto;"> </picture>     | Supreme client to be integrated into mobile apps that need to prove their integrity and trustworthiness towards back-end services.        |
-|  <picture>  <source media="(prefers-color-scheme: dark)" srcset="img/common-w.png">  <source media="(prefers-color-scheme: light)" srcset="img/common-b.png">  <img alt="Supreme common" src="img/common-b.png" width="262" style="height:auto;"> </picture>    | Commons containing shared client and verifier logic, data classes, etc.                                                                   |
+### 3.4 `/dependencies`
+Teams at Google released reference Android attestation parsers (not full attestation checkers to remotely establish trust in Android devices!) and PKIX certificate path validators to complement parsing.
+They did not, however, publish those artefacts to maven central. Hence, Warden Supreme integrates them as git submodules and compiles them into _Warden roboto_.
 
-
-              
-              
-             
-
+In addition, an HTTP proxy is present to facilitate testing. It is not, however, shipped with any artefact.
 
 ## Contributing
 External contributions are greatly appreciated!

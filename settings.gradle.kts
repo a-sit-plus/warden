@@ -12,11 +12,13 @@ pluginManagement {
 }
 
 include("makoto")
+include("makoto-diag")
 include("roboto")
 include("roboto-diag")
 project(":makoto").projectDir = file("serverside/makoto")
 project(":roboto").projectDir = file("serverside/roboto")
 project(":roboto-diag").projectDir = file("utils/roboto-diag")
+project(":makoto-diag").projectDir = file("utils/makoto-diag")
 
 
 
