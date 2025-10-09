@@ -1,7 +1,6 @@
 package at.asitplus.attestation.test
 
 import at.asitplus.attestation.supreme.*
-import at.asitplus.catchingUnwrapped
 import at.asitplus.signum.supreme.os.PlatformSigningProvider
 import at.asitplus.signum.supreme.sign.Signer
 import br.com.colman.kotest.FreeSpec
@@ -52,6 +51,9 @@ class EndToEndTest : FreeSpec({
     }
 
     "Shutdown" {
-        catchingUnwrapped { HttpClient().get(ENDPOINT_SHUTDOWN) }
+        try {
+            HttpClient().get(ENDPOINT_SHUTDOWN)
+        } catch (_: Exception) {
+        }
     }
 })
