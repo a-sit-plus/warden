@@ -49,11 +49,4 @@ class EndToEndTest : FreeSpec({
             result.shouldBeInstanceOf<AttestationResponse.Success>()
         }
     }
-
-    "Shutdown" {
-        try {
-            HttpClient().get(ENDPOINT_SHUTDOWN)
-        } catch (_: Exception) {
-        }
-    }
 })

@@ -134,6 +134,7 @@ class TestEnv : FreeSpec({
                             }
                         }
                     call.respondText(Json.encodeToString(resp), contentType = ContentType.Application.Json)
+                    running=false
                 }
             }
         }.start(wait = false)
