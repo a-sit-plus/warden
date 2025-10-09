@@ -24,6 +24,7 @@ import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.coroutines.delay
 import kotlinx.serialization.json.Json
 import kotlin.random.Random
 import kotlin.time.Clock
@@ -134,7 +135,8 @@ class TestEnv : FreeSpec({
                             }
                         }
                     call.respondText(Json.encodeToString(resp), contentType = ContentType.Application.Json)
-                    running=false
+                    delay(3000)
+                    running = false
                 }
             }
         }.start(wait = false)
