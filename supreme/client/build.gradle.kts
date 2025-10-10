@@ -86,11 +86,9 @@ android {
         androidTestImplementation(libs.runner)
         androidTestImplementation(libs.core)
         androidTestImplementation(libs.rules)
-        androidTestImplementation(libs.kotest.runner.android)
         androidTestImplementation(ktor("client-cio"))
         androidTestImplementation(ktor("serialization-kotlinx-json"))
         androidTestImplementation(ktor("client-content-negotiation"))
-        testImplementation(libs.kotest.extensions.android)
     }
 
     packaging {
