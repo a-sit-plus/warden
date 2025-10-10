@@ -3,7 +3,6 @@ package at.asitplus.attestation.test
 import androidx.test.filters.SmallTest
 import at.asitplus.attestation.supreme.*
 import at.asitplus.signum.supreme.os.PlatformSigningProvider
-import at.asitplus.signum.supreme.sign.Signer
 import io.kotest.engine.runBlocking
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
@@ -37,26 +36,16 @@ class EndToEndTest {
         }
     }
 
-    lateinit var attestationChallenge: AttestationChallenge
 
     @Test
-    fun getChallenge() {
+    fun EndToEndTest() {
         runBlocking {
-
             val resp = client.getChallenge(Url(ENDPOINT_CHALLENGE))
             println(resp)
             resp.isSuccess shouldBe true
-            attestationChallenge = resp.getOrThrow()
-        }
-    }
+            val attestationChallenge: AttestationChallenge = resp.getOrThrow()
 
-    lateinit var signer: Signer.Attestable<*>
-
-    @Test
-    fun initSigner() {
-        runBlocking {
-
-            signer = PlatformSigningProvider.createSigningKey(alias) {
+            val signer = PlatformSigningProvider.createSigningKey(alias) {
                 ec {}
                 hardware {
                     attestation {
@@ -64,12 +53,7 @@ class EndToEndTest {
                     }
                 }
             }.getOrThrow()
-        }
-    }
 
-    @Test
-    fun postAttestation() {
-        runBlocking {
             val csr = signer.createCsr(attestationChallenge).getOrThrow()
             val result = client.attest(csr, attestationChallenge.attestationEndpointUrl)
             result.shouldBeInstanceOf<AttestationResponse.Success>()
