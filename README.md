@@ -13,6 +13,10 @@
 
 </div>
 
+
+> [!IMPORTANT]  
+> This repository has been integrated into [Warden Supreme](https://a-sit-plus.github.io/warden-supreme/). All further development happens there.
+
 Server-side library providing a unified interface for key attestation compatible with Android and iOS (yes, even iOS!).
 It also provides App attestation on both platforms (see [our 2019 Paper](https://graz.elsevierpure.com/en/publications/fides-unleashing-the-full-potential-of-remote-attestation) 
 on how to remotely establish trust in Android applications for more Android-specifics on this matter).
